@@ -492,7 +492,7 @@ function vSale(){
   if(!S.curWh)return emptyWh();
   return `<div class="sale">
   <section class="pane"><div class="pane-h"><div class="row" style="gap:8px 14px"><h2>Касса</h2><label class="row" style="gap:6px;font-size:14px" for="saleWh"><span class="muted">Склад продажи</span><select id="saleWh" data-ch="curwh" style="width:auto;min-width:170px;font-weight:600">${allowedWh().map(w=>`<option value="${esc(w.id)}"${w.id===S.curWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label></div><div class="seg mini" role="group" aria-label="Вид">${[['list','Список'],['tiles','Плитки']].map(([k,v])=>`<button data-act="saleview" data-v="${k}" aria-pressed="${S.saleView===k}">${v}</button>`).join('')}</div></div>
-   <input id="saleQ" class="search" data-in="saleq" placeholder="Поиск: название, артикул или серийный номер (Enter — добавить)" value="${esc(S.saleQ)}" autocomplete="off">
+   <div class="row" style="gap:8px;flex-wrap:nowrap;margin-bottom:12px"><input id="saleQ" class="search" style="margin:0" data-in="saleq" placeholder="Поиск: название, артикул или серийный номер (Enter — добавить)" value="${esc(S.saleQ)}" autocomplete="off">${kitList().length?`<button class="btn ghost" data-act="kit-pick"${roS()}>Комплекты</button>`:''}</div>
    <div id="saleGrid">${saleTiles()}</div></section>
   <aside class="pane cart" id="cart" aria-label="Чек">${cartHtml()}</aside></div>`}
 function priceLabel(p){if(!isPcProd(p))return money(p.sellPrice);const ps=snAt(S.curWh,p.id).filter(x=>S.pca[x]).map(pcPrice);if(!ps.length)return money(p.sellPrice);const lo=Math.min(...ps),hi=Math.max(...ps);return lo===hi?money(lo):'от '+money(lo)}
@@ -541,7 +541,7 @@ function cartHtml(){
   return h}
 function calcCart(){
   let list=0,sub=0;const L=S.cart.map(l=>{const q=(S.P[l.p]?.serial||(l.sn||[]).some(x=>S.pca[x]))?(l.sn||[]).length:num(l.q),pr=num(l.price),d=Math.min(100,Math.max(0,num(l.disc)));
-    const s=r2(q*pr*(1-d/100));const lp=(l.sn||[]).length===1&&S.pca[l.sn[0]]?pcPrice(l.sn[0]):(num(S.P[l.p]?.sellPrice)||pr);list+=q*lp;sub+=s;return{q,s,lp}});
+    const s=r2(q*pr*(1-d/100));const lp=l.kit?pr:(l.sn||[]).length===1&&S.pca[l.sn[0]]?pcPrice(l.sn[0]):(num(S.P[l.p]?.sellPrice)||pr);list+=q*lp;sub+=s;return{q,s,lp}});
   sub=r2(sub);let cd=S.cDiscT==='%'?sub*Math.min(100,Math.max(0,num(S.cDisc)))/100:Math.max(0,num(S.cDisc));cd=r2(Math.min(cd,sub));
   const total=r2(sub-cd);const eff=list>0?(1-total/list)*100:0;return{L,sub,cd,total,list,eff}}
 function updCart(){
@@ -574,7 +574,7 @@ async function postSale(){
     paid=r2(num(S.paidNow));if(paid<0||paid>c.total){err.textContent='Оплаченная сумма должна быть от 0 до суммы чека';return}
     const lim=num(S.C[S.custSel]?.limit);if(lim&&debtOf(S.custSel)+c.total-paid>lim+0.001){err.textContent=`Превышен кредитный лимит покупателя (${money(lim)})`;return}}
   const f=c.sub>0?c.total/c.sub:0;
-  const items=S.cart.map((l,i)=>{const it={p:l.p,q:r3(c.L[i].q),price:r2(num(l.price)),disc:r2(Math.min(100,Math.max(0,num(l.disc)))),sum:r2(c.L[i].s*f)};wSet(it,l.p);if((l.sn||[]).length)it.sn=[...l.sn];if(it.sn&&it.sn.length===1&&S.pca[it.sn[0]])it.parts=snapParts(it.sn[0]);return it});
+  const items=S.cart.map((l,i)=>{const it={...(l.kit?{kit:l.kit}:{}),p:l.p,q:r3(c.L[i].q),price:r2(num(l.price)),disc:r2(Math.min(100,Math.max(0,num(l.disc)))),sum:r2(c.L[i].s*f)};wSet(it,l.p);if((l.sn||[]).length)it.sn=[...l.sn];if(it.sn&&it.sn.length===1&&S.pca[it.sn[0]])it.parts=snapParts(it.sn[0]);return it});
   const diff=r2(c.total-items.reduce((s,i)=>s+i.sum,0));if(items.length&&diff)items[items.length-1].sum=r2(items[items.length-1].sum+diff);
   const acc=S.pay==='cash'?accOf('cash'):($('#cartAcc')?.value||accOf(S.pay));S.payAcc=S.pay==='cash'?S.payAcc:acc;
   const o={type:'sale',at:now(),wh:S.curWh,items,sub:c.sub,disc:c.cd,total:c.total,paid,pay:S.pay,acc,cust:S.custSel||null,party:S.note.trim(),by:S.uid||null};
@@ -2306,9 +2306,53 @@ function billXlsx(d){const X=v=>String(v??'').replace(/[\u0000-\u0008\u000B\u000
     ['xl/workbook.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Счет на оплату" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">'Счет на оплату'!$A$1:$AH$${last}</definedName></definedNames></workbook>`],
     ['xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
     ['xl/worksheets/sheet1.xml',sheet],['xl/styles.xml',styles]])}
+/* ---------- комплекты (дешевле вместе) ---------- */
+const kitList=()=>Array.isArray(S.set.kits)?S.set.kits:[];
+const kitOk=k=>(k.items||[]).length>1&&k.items.every(i=>S.P[i.p]&&!S.P[i.p].archived);
+const kitSep=k=>r2((k.items||[]).reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));
+const kitAvail=(k,ws)=>Math.max(0,Math.min(...(k.items||[]).map(i=>Math.floor(qtyIn(ws,i.p)/Math.max(1,num(i.q))))));
+function kitsPane(){const L=kitList();const ed=plCanSave();const ws=plWhs(plCfg());
+  return `<section class="pane"><div class="pane-h"><h2>Комплекты — дешевле вместе</h2>${ed?'<button class="btn ghost" data-act="kit-new">Создать комплект</button>':''}</div>
+  <p class="muted small" style="margin-bottom:8px">Набор товаров с общей ценой ниже суммы по отдельности, например «Материнская плата + процессор + память». Комплекты попадают в прайс отдельным блоком и продаются в «Кассе» кнопкой «Комплекты» — цены товаров в чеке уменьшаются пропорционально.</p>
+  ${L.length?`<div class="tbl"><table><thead><tr><th>Комплект</th><th class="num">По отдельности</th><th class="num">Цена комплекта</th><th class="num">Выгода</th><th class="num">Можно собрать</th><th></th></tr></thead><tbody>${L.map(k=>{const ok=kitOk(k);const sep=kitSep(k);return `<tr${k.pl===false?' style="opacity:.6"':''}><td><span class="pname">${esc(k.name)}</span><span class="psku">${ok?k.items.map(i=>esc(pname(i.p))+(num(i.q)>1?' ×'+q3(i.q):'')).join(' + '):'<span style="color:var(--bad)">товар удалён или в архиве</span>'}${k.pl===false?' · не в прайсе':''}</span></td><td class="num muted">${money(sep)}</td><td class="num"><b>${money(k.price)}</b></td><td class="num" style="color:var(--good)">${sep>k.price?money(sep-k.price):'—'}</td><td class="num">${ok?q3(kitAvail(k,ws))+' шт':'—'}</td><td style="white-space:nowrap">${ed?`<button class="btn link" data-act="kit-edit" data-id="${esc(k.id)}">Изменить</button><button class="btn link bad" data-act="kit-del" data-id="${esc(k.id)}">Удалить</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Комплектов пока нет</div>'}</section>`}
+function kitForm(id){const k=id?kitList().find(x=>x.id===id):null;S.kitEd=k?JSON.parse(JSON.stringify(k)):{id:'k'+Date.now().toString(36),name:'',items:[],price:'',pl:true};S.kitQ='';kitRender()}
+function kitRender(){const e=S.kitEd;const sep=r2(e.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(e.price);
+  openModal(`<h2>${kitList().some(x=>x.id===e.id)?'Изменить комплект':'Новый комплект'}</h2>
+  <label class="field" style="flex:none"><span>Название *</span><input id="kitName" data-in="kitf" data-f="name" value="${esc(e.name)}" placeholder="Например: Комплект Intel i5-12400F + B760 + 16GB"></label>
+  <div class="picker"><input id="kitQ" data-in="kitq" placeholder="Добавить товар: начните вводить название или артикул" value="${esc(S.kitQ)}" autocomplete="off"><div id="kitRes">${kitResults()}</div></div>
+  <div class="tbl">${e.items.length?`<table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th><th></th></tr></thead><tbody>${e.items.map((i,n)=>`<tr><td>${esc(pname(i.p))}</td><td class="num"><input class="xs" inputmode="numeric" data-in="kitl" data-i="${n}" value="${esc(i.q)}"></td><td class="num muted">${NF.format(num(S.P[i.p]?.sellPrice))}</td><td class="num">${NF.format(r2(num(S.P[i.p]?.sellPrice)*num(i.q)))}</td><td><button class="x" data-act="kit-rm" data-i="${n}" aria-label="Убрать">×</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Добавьте минимум два товара</div>'}</div>
+  <div class="row" style="align-items:flex-end"><div class="field" style="flex:0 1 180px"><span>По отдельности</span><b style="padding:8px 0">${money(sep)}</b></div>
+   <label class="field" style="flex:0 1 180px"><span>Цена комплекта, сом *</span><input id="kitPrice" data-in="kitf" data-f="price" inputmode="decimal" value="${esc(e.price)}"></label>
+   <label class="field" style="flex:0 1 140px"><span>или скидка, %</span><input id="kitPct" data-in="kitpct" inputmode="decimal" value="${sep&&pr?esc(r2((1-pr/sep)*100)):''}"></label>
+   <div class="field" style="flex:1 1 140px"><span>Выгода покупателя</span><b id="kitGain" style="padding:8px 0;color:var(--good)">${sep&&pr&&sep>pr?money(sep-pr):'—'}</b></div></div>
+  <label class="check"><input type="checkbox" data-ch="kitpl"${e.pl!==false?' checked':''}> Показывать в прайс-листе</label>
+  <div class="err" id="kitErr"></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="kit-save">Сохранить комплект</button></div>`);$('#mcard').classList.add('wide');
+  const q=$('#kitQ');if(q&&S.kitQ){q.focus();q.setSelectionRange(q.value.length,q.value.length)}}
+function kitResults(){const q=(S.kitQ||'').trim();if(!q)return '';const list=filterProds(q).filter(p=>!isPcProd(p)).slice(0,8);
+  return `<div class="results">${list.length?list.map(p=>`<button data-act="kit-add" data-id="${esc(p.id)}"><span>${esc(p.name)}</span><span class="muted">${money(p.sellPrice)}</span></button>`).join(''):'<div class="empty" style="padding:12px">Не найдено</div>'}</div>`}
+async function kitSave(){const e=S.kitEd;const err=$('#kitErr');e.name=$('#kitName').value.trim();e.price=r2(num($('#kitPrice').value));
+  if(!e.name){err.textContent='Укажите название комплекта';return}if(e.items.length<2){err.textContent='В комплекте должно быть минимум два товара';return}
+  if(e.items.some(i=>!(num(i.q)>0))){err.textContent='Количество должно быть больше нуля';return}if(!(e.price>0)){err.textContent='Укажите цену комплекта';return}
+  const L=kitList().filter(x=>x.id!==e.id);const i0=kitList().findIndex(x=>x.id===e.id);const k={id:e.id,name:e.name,items:e.items.map(i=>({p:i.p,q:r3(num(i.q))})),price:e.price,pl:e.pl!==false};
+  if(i0>=0)L.splice(i0,0,k);else L.push(k);
+  if(await guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект сохранён','catalog')){S.set.kits=L;S.kitEd=null;closeModal(true);render()}}
+/* прайс */
+function plKits(c){if(c.kits===false)return [];const ws=plWhs(c);return kitList().filter(k=>k.pl!==false&&kitOk(k)).map(k=>{const av=kitAvail(k,ws);const sep=r2(k.items.reduce((a,i)=>a+plPrice(c,S.P[i.p])*num(i.q),0));
+  return{name:k.name,comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
+/* касса */
+function kitPickModal(){const L=kitList().filter(kitOk);const ws=[S.W[S.curWh]].filter(Boolean);
+  openModal(`<h2>Комплекты</h2><p class="muted small">Склад «${esc(wname(S.curWh))}». Товары комплекта добавятся в чек, цены уменьшатся так, чтобы сумма была равна цене комплекта.</p>
+  ${L.length?`<div class="hits" style="max-height:420px">${L.map(k=>{const av=kitAvail(k,ws);const sep=kitSep(k);return `<button data-act="kit-sell" data-id="${esc(k.id)}"${av>0?'':' disabled style="opacity:.5"'}><span><b>${esc(k.name)}</b><span class="psku">${k.items.map(i=>esc(pname(i.p))+(num(i.q)>1?' ×'+q3(i.q):'')).join(' + ')}</span></span><span class="num" style="white-space:nowrap">${sep>k.price?`<s class="muted small">${NF.format(sep)}</s> `:''}<b>${money(k.price)}</b><span class="psku">${av>0?'можно собрать: '+av:'нет на складе'}</span></span></button>`}).join('')}</div>`:'<div class="empty">Комплектов нет. Их создают в разделе «Прайс-лист».</div>'}
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Закрыть</button></div>`)}
+function kitSell(id){const k=kitList().find(x=>x.id===id);if(!k)return;const sep=kitSep(k);if(!sep)return;const f=num(k.price)/sep;
+  const lines=k.items.map(i=>({p:i.p,q:num(i.q),price:r2(num(S.P[i.p].sellPrice)*f)}));const diff=r2(num(k.price)-lines.reduce((a,l)=>a+l.price*l.q,0));lines[0].price=r2(lines[0].price+diff/lines[0].q);
+  let ser=false;for(const l of lines){const p=S.P[l.p];if(p.serial){ser=true;S.cart.push({p:l.p,q:0,price:l.price,disc:'',sn:[],kit:k.name,kq:l.q})}else S.cart.push({p:l.p,q:l.q,price:l.price,disc:'',kit:k.name})}
+  closeModal(true);render();toast(ser?`Комплект «${k.name}» добавлен — выберите серийные номера`:`Комплект «${k.name}» добавлен`)}
+
 /* ---------- прайс-лист ---------- */
-const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10};
-function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
+const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
+function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
 const plCanSave=()=>S.isOwner||can('catalog');
 function plWhs(c){const VW=viewWh();return c.wh==='all'||!VW.some(w=>w.id===c.wh)?VW:[S.W[c.wh]]}
 function plBase(c,p){let v=num(p.sellPrice);if(c.mode==='pct'&&num(c.pct))v=v*(1+num(c.pct)/100);const r=num(c.round)||1;return r>1?Math.round(v/r)*r:r2(v)}
@@ -2329,10 +2373,11 @@ function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const r
     <div class="field" style="flex:0 1 auto"><span>Цены</span><div class="seg">${[['retail','Розничные'],['pct','Розница ± %']].map(([k,v])=>`<button data-act="plmode" data-v="${k}" aria-pressed="${c.mode===k}">${v}</button>`).join('')}</div></div>
     ${c.mode==='pct'?`<label class="field" style="flex:0 1 120px"><span>Изменить на, %</span><input data-in="plf" data-f="pct" data-re="1" inputmode="decimal" value="${esc(c.pct)}" placeholder="-10"></label>`:''}
     <label class="field" style="flex:0 1 150px"><span>Округлять до</span><select data-ch="plsel" data-f="round">${[['1','копейки'],['10','10 сом'],['50','50 сом'],['100','100 сом']].map(([k,v])=>`<option value="${k}"${String(c.round)===k?' selected':''}>${v}</option>`).join('')}</select></label></div>
-   <div class="row" style="gap:16px"><span class="muted small">Колонки:</span><label class="check"><input type="checkbox" data-ch="plcol" data-f="war"${c.cols.war?' checked':''}> Гарантия</label><label class="row" style="gap:6px">Выделять новинки за <input class="sm" data-in="plf" data-f="newDays" inputmode="numeric" value="${esc(c.newDays)}" style="width:56px"> дн.</label>
+   <div class="row" style="gap:16px"><span class="muted small">Колонки:</span><label class="check"><input type="checkbox" data-ch="plcol" data-f="war"${c.cols.war?' checked':''}> Гарантия</label><label class="check"><input type="checkbox" data-ch="plchk" data-f="kits"${c.kits!==false?' checked':''}> Блок «Комплекты»</label><label class="row" style="gap:6px">Выделять новинки за <input class="sm" data-in="plf" data-f="newDays" inputmode="numeric" value="${esc(c.newDays)}" style="width:56px"> дн.</label>
     <label class="row" style="gap:6px"><span>Наличие:</span><select data-ch="plstock" style="width:auto">${[['smart','до 5 шт — количество, больше — «в наличии»'],['none','не показывать']].map(([k,v])=>`<option value="${k}"${c.cols.stock===k?' selected':''}>${v}</option>`).join('')}</select></label></div>
    <details${c.groups.length?' open':''}><summary class="small" style="cursor:pointer">Группы в прайсе: ${c.groups.length?c.groups.length+' из '+gs.length:'все'}</summary><div class="perm" style="margin-top:8px">${gs.map(g=>`<label><input type="checkbox" data-ch="plgrp" value="${esc(g)}"${!c.groups.length||c.groups.includes(g)?' checked':''}>${esc(g)}</label>`).join('')}</div></details>
    ${plCanSave()?'':'<p class="muted small">Вы можете настроить и скачать прайс, но сохранить настройки может только владелец или сотрудник с правом «Товары».</p>'}</section>
+  ${kitsPane()}
   <section class="pane"><div class="pane-h"><h2>Товары в прайсе</h2><span class="muted">${inc.length} поз.${Object.keys(c.ov).length?` · <button class="btn link" data-act="plov-clear">сбросить ручные цены (${Object.keys(c.ov).length})</button>`:''}</span></div>
    <p class="muted small" style="margin-bottom:8px">Снимите галочку, чтобы убрать товар из прайса. В «Примечание» можно написать, например, «б/у» или «царапина на корпусе» — колонка появится в прайсе, если есть хоть одно примечание. В колонке «В прайсе» можно вписать свою цену — она попадёт только в прайс-лист, цена в кассе не изменится. Товар, впервые поступивший за последние дни, помечается как новинка.</p>
    <div class="tbl">${rows.length?`<table><thead><tr><th></th><th>Товар</th><th>Примечание</th><th class="num">Гарантия</th><th class="num">Наличие</th><th class="num">Розница</th><th class="num">В прайсе</th><th></th></tr></thead><tbody>${body}</tbody></table>`:'<div class="empty">Нет товаров по этим условиям</div>'}</div></section></div>`}
@@ -2352,7 +2397,7 @@ function plContact(c){const VW=viewWh();const s=S.set;const one=c.wh!=='all'&&S.
 function plData(){const c=plCfg();const s=S.set;const rows=plRows(c,false);const st=c.cols.stock!=='none';const fi=plFirstIn();const groups=[];let cur=null,n=0;
   for(const r of rows){if(!cur||cur.name!==r.g){cur={name:r.g,items:[]};groups.push(cur)}n++;cur.items.push({n,name:r.p.name,note:(c.notes[r.p.id]||'').trim(),isNew:plIsNew(c,fi,r.p.id),war:pWTxt(r.p)||'—',q:r.q,stock:plStock(r.q),price:plPrice(c,r.p)})}
   const anyNote=groups.some(g=>g.items.some(i=>i.note)),anyNew=groups.some(g=>g.items.some(i=>i.isNew));
-  return{anyNote,anyNew,newDays:num(c.newDays),title:c.title||'Прайс-лист',note:c.note||'',date:ds(now()),shop:(c.wh!=='all'&&S.W[c.wh]?S.W[c.wh].name:'')||s.shopName||'',contact:plContact(c),war:!!c.cols.war,st,groups,total:n}}
+  return{kits:plKits(c),anyNote,anyNew,newDays:num(c.newDays),title:c.title||'Прайс-лист',note:c.note||'',date:ds(now()),shop:(c.wh!=='all'&&S.W[c.wh]?S.W[c.wh].name:'')||s.shopName||'',contact:plContact(c),war:!!c.cols.war,st,groups,total:n}}
 function plPages(d){const K=200/150,PW=1240,PH=1754,M=64,CW=PW-2*M,F='Arial, "Helvetica Neue", Helvetica, sans-serif';const pages=[];let c,x,y;
   const font=(sz,b)=>{x.font=`${b?'bold ':''}${sz}px ${F}`};
   const wrap=(t,w)=>{const out=[];let line='';for(const word of String(t??'').split(/\s+/)){if(!word)continue;const cand=line?line+' '+word:word;if(x.measureText(cand).width<=w){line=cand;continue}if(line)out.push(line);let wd=word;while(x.measureText(wd).width>w){let k=wd.length;while(k>1&&x.measureText(wd.slice(0,k)).width>w)k--;out.push(wd.slice(0,k));wd=wd.slice(k)}line=wd}out.push(line);return out};
@@ -2370,6 +2415,16 @@ function plPages(d){const K=200/150,PW=1240,PH=1754,M=64,CW=PW-2*M,F='Arial, "He
   if(d.note){y+=6;font(22,true);const NL=wrap(d.note,CW-60);const nh=NL.length*30+24;x.fillStyle='#FFF1CC';x.fillRect(M,y,CW,nh);x.fillStyle='#E08A00';x.fillRect(M,y,8,nh);
     x.fillStyle='#E08A00';font(24,true);x.fillText('!',M+24,y+12);font(22,true);x.fillStyle='#5A3A00';NL.forEach((l,k)=>x.fillText(l,M+48,y+13+k*30));y+=nh+8}y+=14;
   hdr();
+  if(d.kits.length){const KC='#B4600B';font(21,true);const gh=46;x.fillStyle=KC;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,6,gh);x.fillText('КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ',M+P+8,y+13);font(16,false);x.fillStyle='#FFE9CC';x.textAlign='right';x.fillText(`${d.kits.length} шт.`,PW-M-P,y+15);x.textAlign='left';y+=gh;
+    const pi=cols.length-1;const ci=cols.findIndex(t=>t[0]==='Наличие');
+    d.kits.forEach((k,j)=>{font(19,true);const nm=wrap(k.name,cw[1]+(d.anyNote?cw[2]:0)-2*P);font(16,false);const cl=k.comps.flatMap(t=>wrap('• '+t,cw[1]+(d.anyNote?cw[2]:0)-2*P-10));const h=Math.max(nm.length*25+cl.length*22,78)+20;
+      if(y+h>PH-M-30){page();hdr()}
+      x.fillStyle='#FFF6EA';x.fillRect(M,y,CW,h);x.fillStyle=KC;x.fillRect(M,y,5,h);x.strokeStyle=PLC.line;x.lineWidth=1;x.beginPath();x.moveTo(M,y+h);x.lineTo(M+CW,y+h);x.stroke();
+      let cx=M;for(let i=0;i<cols.length;i++){if(i===0){font(16,true);x.fillStyle=KC;put('К'+(j+1),0,cx,y+12)}
+        if(i===1){font(19,true);x.fillStyle='#111';nm.forEach((l,n)=>x.fillText(l,cx+P,y+10+n*25));font(16,false);x.fillStyle='#4A4A4A';cl.forEach((l,n)=>x.fillText(l,cx+P+10,y+12+nm.length*25+n*22))}
+        if(i===ci){font(17,true);x.fillStyle=k.q<=0?PLC.muted:k.q<=5?PLC.low:PLC.ok;put(k.stock,i,cx,y+12)}
+        if(i===pi){font(22,true);x.fillStyle=KC;put(NF0.format(Math.round(k.price)),i,cx,y+10);if(k.sep>k.price){font(15,false);x.fillStyle=PLC.muted;const t=NF0.format(Math.round(k.sep));put(t,i,cx,y+40);const tw=x.measureText(t).width;x.strokeStyle=PLC.muted;x.lineWidth=1.5;x.beginPath();x.moveTo(cx+cw[i]-P-tw,y+49);x.lineTo(cx+cw[i]-P,y+49);x.stroke();font(14,true);x.fillStyle=PLC.ok;put('выгода '+NF0.format(Math.round(k.sep-k.price)),i,cx,y+62)}}
+        cx+=cw[i]}y+=h});y+=10}
   for(const g of d.groups){font(21,true);const gh=46;if(y+gh+60>PH-M-30){page();hdr()}
     x.fillStyle=PLC.band2;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,6,gh);x.fillStyle='#fff';x.fillText(g.name.toUpperCase(),M+P+8,y+13);font(16,false);x.fillStyle='#DCE8F5';x.textAlign='right';x.fillText(`${g.items.length} поз.`,PW-M-P,y+15);x.textAlign='left';y+=gh;
     g.items.forEach((it,k)=>{font(19,false);const nm=wrap((it.isNew?'★ ':'')+it.name,cw[1]-2*P);const ni=cols.findIndex(t=>t[0]==='Примечание');font(16,false);const nt=ni>=0&&it.note?wrap(it.note,cw[ni]-2*P):[];font(19,false);const h=Math.max(1,nm.length,Math.ceil(nt.length*22/25))*25+18;if(y+h>PH-M-30){page();hdr();font(16,true);x.fillStyle=PLC.band2;x.fillText(g.name+' (продолжение)',M+P,y+8);y+=34}
@@ -2397,6 +2452,9 @@ function plXlsx(d){const X=v=>String(v??'').replace(/[\u0000-\u0008\u000B\u000C\
   band(d.shop||d.title,{sz:18,b:1,c:'#FFFFFF',bg:PLC.band,ind:1},34);for(const l of d.contact)band(l,{sz:10,c:'#CFE0F2',bg:PLC.band,ind:1},18);band('',{bg:PLC.band2},5);
   add(()=>'',8);band(d.title.toUpperCase(),{sz:15,b:1,c:PLC.head},26);band(`на ${d.date}`,{sz:10,c:PLC.muted},16);if(d.note){add(()=>'',4);band('!  '+d.note,{sz:12,b:1,c:'#5A3A00',bg:'#FFF1CC',ind:1,w:1},Math.max(24,Math.ceil(d.note.length/95)*17+8))}add(()=>'',8);
   add(()=>cols.map((t,i)=>cell(i,t[0],{b:1,c:'#FFFFFF',bg:PLC.head,h:i===1?'left':i===n-1?'right':'center',ind:i===1?1:0})).join(''),24);const hr=r;
+  if(d.kits.length){add(()=>cols.map((_,i)=>cell(i,i?null:`КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ   (${d.kits.length} шт.)`,{sz:11,b:1,c:'#FFFFFF',bg:'#B4600B',ind:1})).join(''),24);merges.push(`A${r}:${last}${r}`);
+    d.kits.forEach((k,j)=>{const txt=[k.name,...k.comps.map(t=>'   • '+t),...(k.sep>k.price?[`   По отдельности: ${NF0.format(Math.round(k.sep))} сом, выгода ${NF0.format(Math.round(k.sep-k.price))} сом`]:[])].join('\n');const lines=1+k.comps.length+(k.sep>k.price?1:0);
+      add(()=>cols.map((t,i)=>{const lab=t[0];const base={bg:'#FFF6EA',bb:1};if(lab==='№')return cell(i,'К'+(j+1),{...base,b:1,c:'#B4600B',h:'center'});if(lab==='Наименование')return cell(i,txt,{...base,w:1,ind:1,v:'top'});if(lab==='Наличие')return cell(i,k.stock,{...base,b:1,h:'center',c:k.q<=0?PLC.muted:k.q<=5?PLC.low:PLC.ok});if(lab==='Цена, сом')return cell(i,Math.round(k.price),{...base,b:1,sz:12,h:'right',c:'#B4600B',nf:3});return cell(i,'',base)}).join(''),lines*14+8)})}
   for(const g of d.groups){add(()=>cols.map((_,i)=>cell(i,i?null:`${g.name.toUpperCase()}   (${g.items.length} поз.)`,{sz:11,b:1,c:'#FFFFFF',bg:PLC.band2,ind:1})).join(''),24);merges.push(`A${r}:${last}${r}`);
     g.items.forEach((it,k)=>{const bg=it.isNew?'#E4F5EA':k%2?PLC.zebra:null;const lines=Math.max(1,Math.ceil(((it.isNew?2:0)+it.name.length)/(cols[1][1]*(it.isNew?0.85:1))),it.note?Math.ceil(it.note.length/30):1);
       add(()=>cols.map((t,i)=>{const lab=t[0];const base={bg,bb:1};if(lab==='№')return cell(i,it.n,{...base,c:PLC.muted,h:'center'});if(lab==='Наименование')return cell(i,(it.isNew?'★ ':'')+it.name,{...base,w:1,ind:1,...(it.isNew?{b:1,c:'#0F5132'}:{})});if(lab==='Примечание')return cell(i,it.note,{...base,w:1,sz:9,c:'#8A3B12'});if(lab==='Гарантия')return cell(i,it.war,{...base,h:'center',c:it.war==='—'?PLC.muted:'#333333'});
@@ -2452,6 +2510,9 @@ function cartAdd(pid,sn){const p=S.P[pid];if(!p)return;
   const l=S.cart.find(l=>l.p===pid);if(l)l.q=r3(num(l.q)+1);else S.cart.push({p:pid,q:1,price:num(p.sellPrice),disc:''});$('#cart').innerHTML=cartHtml();updCart()}
 function clearSaleQ(){S.saleQ='';const e=$('#saleQ');if(e){e.value='';$('#saleGrid').innerHTML=saleTiles();e.focus()}}
 const ACT={
+  'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
+  'kit-add':t=>{const e=S.kitEd;const i=e.items.find(x=>x.p===t.dataset.id);if(i)i.q=num(i.q)+1;else e.items.push({p:t.dataset.id,q:1});S.kitQ='';kitRender()},'kit-rm':t=>{S.kitEd.items.splice(+t.dataset.i,1);kitRender()},'kit-save':()=>kitSave(),
+  'kit-pick':()=>kitPickModal(),'kit-sell':t=>kitSell(t.dataset.id),
   'sn-conv':t=>{if(!can('stock')||!can('catalog')){toast('Нужны права на приход и товары');return}snConvForm(t.dataset.id)},'sncv-save':()=>snConvSave(),
   'imp-stock':()=>impOpen(),'imp-run':()=>impRunStock(),'imp-reset':()=>{S.imp.items=[];S.imp.plan=null;impRender()},
   signout:()=>window.SK_SIGNOUT&&window.SK_SIGNOUT(),'exp-all':()=>expAll(),'imp-yes':()=>impRun(),
@@ -2648,6 +2709,8 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
 };
 const keepFocus=(id,fn)=>{const e=document.getElementById(id);const pos=e?.selectionStart;fn();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}};
 const IN={
+  kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
+  kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
   cart:t=>{const l=S.cart[+t.dataset.i];if(l){l[t.dataset.f]=t.value;updCart()}},
@@ -2688,6 +2751,7 @@ opdlv:t=>{S.op.dlv=t.value;updOp()},
   snf:t=>{S.snF=t.value;const c=S.snCtx;const l=snLine();$('#snList').innerHTML=snListHtml(snWh(c),l.p)},
 };
 const CH={
+  kitpl:t=>{S.kitEd.pl=t.checked},
   'imp-stock':t=>impFileStock(t),'imp-wh':t=>{S.imp.wh=t.value;if(S.imp.items.length)impRender()},'imp-upd':t=>{S.imp.upd=t.checked},
   'imp-file':t=>impFile(t),
   cartacc:t=>{S.payAcc=t.value},
