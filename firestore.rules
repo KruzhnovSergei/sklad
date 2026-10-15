@@ -1,0 +1,53 @@
+rules_version = '2';
+// Правила доступа к базе «Склад и касса».
+// Владелец определяется по Google-почте. Сотрудники — по документу staff/{uid},
+// который создаёт владелец в разделе «Настройки» → «Сотрудники».
+// lvl: 'admin' — склад, товары, поставщики, деньги; 'seller' — касса, покупатели, гарантия.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() == 'kruznovsergej0@gmail.com';
+    }
+    function staffPath() { return /databases/$(database)/documents/staff/$(request.auth.uid); }
+    function isStaff() { return signedIn() && exists(staffPath()); }
+    function me() { return get(staffPath()).data; }
+    function member() { return isOwner() || (isStaff() && me().get('off', false) != true); }
+    function admin()  { return isOwner() || (member() && me().get('lvl', 'seller') == 'admin'); }
+    function seller() { return isOwner() || (member() && me().get('lvl', 'seller') in ['admin', 'seller']); }
+
+    // Продажи, покупатели, гарантийные обращения — работают продавцы
+    match /sales/{id}     { allow read: if member(); allow write: if seller(); }
+    match /customers/{id} { allow read: if member(); allow write: if seller(); }
+    match /claims/{id}    { allow read: if member(); allow write: if seller(); }
+
+    // Справочники и складские документы — видят все, меняют администраторы
+    match /warehouses/{id} { allow read: if member(); allow write: if admin(); }
+    match /products/{id}   { allow read: if member(); allow write: if admin(); }
+    match /groups/{id}     { allow read: if member(); allow write: if admin(); }
+    match /settings/{id}   { allow read: if member(); allow write: if admin(); }
+    match /ops/{id}        { allow read: if member(); allow write: if admin(); }
+
+    // Себестоимость, поставщики, деньги, заказы — только администраторы
+    match /costs/{id}     { allow read, write: if admin(); }
+    match /opcosts/{id}   { allow read, write: if admin(); }
+    match /suppliers/{id} { allow read, write: if admin(); }
+    match /suppays/{id}   { allow read, write: if admin(); }
+    match /money/{id}     { allow read, write: if admin(); }
+    match /pos/{id}       { allow read, write: if admin(); }
+
+    // Сотрудники: список видят все сотрудники, свою запись — сам человек, меняет только владелец
+    match /staff/{uid} {
+      allow read: if member() || (signedIn() && request.auth.uid == uid);
+      allow write: if isOwner();
+    }
+
+    // Кто входил в программу: каждый пишет только о себе, весь список видит владелец
+    match /seen/{uid} {
+      allow read, write: if isOwner() || (signedIn() && request.auth.uid == uid);
+    }
+  }
+}
