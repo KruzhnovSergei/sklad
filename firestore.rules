@@ -17,11 +17,19 @@ service cloud.firestore {
     function me() { return get(staffPath()).data; }
     function member() { return isOwner() || (isStaff() && me().get('off', false) != true); }
     function admin()  { return isOwner() || (member() && me().get('lvl', 'seller') == 'admin'); }
+    function hasPerm(p) { return isOwner() || (member() && p in me().get('perms', [])); }
+    // Розничных покупателей меняет право 'customers', оптовых — 'custopt'
+    function custOk(d) { return hasPerm(d.get('kind', 'retail') == 'opt' ? 'custopt' : 'customers'); }
     function seller() { return isOwner() || (member() && me().get('lvl', 'seller') in ['admin', 'seller']); }
 
     // Продажи, покупатели, гарантийные обращения — работают продавцы
     match /sales/{id}     { allow read: if member(); allow write: if seller(); }
-    match /customers/{id} { allow read: if member(); allow write: if seller(); }
+    match /customers/{id} {
+      allow read: if member();
+      allow create: if seller() && custOk(request.resource.data);
+      allow update: if seller() && custOk(resource.data) && custOk(request.resource.data);
+      allow delete: if seller() && custOk(resource.data);
+    }
     match /claims/{id}    { allow read: if member(); allow write: if seller(); }
 
     // Справочники и складские документы — видят все, меняют администраторы

@@ -283,9 +283,9 @@ const TYPES={in:{label:'Приход',doc:'Приходная накладная
 const PAY={qr:'Оплата по QR',cash:'Наличные',transfer:'Перевод (юр. лица)'};const PAYL={...PAY,card:'Карта'};
 const UNITS=['шт','кг','г','л','м','уп','кор'];
 const ROLE={owner:'Владелец',admin:'Администратор',seller:'Продавец',view:'Просмотр'};
-const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Добавление и изменение покупателей'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль',1],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена деталей',1]];
+const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Розничные покупатели: добавление и изменение'],['custopt','Оптовые покупатели: добавление и изменение'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль',1],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена деталей',1]];
 const EDK=new Set(PERMS.filter(x=>x[2]).map(x=>x[0]));
-const PRESETS={seller:{label:'Продавец',maxDisc:10,perms:['sell','debt','payments','customers','warranty']},senior:{label:'Старший продавец',maxDisc:20,perms:['sell','debt','payments','customers','warranty','returns','reports','price']},keeper:{label:'Кладовщик',maxDisc:0,perms:['stock','assembly','warranty']},admin:{label:'Администратор',maxDisc:100,perms:PERMS.map(x=>x[0])}};
+const PRESETS={seller:{label:'Продавец',maxDisc:10,perms:['sell','debt','payments','customers','warranty']},senior:{label:'Старший продавец',maxDisc:20,perms:['sell','debt','payments','customers','custopt','warranty','returns','reports','price']},keeper:{label:'Кладовщик',maxDisc:0,perms:['stock','assembly','warranty']},admin:{label:'Администратор',maxDisc:100,perms:PERMS.map(x=>x[0])}};
 const LVL={admin:'Редактор',seller:'Участник',view:'Просмотр'};
 TYPES.ret={label:'Возврат',doc:'Возврат товара',pre:'ВЗ'};TYPES.asm={label:'Сборка ПК',doc:'Акт сборки компьютера',pre:'СБ'};TYPES.mod={label:'Изменение сборки',doc:'Акт изменения комплектации',pre:'ИЗ'};TYPES.dis={label:'Разборка ПК',doc:'Акт разборки компьютера',pre:'РЗ'};TYPES.spay={label:'Оплата поставщику',doc:'Оплата поставщику',pre:'ОП'};TYPES.wx={label:'Обмен по гарантии',doc:'Акт обмена по гарантии',pre:'ОБ'};
 const CST={new:['Принят','low'],diag:['Диагностика','low'],sent:['У поставщика / в СЦ','t-move'],ready:['Готов к выдаче','ok'],closed:['Выдан клиенту','t-move']};
@@ -328,6 +328,10 @@ function jourWh(){if(S.isOwner)return null;const m=myStaff();const a=new Set([..
 const visDoc=(o,J)=>!J||(o.wh?J.has(o.wh)||(o.toWh&&J.has(o.toWh)):o.by&&o.by===S.uid);
 function allowedWh(){if(S.isOwner)return S.wh;const m=myStaff();const a=m?.whs||[];return a.length?S.wh.filter(w=>a.includes(w.id)):S.wh}
 const ro=k=>can(k)?'':' disabled';
+const ckind=c=>c&&c.kind==='opt'?'opt':'retail';const CKIND={retail:'Розничный',opt:'Оптовый'};
+const cperm=k=>k==='opt'?'custopt':'customers';const canCust=k=>can(cperm(k));const canAnyCust=()=>can('customers')||can('custopt');
+const roC=()=>canAnyCust()?'':' disabled';
+const custOpt=(x,sel)=>`<option value="${esc(x.id)}"${sel?' selected':''}>${esc(x.name)}${ckind(x)==='opt'?' · опт':''}${debtOf(x.id)>0?' · долг '+NF.format(debtOf(x.id)):''}</option>`;
 const roA=()=>ro('catalog');
 const roS=()=>ro('sell');
 
@@ -517,7 +521,7 @@ function cartHtml(){
    ${maxD!=null?`<div class="muted small">Вы можете дать скидку до ${NF.format(maxD)}%</div>`:''}</div>
    <div class="total"><span>Итого<small class="muted" id="cEff"></small></span><b id="cartTotal"></b></div>
    <div class="stack" style="gap:10px">
-   <div class="row"><select id="custSel" data-ch="custsel" style="flex:1 1 160px" aria-label="Покупатель"><option value="">Без покупателя</option>${cs.map(x=>`<option value="${esc(x.id)}"${x.id===S.custSel?' selected':''}>${esc(x.name)}${debtOf(x.id)>0?' · долг '+NF.format(debtOf(x.id)):''}</option>`).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="cart"${ro('customers')}>+ Покупатель</button></div>
+   <div class="row"><select id="custSel" data-ch="custsel" style="flex:1 1 160px" aria-label="Покупатель"><option value="">Без покупателя</option>${cs.map(x=>custOpt(x,x.id===S.custSel)).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="cart"${roC()}>+ Покупатель</button></div>
    <div class="infobox" id="custInfo"></div>
    <div class="seg" role="group" aria-label="Способ оплаты">${Object.entries(PAY).map(([k,v])=>`<button data-act="pay" data-v="${k}" aria-pressed="${S.pay===k}">${v}</button>`).join('')}</div>
    <div id="payAccBox">${accBox(S.pay,'cartAcc',S.payAcc,'Куда поступит оплата')}</div>
@@ -673,18 +677,20 @@ function snListModal(pid){const p=S.P[pid];const whs=S.stockWh==='all'?viewWh():
 /* ---------- покупатели ---------- */
 function vCustomers(){
   const f=S.cQ.trim().toLowerCase();const fd=f.replace(/\D/g,'');
-  const list=S.cust.filter(c=>(!f||(c.name||'').toLowerCase().includes(f)||(fd&&(c.phone||'').replace(/\D/g,'').includes(fd)))&&(!S.cDebtOnly||debtOf(c.id)>0.004))
+  const KC=S.cKind||'all';const base=S.cust.filter(c=>KC==='all'||ckind(c)===KC);
+  const list=base.filter(c=>(!f||(c.name||'').toLowerCase().includes(f)||(fd&&(c.phone||'').replace(/\D/g,'').includes(fd)))&&(!S.cDebtOnly||debtOf(c.id)>0.004))
     .sort((a,b)=>debtOf(b.id)-debtOf(a.id)||(a.name||'').localeCompare(b.name||'','ru'));
-  const tot=S.cust.reduce((s,c)=>s+Math.max(0,debtOf(c.id)),0),nD=S.cust.filter(c=>debtOf(c.id)>0.004).length;
+  const tot=base.reduce((s,c)=>s+Math.max(0,debtOf(c.id)),0),nD=base.filter(c=>debtOf(c.id)>0.004).length;
   const hist=new Set(S.sales.filter(o=>o.cust).map(o=>o.cust));
   return `<div class="stack">
-  <div class="kpis"><div class="kpi main"><span>Покупатели должны</span><b>${money(tot)}</b></div><div class="kpi"><span>Должников</span><b>${nD}</b></div><div class="kpi"><span>Покупателей в базе</span><b>${S.cust.length}</b></div></div>
-  <section class="pane"><div class="pane-h"><h2>Покупатели и долги</h2><button class="btn" data-act="cust-new"${ro('customers')}>Добавить покупателя</button></div>
+  <div class="kpis"><div class="kpi main"><span>Покупатели должны</span><b>${money(tot)}</b></div><div class="kpi"><span>Должников</span><b>${nD}</b></div><div class="kpi"><span>${KC==='opt'?'Оптовых покупателей':KC==='retail'?'Розничных покупателей':'Покупателей в базе'}</span><b>${base.length}</b></div></div>
+  <section class="pane"><div class="pane-h"><h2>Покупатели и долги</h2><button class="btn" data-act="cust-new"${roC()}>Добавить покупателя</button></div>
+  <div class="seg" role="group" aria-label="Вид покупателей" style="margin-bottom:12px">${[['all','Все',S.cust.length],['retail','Розничные',S.cust.filter(c=>ckind(c)==='retail').length],['opt','Оптовые',S.cust.filter(c=>ckind(c)==='opt').length]].map(([k,v,n])=>`<button data-act="ckind" data-v="${k}" aria-pressed="${KC===k}">${v} <span class="muted">${n}</span></button>`).join('')}</div>
   <div class="row" style="margin-bottom:12px"><input id="cQ" data-in="cq" placeholder="Имя или телефон" value="${esc(S.cQ)}" style="flex:1 1 220px"><label class="check"><input type="checkbox" id="cDebtOnly" data-ch="cdebt"${S.cDebtOnly?' checked':''}> Только должники</label></div>
   <div class="tbl">${list.length?`<table><thead><tr><th>Покупатель</th><th class="num">Долг / предоплата</th><th class="num">Лимит</th><th>Последняя покупка</th><th></th></tr></thead><tbody>
-  ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
-   <td style="white-space:nowrap"><button class="btn link" data-act="pay-new" data-id="${esc(c.id)}"${ro('payments')}>${d>0.004?'Принять оплату':'Принять предоплату'}</button><button class="btn link" data-act="cust-edit" data-id="${esc(c.id)}"${ro('customers')}>Изменить</button>${can('customers')&&!hist.has(c.id)?`<button class="btn link bad" data-act="cust-del" data-id="${esc(c.id)}">Удалить</button>`:''}</td></tr>
-   ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${S.cust.length?'Никого не найдено':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
+  ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}${ckind(c)==='opt'?' <span class="chip t-move">опт</span>':''}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
+   <td style="white-space:nowrap"><button class="btn link" data-act="pay-new" data-id="${esc(c.id)}"${ro('payments')}>${d>0.004?'Принять оплату':'Принять предоплату'}</button><button class="btn link" data-act="cust-edit" data-id="${esc(c.id)}"${canCust(ckind(c))?'':' disabled'}>Изменить</button>${canCust(ckind(c))&&!hist.has(c.id)?`<button class="btn link bad" data-act="cust-del" data-id="${esc(c.id)}">Удалить</button>`:''}</td></tr>
+   ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${base.length?'Никого не найдено':S.cust.length?'В этой группе покупателей пока нет.':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
 function custHist(c){
   const h=S.sales.filter(o=>o.cust===c.id).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
   const note=c.note?`<p class="small muted" style="margin-bottom:8px">${esc(c.note)}</p>`:'';
@@ -745,8 +751,9 @@ async function saveSpay(sid){const a=r2(num($('#sp-amt').value)),d=supDebtOf(sid
   const o={type:'spay',at:now(),supp:sid,amount:a,total:a,pay:S.payM,acc:S.payM==='cash'?accOf('cash'):($('#pmAcc')?.value||accOf(S.payM)),party:$('#sp-note').value.trim(),by:S.uid||null};
   const ref=S.db.collection('suppays').doc();
   if(await guard(()=>ref.set(o),null,'suppliers')){closeModal(true);if(!S.spays.some(x=>x.id===ref.id)){S.spays.push({id:ref.id,...o});derive()}render();showReceipt({id:ref.id,...o},r2(d-a))}}
-function custForm(c,from){c=c||{};
+function custForm(c,from){c=c||{};const ks=['retail','opt'].filter(k=>canCust(k)||(c.id&&ckind(c)===k));const k0=c.id?ckind(c):(from==='inv'&&ks.includes('opt'))||(S.cKind==='opt'&&ks.includes('opt'))?'opt':ks.includes('retail')?'retail':'opt';
   openModal(`<h2>${c.id?'Изменить покупателя':'Новый покупатель'}</h2>
+  <div class="field"><span>Вид покупателя</span><div class="seg" role="group" id="cf-kind" data-v="${k0}">${ks.map(k=>`<button data-act="cf-kind" data-v="${k}" aria-pressed="${k===k0}"${canCust(k)?'':' disabled'}>${CKIND[k]}</button>`).join('')}</div></div>
   <label class="field"><span>Имя или название *</span><input id="cf-name" value="${esc(c.name||'')}"></label>
   <div class="row"><label class="field"><span>Телефон</span><input id="cf-phone" inputmode="tel" value="${esc(c.phone||'')}" placeholder="+996 …"></label><label class="field"><span>Кредитный лимит, сом</span><input id="cf-limit" inputmode="decimal" value="${esc(c.limit||'')}" placeholder="0 — без лимита"></label></div>
   <div class="row"><label class="field"><span>ИНН (для организаций и ИП)</span><input id="cf-inn" inputmode="numeric" value="${esc(c.inn||'')}"></label><label class="field"><span>Адрес</span><input id="cf-address" value="${esc(c.address||'')}"></label></div>
@@ -757,9 +764,11 @@ function custForm(c,from){c=c||{};
   setTimeout(()=>$('#cf-name')?.focus(),30)}
 async function saveCust(id,from){
   const v=k=>$('#cf-'+k).value.trim();const name=v('name');if(!name){$('#cf-err').textContent='Укажите имя покупателя';return}
-  const d={name,phone:v('phone'),limit:r2(num(v('limit'))),note:v('note'),inn:v('inn'),address:v('address'),acct:v('acct'),bank:v('bank'),bik:v('bik')};
+  const kind=$('#cf-kind')?.dataset.v==='opt'?'opt':'retail';const old=id?ckind(S.C[id]):kind;
+  if(!canCust(kind)||!canCust(old)){$('#cf-err').textContent=`Нет прав на ${(!canCust(kind)?kind:old)==='opt'?'оптовых':'розничных'} покупателей`;return}
+  const d={kind,name,phone:v('phone'),limit:r2(num(v('limit'))),note:v('note'),inn:v('inn'),address:v('address'),acct:v('acct'),bank:v('bank'),bik:v('bik')};
   const ref=id?S.db.collection('customers').doc(id):S.db.collection('customers').doc();
-  const ok=await guard(()=>id?ref.update(d):ref.set({...d,createdAt:now(),by:S.uid||null}),id?'Покупатель сохранён':'Покупатель добавлен','customers');
+  const ok=await guard(()=>id?ref.update(d):ref.set({...d,createdAt:now(),by:S.uid||null}),id?'Покупатель сохранён':'Покупатель добавлен',cperm(kind));
   if(ok){closeModal(true);if(from==='cart'){S.custSel=ref.id}else if(from==='inv'&&S.inv){S.inv.cust=ref.id}render()}}
 function payForm(cid){S.payM='cash';const d=debtOf(cid);
   openModal(`<h2>${d>0.004?'Оплата долга':'Предоплата от покупателя'}</h2><p>${esc(cname(cid))}: ${d>0.004?`долг <b class="debt">${money(d)}</b>`:d<-0.004?`на балансе предоплата <b style="color:var(--good)">${money(-d)}</b>`:'долга нет'}</p>
@@ -1893,7 +1902,7 @@ function vInvEdit(){const v=S.inv;const sc=can('cost');const o=v.doc;const lock=
   ${lock?'<div class="banner" style="margin:0">По этому документу уже был возврат или обмен — изменить его нельзя. Оформите возврат в разделе «Журнал».</div>':v.id&&!canEditSale()?'<div class="infobox">Изменять проведённые продажи может владелец или сотрудник с правом «Изменение проведённых продаж».</div>':v.id?`<div class="infobox">Создан ${dt(o.at)}${o.edited?`, изменён ${dt(o.edited.at)}`:''}. После сохранения остатки, долг покупателя и деньги пересчитаются автоматически.</div>`:''}
   <div class="row">
    <label class="field"><span>Склад</span><select id="invWh" data-ch="invwh"${dis}>${allowedWh().map(w=>`<option value="${esc(w.id)}"${w.id===v.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label>
-   <div class="field" style="flex:2 1 260px"><span>Покупатель</span><div class="row" style="gap:6px;flex-wrap:nowrap"><select id="invCust" data-ch="invcust"${dis}><option value="">Без покупателя</option>${cs.map(x=>`<option value="${esc(x.id)}"${x.id===v.cust?' selected':''}>${esc(x.name)}${debtOf(x.id)>0?' · долг '+NF.format(debtOf(x.id)):''}</option>`).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="inv" style="padding:8px 12px" aria-label="Новый покупатель"${ro('customers')}${dis}>+</button></div></div>
+   <div class="field" style="flex:2 1 260px"><span>Покупатель</span><div class="row" style="gap:6px;flex-wrap:nowrap"><select id="invCust" data-ch="invcust"${dis}><option value="">Без покупателя</option>${cs.map(x=>custOpt(x,x.id===v.cust)).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="inv" style="padding:8px 12px" aria-label="Новый покупатель"${roC()}${dis}>+</button></div></div>
    <label class="field" style="flex:0 1 170px"><span>Дата</span><input type="date" id="invDate" data-ch="invdate" value="${esc(v.date)}"${dis}></label></div>
   ${ro_?'':`<div class="row" style="align-items:flex-start"><select id="invG" data-ch="invg" style="flex:0 1 220px" aria-label="Группа">${groupOpts(v.g)}</select>
    <div style="flex:1 1 300px;position:relative"><input id="invQ2" data-in="invq2" value="${esc(v.q)}" placeholder="Добавить товар: название или артикул" autocomplete="off"><div id="invRes">${invResults()}</div></div></div>`}
@@ -2345,7 +2354,9 @@ invfull:t=>{S.inv.full=t.dataset.v==='1';if(!S.inv.full&&S.inv.paid==='')S.inv.p
 invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.inv.pay));const bx=$('#invAccBox');if(bx)bx.innerHTML=accBox(S.inv.pay,'invAcc',null,'На какой счёт')},
   'cust-edit':t=>custForm(S.C[t.dataset.id]),
   'cust-save':t=>saveCust(t.dataset.id||null,t.dataset.from),
-  'cust-del':t=>guard(()=>S.db.collection('customers').doc(t.dataset.id).delete(),'Покупатель удалён','customers'),
+  'cust-del':t=>guard(()=>S.db.collection('customers').doc(t.dataset.id).delete(),'Покупатель удалён',cperm(ckind(S.C[t.dataset.id]))),
+  ckind:t=>{S.cKind=t.dataset.v;render()},
+  'cf-kind':t=>{const g=$('#cf-kind');g.dataset.v=t.dataset.v;g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
   copen:t=>{if(window.getSelection()?.toString())return;S.cOpen=S.cOpen===t.dataset.id?null:t.dataset.id;render()},
   'pay-new':t=>payForm(t.dataset.id),
   'pay-save':t=>savePay(t.dataset.id),
