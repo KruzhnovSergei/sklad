@@ -452,6 +452,7 @@ function render(){
   const bn=$('#banner');
   if(S.prev){bn.hidden=false;bn.innerHTML=`<b>Режим проверки.</b> Вы видите программу так, как её видит «${esc(S.ST[S.uid]?.label||'сотрудник')}». Ничего не сохраняется. <button class="btn" style="padding:5px 12px;margin-left:8px" data-act="prev-exit">Выйти из режима проверки</button>`}
   else if(S.offline){bn.hidden=false;bn.textContent=SRV()?'Нет связи с базой данных. Проверьте интернет и обновите страницу.':'Хранилище данных недоступно в этом просмотре. Откройте приложение по ссылке в claude.ai, войдя в аккаунт.'}
+  else if(S.isOwner&&SRV()&&S.loaded.size>=S.need&&S.all.length>0&&(Date.now()-new Date(ls.get('lastBackup',0)))>7*864e5){bn.hidden=false;const lb=ls.get('lastBackup',null);bn.innerHTML=`${lb?`Последняя резервная копия скачана ${Math.floor((Date.now()-new Date(lb))/864e5)} дн. назад.`:'Резервная копия данных ещё не скачивалась.'} Рекомендуем делать её раз в неделю. <button class="btn" style="padding:5px 12px;margin-left:8px" data-act="exp-all">Скачать сейчас</button>`}
   else if(S.role==='view'){bn.hidden=false;bn.textContent='У вас доступ только для просмотра. Чтобы работать продавцом, попросите владельца выдать права участника.'}
   else bn.hidden=true;
   const v=$('#view');
@@ -1486,18 +1487,19 @@ function vSettings(){
    <label class="field" style="margin-top:10px"><span>Условия гарантии</span><textarea class="plain" id="setTerms" rows="5">${esc(S.set.wTerms||DEF_TERMS)}</textarea></label>
    <div class="row end" style="margin-top:10px"><button class="btn" data-act="shop-save">Сохранить реквизиты</button></div></section>
   <section class="pane"><div class="pane-h"><h2>Резервная копия и перенос данных</h2></div>
-   <p class="muted small" style="margin-bottom:10px">Файл с товарами, складами, покупателями, документами, поставщиками, деньгами и настройками. Сотрудников в файле нет, их нужно добавить заново.${SRV()?' Загрузка из файла заменяет записи с теми же номерами, остальные не трогает.':''}</p>
+   <p class="muted small" style="margin-bottom:10px">Файл с товарами, складами, покупателями, документами, поставщиками, деньгами и настройками. В файл попадают и сотрудники с их правами.${SRV()?' Загрузка из файла заменяет записи с теми же номерами, остальные не трогает.':''}</p>
+   <p class="small" style="margin-bottom:10px">${ls.get('lastBackup',null)?`Последняя копия с этого компьютера: <b>${dt(ls.get('lastBackup'))}</b>`:'С этого компьютера копия ещё не скачивалась.'} Храните файлы в надёжном месте: на флешке, в Google Диске или в Telegram «Избранное».</p>
    <div class="row"><button class="btn ghost" data-act="exp-all">Скачать все данные (JSON)</button>${SRV()?'<label class="btn ghost" style="cursor:pointer">Загрузить из файла…<input type="file" accept=".json,application/json" data-ch="imp-file" hidden></label>':''}</div></section>
 </div>`}
 const EXP_COLS=[['warehouses','wh'],['products','prod'],['customers','cust'],['groups','groups'],['claims','claims'],['ops','ops'],['sales','sales'],['costs','costsL'],['opcosts','opcL'],['suppliers','supp'],['suppays','spays'],['money','moneyL'],['pos','posL']];
-async function expAll(){const cols={};for(const [c,k] of EXP_COLS)cols[c]=(S[k]||[]).map(x=>JSON.parse(JSON.stringify(x)));cols.settings=[{...JSON.parse(JSON.stringify(S.set)),id:'main'}];
+async function expAll(){const cols={};for(const [c,k] of EXP_COLS)cols[c]=(S[k]||[]).map(x=>JSON.parse(JSON.stringify(x)));cols.settings=[{...JSON.parse(JSON.stringify(S.set)),id:'main'}];cols.staff=(S.staffL||[]).map(x=>JSON.parse(JSON.stringify(x)));
   const n=Object.values(cols).reduce((a,x)=>a+x.length,0);
-  try{await saveFile(`Склад резервная копия ${dayKey(now())}.json`,JSON.stringify({app:'sklad',v:1,at:now(),cols}));toast(`Сохранено записей: ${n}`)}catch(e){}}
+  try{await saveFile(`Склад резервная копия ${dayKey(now())}.json`,JSON.stringify({app:'sklad',v:1,at:now(),cols}));ls.set('lastBackup',now());toast(`Резервная копия сохранена: ${n} записей`);render()}catch(e){}}
 async function impFile(t){const f=t.files?.[0];t.value='';if(!f)return;let d=null;try{d=JSON.parse(await f.text())}catch(e){}
   if(d?.app!=='sklad'||!d.cols){toast('Это не файл резервной копии программы');return}
   S.impData=d;const n=Object.values(d.cols).reduce((a,x)=>a+(x?.length||0),0);
   openModal(`<h2>Загрузить данные из файла?</h2><p class="muted">В файле ${n} записей, копия от ${dt(d.at)}. Записи с теми же номерами в базе будут заменены, остальные останутся как есть.</p><div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="imp-yes">Загрузить</button></div>`)}
-async function impRun(){const d=S.impData;if(!d||!S.db.batch)return;const okC=new Set([...EXP_COLS.map(x=>x[0]),'settings']);const W=[];
+async function impRun(){const d=S.impData;if(!d||!S.db.batch)return;const okC=new Set([...EXP_COLS.map(x=>x[0]),'settings',...(SRV()?['staff']:[])]);const W=[];
   for(const [c,L] of Object.entries(d.cols)){if(!okC.has(c)||!Array.isArray(L))continue;for(const x of L){if(!x||!x.id)continue;const {id,...r}=x;W.push([c,String(id),r])}}
   if(await guard(async()=>{for(let i=0;i<W.length;i+=400){const b=S.db.batch();for(const [c,id,r] of W.slice(i,i+400))b.set(S.db.doc(c+'/'+id),r);await b.commit();if(W.length>400)toast(`Загружено ${Math.min(i+400,W.length)} из ${W.length}`)}},`Загружено записей: ${W.length}`,'owner')){S.impData=null;closeModal(true)}}
 function staffForm(uid){const x=uid?S.ST[uid]:null;
