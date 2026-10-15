@@ -2312,8 +2312,8 @@ const kitOk=k=>(k.items||[]).length>1&&k.items.every(i=>S.P[i.p]&&!S.P[i.p].arch
 const kitSep=k=>r2((k.items||[]).reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));
 const kitAvail=(k,ws)=>Math.max(0,Math.min(...(k.items||[]).map(i=>Math.floor(qtyIn(ws,i.p)/Math.max(1,num(i.q))))));
 function kitsPane(){const L=kitList();const ed=plCanSave();const ws=plWhs(plCfg());
-  return `<section class="pane"><div class="pane-h"><h2>Комплекты — дешевле вместе</h2>${ed?'<button class="btn ghost" data-act="kit-new">Создать комплект</button>':''}</div>
-  <p class="muted small" style="margin-bottom:8px">Набор товаров с общей ценой ниже суммы по отдельности, например «Материнская плата + процессор + память». Комплекты попадают в прайс отдельным блоком и продаются в «Кассе» кнопкой «Комплекты» — цены товаров в чеке уменьшаются пропорционально.</p>
+  return `<section class="pane"><div class="pane-h"><h2>Комплекты</h2>${ed?'<button class="btn ghost" data-act="kit-new">Создать комплект</button>':''}</div>
+  <p class="muted small" style="margin-bottom:8px">Набор товаров с общей ценой ниже суммы по отдельности, например «Материнская плата + процессор + память». Комплекты попадают в прайс отдельным блоком; зачёркнутая цена «по отдельности» и выгода показываются, только если все товары комплекта тоже есть в прайсе и продаются в «Кассе» кнопкой «Комплекты» — цены товаров в чеке уменьшаются пропорционально.</p>
   ${L.length?`<div class="tbl"><table><thead><tr><th>Комплект</th><th class="num">По отдельности</th><th class="num">Цена комплекта</th><th class="num">Выгода</th><th class="num">Можно собрать</th><th></th></tr></thead><tbody>${L.map(k=>{const ok=kitOk(k);const sep=kitSep(k);return `<tr${k.pl===false?' style="opacity:.6"':''}><td><span class="pname">${esc(k.name)}</span><span class="psku">${ok?k.items.map(i=>esc(pname(i.p))+(num(i.q)>1?' ×'+q3(i.q):'')).join(' + '):'<span style="color:var(--bad)">товар удалён или в архиве</span>'}${k.pl===false?' · не в прайсе':''}</span></td><td class="num muted">${money(sep)}</td><td class="num"><b>${money(k.price)}</b></td><td class="num" style="color:var(--good)">${sep>k.price?money(sep-k.price):'—'}</td><td class="num">${ok?q3(kitAvail(k,ws))+' шт':'—'}</td><td style="white-space:nowrap">${ed?`<button class="btn link" data-act="kit-edit" data-id="${esc(k.id)}">Изменить</button><button class="btn link bad" data-act="kit-del" data-id="${esc(k.id)}">Удалить</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Комплектов пока нет</div>'}</section>`}
 function kitForm(id){const k=id?kitList().find(x=>x.id===id):null;S.kitEd=k?JSON.parse(JSON.stringify(k)):{id:'k'+Date.now().toString(36),name:'',items:[],price:'',pl:true};S.kitQ='';kitRender()}
 function kitRender(){const e=S.kitEd;const sep=r2(e.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(e.price);
@@ -2338,8 +2338,8 @@ async function kitSave(){const e=S.kitEd;const err=$('#kitErr');e.name=$('#kitNa
   if(i0>=0)L.splice(i0,0,k);else L.push(k);
   if(await guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект сохранён','catalog')){S.set.kits=L;S.kitEd=null;closeModal(true);render()}}
 /* прайс */
-function plKits(c){if(c.kits===false)return [];const ws=plWhs(c);return kitList().filter(k=>k.pl!==false&&kitOk(k)).map(k=>{const av=kitAvail(k,ws);const sep=r2(k.items.reduce((a,i)=>a+plPrice(c,S.P[i.p])*num(i.q),0));
-  return{name:k.name,comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
+function plKits(c){if(c.kits===false)return [];const ws=plWhs(c);const inPl=new Set(plRows(c,false).map(r=>r.p.id));return kitList().filter(k=>k.pl!==false&&kitOk(k)).map(k=>{const av=kitAvail(k,ws);const sep=r2(k.items.reduce((a,i)=>a+plPrice(c,S.P[i.p])*num(i.q),0));
+  return{name:k.name,comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep:k.items.every(i=>inPl.has(i.p))?sep:0,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
 /* касса */
 function kitPickModal(){const L=kitList().filter(kitOk);const ws=[S.W[S.curWh]].filter(Boolean);
   openModal(`<h2>Комплекты</h2><p class="muted small">Склад «${esc(wname(S.curWh))}». Товары комплекта добавятся в чек, цены уменьшатся так, чтобы сумма была равна цене комплекта.</p>
@@ -2415,7 +2415,7 @@ function plPages(d){const K=200/150,PW=1240,PH=1754,M=48,CW=PW-2*M,F='Arial, "He
   if(d.note){y+=2;font(19,true);const NL=wrap(d.note,CW-60);const nh=NL.length*25+16;x.fillStyle='#FFF1CC';x.fillRect(M,y,CW,nh);x.fillStyle='#E08A00';x.fillRect(M,y,8,nh);
     x.fillStyle='#E08A00';font(21,true);x.fillText('!',M+22,y+8);font(19,true);x.fillStyle='#5A3A00';NL.forEach((l,k)=>x.fillText(l,M+44,y+9+k*25));y+=nh+4}y+=8;
   hdr();
-  if(d.kits.length){const KC='#B4600B';font(17,true);const gh=30;x.fillStyle=KC;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,5,gh);x.fillText('КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ',M+P+8,y+7);font(14,false);x.fillStyle='#FFE9CC';x.textAlign='right';x.fillText(`${d.kits.length} шт.`,PW-M-P,y+8);x.textAlign='left';y+=gh;
+  if(d.kits.length){const KC='#B4600B';font(17,true);const gh=30;x.fillStyle=KC;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,5,gh);x.fillText('КОМПЛЕКТЫ',M+P+8,y+7);font(14,false);x.fillStyle='#FFE9CC';x.textAlign='right';x.fillText(`${d.kits.length} шт.`,PW-M-P,y+8);x.textAlign='left';y+=gh;
     const pi=cols.length-1;const ci=cols.findIndex(t=>t[0]==='Наличие');
     d.kits.forEach((k,j)=>{font(16,true);const nm=wrap(k.name,cw[1]+(d.anyNote?cw[2]:0)-2*P);font(14,false);const cl=k.comps.flatMap(t=>wrap('• '+t,cw[1]+(d.anyNote?cw[2]:0)-2*P-10));const h=Math.max(nm.length*20+cl.length*18,58)+12;
       if(y+h>PH-M-30){page();hdr()}
@@ -2452,7 +2452,7 @@ function plXlsx(d){const X=v=>String(v??'').replace(/[\u0000-\u0008\u000B\u000C\
   band(d.shop||d.title,{sz:18,b:1,c:'#FFFFFF',bg:PLC.band,ind:1},34);for(const l of d.contact)band(l,{sz:10,c:'#CFE0F2',bg:PLC.band,ind:1},18);band('',{bg:PLC.band2},5);
   add(()=>'',8);band(d.title.toUpperCase(),{sz:15,b:1,c:PLC.head},26);band(`на ${d.date}`,{sz:10,c:PLC.muted},16);if(d.note){add(()=>'',4);band('!  '+d.note,{sz:12,b:1,c:'#5A3A00',bg:'#FFF1CC',ind:1,w:1},Math.max(24,Math.ceil(d.note.length/95)*17+8))}add(()=>'',8);
   add(()=>cols.map((t,i)=>cell(i,t[0],{b:1,c:'#FFFFFF',bg:PLC.head,h:i===1?'left':i===n-1?'right':'center',ind:i===1?1:0})).join(''),24);const hr=r;
-  if(d.kits.length){add(()=>cols.map((_,i)=>cell(i,i?null:`КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ   (${d.kits.length} шт.)`,{sz:11,b:1,c:'#FFFFFF',bg:'#B4600B',ind:1})).join(''),24);merges.push(`A${r}:${last}${r}`);
+  if(d.kits.length){add(()=>cols.map((_,i)=>cell(i,i?null:`КОМПЛЕКТЫ   (${d.kits.length} шт.)`,{sz:11,b:1,c:'#FFFFFF',bg:'#B4600B',ind:1})).join(''),24);merges.push(`A${r}:${last}${r}`);
     d.kits.forEach((k,j)=>{const txt=[k.name,...k.comps.map(t=>'   • '+t),...(k.sep>k.price?[`   По отдельности: ${NF0.format(Math.round(k.sep))} сом, выгода ${NF0.format(Math.round(k.sep-k.price))} сом`]:[])].join('\n');const lines=1+k.comps.length+(k.sep>k.price?1:0);
       add(()=>cols.map((t,i)=>{const lab=t[0];const base={bg:'#FFF6EA',bb:1};if(lab==='№')return cell(i,'К'+(j+1),{...base,b:1,c:'#B4600B',h:'center'});if(lab==='Наименование')return cell(i,txt,{...base,w:1,ind:1,v:'top'});if(lab==='Наличие')return cell(i,k.stock,{...base,b:1,h:'center',c:k.q<=0?PLC.muted:k.q<=5?PLC.low:PLC.ok});if(lab==='Цена, сом')return cell(i,Math.round(k.price),{...base,b:1,sz:12,h:'right',c:'#B4600B',nf:3});return cell(i,'',base)}).join(''),lines*14+8)})}
   for(const g of d.groups){add(()=>cols.map((_,i)=>cell(i,i?null:`${g.name.toUpperCase()}   (${g.items.length} поз.)`,{sz:11,b:1,c:'#FFFFFF',bg:PLC.band2,ind:1})).join(''),24);merges.push(`A${r}:${last}${r}`);
