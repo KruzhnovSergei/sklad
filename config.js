@@ -4,11 +4,11 @@ window.SK_CONFIG={
   owner:'kruznovsergej0@gmail.com',
   // Блок firebaseConfig из консоли Firebase (Project settings → Your apps → Web)
   firebase:{
-    apiKey:'ВСТАВИТЬ',
-    authDomain:'ВСТАВИТЬ',
-    projectId:'ВСТАВИТЬ',
-    storageBucket:'ВСТАВИТЬ',
-    messagingSenderId:'ВСТАВИТЬ',
-    appId:'ВСТАВИТЬ'
+    apiKey:'AIzaSyB7XYHs7EPJClVnxkCH20JTLUnbDUPxLIU',
+    authDomain:'sklad-rbit.firebaseapp.com',
+    projectId:'sklad-rbit',
+    storageBucket:'sklad-rbit.firebasestorage.app',
+    messagingSenderId:'547389452399',
+    appId:'1:547389452399:web:a6eed33d668504cb60dd9a'
   }
 };
