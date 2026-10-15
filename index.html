@@ -1685,6 +1685,27 @@ async function impRunStock(){const I=S.imp;if(!I?.plan)return;const P=I.plan;if(
     `Загружено: ${items.length} товаров, ${q3(P.q)} шт на «${wname(I.wh)}»`,'stock');
   if(ok){S.imp=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить загрузку'}}
 
+
+/* ---------- перевод товара на серийный учёт после прихода ---------- */
+function snConvDocs(pid){const ins=[],bad=[];for(const o of S.all){const ref=(o.items||[]).some(i=>i.p===pid)||(o.add||[]).some(x=>x.p===pid)||(o.rem||[]).some(x=>x.p===pid)||o.out?.p===pid;if(!ref)continue;if(o.type==='in'&&S.ops.includes(o))ins.push(o);else bad.push(o)}return{ins,bad}}
+const snSplit=t=>String(t||'').split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean);
+function snConvForm(pid){const p=S.P[pid];const c=snConvDocs(pid);if(c.bad.length||!c.ins.length){toast('По товару уже есть продажи или другие документы — перевести нельзя');return}
+  const blocks=[];for(const o of [...c.ins].reverse())(o.items||[]).forEach((it,k)=>{if(it.p===pid)blocks.push({o,k,q:num(it.q)})});
+  S.snConv={pid,blocks};
+  openModal(`<h2>Серийные номера: ${esc(p.name)}</h2>
+  <p class="muted small">Введите номера каждой единицы — по одному на строке, можно сканером. Количество должно совпасть с оприходованным. После сохранения товар будет учитываться по серийным номерам: при продаже нужно выбирать, какая единица ушла, а номер попадёт в гарантийный талон.</p>
+  ${blocks.map((b,i)=>`<label class="field" style="flex:none"><span>${esc(tlabel(b.o))} ${docNo(b.o)} от ${ds(b.o.at)} · склад «${esc(wname(b.o.wh))}» · нужно <b>${q3(b.q)}</b> шт · введено <b id="sncvN${i}">0</b></span><textarea id="sncv${i}" data-in="sncv" data-i="${i}" rows="${Math.min(10,Math.max(3,b.q))}" placeholder="SN0001&#10;SN0002"></textarea></label>`).join('')}
+  <div class="err" id="sncvErr"></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="sncv-save">Сохранить номера</button></div>`);$('#mcard').classList.add('wide')}
+async function snConvSave(){const C=S.snConv;if(!C)return;const err=$('#sncvErr');err.textContent='';const all=new Set();const lists=[];
+  for(let i=0;i<C.blocks.length;i++){const b=C.blocks[i];const L=snSplit($('#sncv'+i).value);
+    if(!Number.isInteger(b.q)){err.textContent=`В документе ${docNo(b.o)} дробное количество — серийный учёт невозможен`;return}
+    if(L.length!==b.q){err.textContent=`${docNo(b.o)}: нужно ${b.q} номеров, введено ${L.length}`;return}
+    for(const z of L){if(all.has(z)){err.textContent=`Номер ${z} введён дважды`;return}if(S.snLoc[z]||S.snH[z]){err.textContent=`Номер ${z} уже есть в программе`;return}all.add(z)}lists.push(L)}
+  const byDoc={};C.blocks.forEach((b,i)=>{(byDoc[b.o.id]??={o:b.o,set:{}}).set[b.k]=lists[i]});
+  const ok=await guard(async()=>{for(const id in byDoc){const {o,set}=byDoc[id];const items=(o.items||[]).map((it,k)=>set[k]?{...it,q:set[k].length,sn:set[k]}:it);await S.db.doc('ops/'+id).update({items})}
+    await S.db.doc('products/'+C.pid).update({serial:true,unit:'шт'})},`Серийные номера сохранены: ${all.size} шт`,'stock');
+  if(ok){S.snConv=null;closeModal(true);render()}}
 /* ---------- товары ---------- */
 function vCatalog(){
   const list=filterProds(S.stockQ,S.showArch).filter(p=>(S.showArch||!p.archived)&&inGroup(p,S.catG));
@@ -1711,6 +1732,7 @@ function prodForm(p,opts){p=p||{};opts=opts||{};S.pfOpts=opts;const gsel=p.id?(p
   <div class="row"><label class="field"><span>Закупочная цена, сом</span><input id="pf-buy" inputmode="decimal" value="${esc((p.id?S.costs[p.id]?.buyPrice:null)??'')}"></label><label class="field"><span>Цена продажи, сом</span><input id="pf-sell" inputmode="decimal" value="${esc(p.sellPrice??'')}"></label></div>
   <div class="row"><label class="field"><span>Гарантия, месяцев</span><input id="pf-war" inputmode="numeric" value="${esc(p.warranty||'')}" placeholder="0 — без гарантии"></label><label class="field"><span>или гарантия, дней</span><input id="pf-ward" inputmode="numeric" value="${esc(p.warrantyD||'')}" placeholder="для б/у, корпусов — на проверку"></label></div>
   <label class="check"><input type="checkbox" id="pf-serial"${(p.id?p.serial:gd?.serial)?' checked':''}${used?' disabled':''}> Учёт по серийным номерам</label>
+  ${p.id&&used&&!p.serial&&(()=>{const c=snConvDocs(p.id);return !c.bad.length&&c.ins.length})()?`<div class="infobox">Товар пока только оприходован (ввод остатков или приход), продаж не было — его можно перевести на учёт по серийным номерам. <button class="btn link" data-act="sn-conv" data-id="${esc(p.id)}">Ввести серийные номера…</button></div>`:''}
   <p class="muted small">${used?'Режим учёта нельзя менять у товара, по которому уже были документы.':'Для техники, инструмента и товаров с гарантией: при приходе вводите номер каждой единицы, при продаже выбирайте, какая ушла.'}</p>
   <div class="err" id="pf-err"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="prod-save" data-id="${esc(p.id||'')}">Сохранить</button></div>`);
@@ -2430,6 +2452,7 @@ function cartAdd(pid,sn){const p=S.P[pid];if(!p)return;
   const l=S.cart.find(l=>l.p===pid);if(l)l.q=r3(num(l.q)+1);else S.cart.push({p:pid,q:1,price:num(p.sellPrice),disc:''});$('#cart').innerHTML=cartHtml();updCart()}
 function clearSaleQ(){S.saleQ='';const e=$('#saleQ');if(e){e.value='';$('#saleGrid').innerHTML=saleTiles();e.focus()}}
 const ACT={
+  'sn-conv':t=>{if(!can('stock')||!can('catalog')){toast('Нужны права на приход и товары');return}snConvForm(t.dataset.id)},'sncv-save':()=>snConvSave(),
   'imp-stock':()=>impOpen(),'imp-run':()=>impRunStock(),'imp-reset':()=>{S.imp.items=[];S.imp.plan=null;impRender()},
   signout:()=>window.SK_SIGNOUT&&window.SK_SIGNOUT(),'exp-all':()=>expAll(),'imp-yes':()=>impRun(),
   tab:t=>{S.tab=t.dataset.v;if(S.tab==='settings')S.bankEdit=null;ls.set('tab',S.tab);document.body.classList.remove('nav-open');render();window.scrollTo(0,0)},
@@ -2625,6 +2648,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
 };
 const keepFocus=(id,fn)=>{const e=document.getElementById(id);const pos=e?.selectionStart;fn();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}};
 const IN={
+  sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
   cart:t=>{const l=S.cart[+t.dataset.i];if(l){l[t.dataset.f]=t.value;updCart()}},
   cdisc:t=>{S.cDisc=t.value;updCart()},
