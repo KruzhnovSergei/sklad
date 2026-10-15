@@ -2398,45 +2398,45 @@ function plData(){const c=plCfg();const s=S.set;const rows=plRows(c,false);const
   for(const r of rows){if(!cur||cur.name!==r.g){cur={name:r.g,items:[]};groups.push(cur)}n++;cur.items.push({n,name:r.p.name,note:(c.notes[r.p.id]||'').trim(),isNew:plIsNew(c,fi,r.p.id),war:pWTxt(r.p)||'—',q:r.q,stock:plStock(r.q),price:plPrice(c,r.p)})}
   const anyNote=groups.some(g=>g.items.some(i=>i.note)),anyNew=groups.some(g=>g.items.some(i=>i.isNew));
   return{kits:plKits(c),anyNote,anyNew,newDays:num(c.newDays),title:c.title||'Прайс-лист',note:c.note||'',date:ds(now()),shop:(c.wh!=='all'&&S.W[c.wh]?S.W[c.wh].name:'')||s.shopName||'',contact:plContact(c),war:!!c.cols.war,st,groups,total:n}}
-function plPages(d){const K=200/150,PW=1240,PH=1754,M=64,CW=PW-2*M,F='Arial, "Helvetica Neue", Helvetica, sans-serif';const pages=[];let c,x,y;
+function plPages(d){const K=200/150,PW=1240,PH=1754,M=48,CW=PW-2*M,F='Arial, "Helvetica Neue", Helvetica, sans-serif';const pages=[];let c,x,y;
   const font=(sz,b)=>{x.font=`${b?'bold ':''}${sz}px ${F}`};
   const wrap=(t,w)=>{const out=[];let line='';for(const word of String(t??'').split(/\s+/)){if(!word)continue;const cand=line?line+' '+word:word;if(x.measureText(cand).width<=w){line=cand;continue}if(line)out.push(line);let wd=word;while(x.measureText(wd).width>w){let k=wd.length;while(k>1&&x.measureText(wd.slice(0,k)).width>w)k--;out.push(wd.slice(0,k));wd=wd.slice(k)}line=wd}out.push(line);return out};
-  const cols=[['№',.06,'c'],['Наименование',.48,'l'],...(d.anyNote?[['Примечание',.2,'l']]:[]),...(d.war?[['Гарантия',.11,'c']]:[]),...(d.st?[['Наличие',.12,'c']]:[]),['Цена, сом',.15,'r']];{const t=cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]=x[1]/t)}const cw=cols.map(t=>t[1]*CW);const P=12;
+  const cols=[['№',.06,'c'],['Наименование',.48,'l'],...(d.anyNote?[['Примечание',.2,'l']]:[]),...(d.war?[['Гарантия',.11,'c']]:[]),...(d.st?[['Наличие',.12,'c']]:[]),['Цена, сом',.15,'r']];{const t=cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]=x[1]/t)}const cw=cols.map(t=>t[1]*CW);const P=10;
   const put=(t,i,cx,yy)=>{const a=cols[i][2];if(a==='r'){x.textAlign='right';x.fillText(t,cx+cw[i]-P,yy)}else if(a==='c'){x.textAlign='center';x.fillText(t,cx+cw[i]/2,yy)}else x.fillText(t,cx+P,yy);x.textAlign='left'};
   const page=()=>{c=document.createElement('canvas');c.width=Math.round(PW*K);c.height=Math.round(PH*K);x=c.getContext('2d');x.scale(K,K);x.fillStyle='#fff';x.fillRect(0,0,PW,PH);x.textBaseline='top';pages.push(c);
-    font(15,false);x.fillStyle=PLC.muted;x.textAlign='right';x.fillText(`${d.shop?d.shop+' · ':''}${d.title} · ${d.date} · стр. ${pages.length}`,PW-M,PH-M+18);x.textAlign='left';y=M};
-  const hdr=()=>{const h=44;x.fillStyle=PLC.head;x.fillRect(M,y,CW,h);font(17,true);x.fillStyle='#fff';let cx=M;cols.forEach((t,i)=>{put(t[0],i,cx,y+13);cx+=cw[i]});y+=h};
+    font(15,false);x.fillStyle=PLC.muted;x.textAlign='right';x.fillText(`${d.shop?d.shop+' · ':''}${d.title} · ${d.date} · стр. ${pages.length}`,PW-M,PH-M+14);x.textAlign='left';y=M};
+  const hdr=()=>{const h=32;x.fillStyle=PLC.head;x.fillRect(M,y,CW,h);font(15,true);x.fillStyle='#fff';let cx=M;cols.forEach((t,i)=>{put(t[0],i,cx,y+8);cx+=cw[i]});y+=h};
   page();
   // шапка
-  const bh=d.contact.length?Math.max(96,96+25*d.contact.length):96;x.fillStyle=PLC.band;x.fillRect(0,0,PW,bh+M-30);x.fillStyle=PLC.band2;x.fillRect(0,bh+M-30,PW,6);
-  font(40,true);x.fillStyle='#fff';x.fillText(d.shop||d.title,M,M-6);font(18,false);x.fillStyle='#CFE0F2';d.contact.forEach((l,k)=>x.fillText(l,M,M+46+k*25));
-  font(20,true);x.textAlign='right';x.fillStyle='#fff';x.fillText(d.date,PW-M,M);x.textAlign='left';y=bh+M+6;
-  font(34,true);x.fillStyle=PLC.head;for(const l of wrap(d.title.toUpperCase(),CW)){x.fillText(l,M,y);y+=44}
-  if(d.note){y+=6;font(22,true);const NL=wrap(d.note,CW-60);const nh=NL.length*30+24;x.fillStyle='#FFF1CC';x.fillRect(M,y,CW,nh);x.fillStyle='#E08A00';x.fillRect(M,y,8,nh);
-    x.fillStyle='#E08A00';font(24,true);x.fillText('!',M+24,y+12);font(22,true);x.fillStyle='#5A3A00';NL.forEach((l,k)=>x.fillText(l,M+48,y+13+k*30));y+=nh+8}y+=14;
+  const bh=56+21*d.contact.length;x.fillStyle=PLC.band;x.fillRect(0,0,PW,bh+M-26);x.fillStyle=PLC.band2;x.fillRect(0,bh+M-26,PW,5);
+  font(32,true);x.fillStyle='#fff';x.fillText(d.shop||d.title,M,M-14);font(16,false);x.fillStyle='#CFE0F2';d.contact.forEach((l,k)=>x.fillText(l,M,M+26+k*21));
+  font(18,true);x.textAlign='right';x.fillStyle='#fff';x.fillText(d.date,PW-M,M-10);x.textAlign='left';y=bh+M-6;
+  font(26,true);x.fillStyle=PLC.head;for(const l of wrap(d.title.toUpperCase(),CW)){x.fillText(l,M,y);y+=34}
+  if(d.note){y+=2;font(19,true);const NL=wrap(d.note,CW-60);const nh=NL.length*25+16;x.fillStyle='#FFF1CC';x.fillRect(M,y,CW,nh);x.fillStyle='#E08A00';x.fillRect(M,y,8,nh);
+    x.fillStyle='#E08A00';font(21,true);x.fillText('!',M+22,y+8);font(19,true);x.fillStyle='#5A3A00';NL.forEach((l,k)=>x.fillText(l,M+44,y+9+k*25));y+=nh+4}y+=8;
   hdr();
-  if(d.kits.length){const KC='#B4600B';font(21,true);const gh=46;x.fillStyle=KC;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,6,gh);x.fillText('КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ',M+P+8,y+13);font(16,false);x.fillStyle='#FFE9CC';x.textAlign='right';x.fillText(`${d.kits.length} шт.`,PW-M-P,y+15);x.textAlign='left';y+=gh;
+  if(d.kits.length){const KC='#B4600B';font(17,true);const gh=30;x.fillStyle=KC;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,5,gh);x.fillText('КОМПЛЕКТЫ — ДЕШЕВЛЕ ВМЕСТЕ',M+P+8,y+7);font(14,false);x.fillStyle='#FFE9CC';x.textAlign='right';x.fillText(`${d.kits.length} шт.`,PW-M-P,y+8);x.textAlign='left';y+=gh;
     const pi=cols.length-1;const ci=cols.findIndex(t=>t[0]==='Наличие');
-    d.kits.forEach((k,j)=>{font(19,true);const nm=wrap(k.name,cw[1]+(d.anyNote?cw[2]:0)-2*P);font(16,false);const cl=k.comps.flatMap(t=>wrap('• '+t,cw[1]+(d.anyNote?cw[2]:0)-2*P-10));const h=Math.max(nm.length*25+cl.length*22,78)+20;
+    d.kits.forEach((k,j)=>{font(16,true);const nm=wrap(k.name,cw[1]+(d.anyNote?cw[2]:0)-2*P);font(14,false);const cl=k.comps.flatMap(t=>wrap('• '+t,cw[1]+(d.anyNote?cw[2]:0)-2*P-10));const h=Math.max(nm.length*20+cl.length*18,58)+12;
       if(y+h>PH-M-30){page();hdr()}
       x.fillStyle='#FFF6EA';x.fillRect(M,y,CW,h);x.fillStyle=KC;x.fillRect(M,y,5,h);x.strokeStyle=PLC.line;x.lineWidth=1;x.beginPath();x.moveTo(M,y+h);x.lineTo(M+CW,y+h);x.stroke();
-      let cx=M;for(let i=0;i<cols.length;i++){if(i===0){font(16,true);x.fillStyle=KC;put('К'+(j+1),0,cx,y+12)}
-        if(i===1){font(19,true);x.fillStyle='#111';nm.forEach((l,n)=>x.fillText(l,cx+P,y+10+n*25));font(16,false);x.fillStyle='#4A4A4A';cl.forEach((l,n)=>x.fillText(l,cx+P+10,y+12+nm.length*25+n*22))}
-        if(i===ci){font(17,true);x.fillStyle=k.q<=0?PLC.muted:k.q<=5?PLC.low:PLC.ok;put(k.stock,i,cx,y+12)}
-        if(i===pi){font(22,true);x.fillStyle=KC;put(NF0.format(Math.round(k.price)),i,cx,y+10);if(k.sep>k.price){font(15,false);x.fillStyle=PLC.muted;const t=NF0.format(Math.round(k.sep));put(t,i,cx,y+40);const tw=x.measureText(t).width;x.strokeStyle=PLC.muted;x.lineWidth=1.5;x.beginPath();x.moveTo(cx+cw[i]-P-tw,y+49);x.lineTo(cx+cw[i]-P,y+49);x.stroke();font(14,true);x.fillStyle=PLC.ok;put('выгода '+NF0.format(Math.round(k.sep-k.price)),i,cx,y+62)}}
-        cx+=cw[i]}y+=h});y+=10}
-  for(const g of d.groups){font(21,true);const gh=46;if(y+gh+60>PH-M-30){page();hdr()}
-    x.fillStyle=PLC.band2;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,6,gh);x.fillStyle='#fff';x.fillText(g.name.toUpperCase(),M+P+8,y+13);font(16,false);x.fillStyle='#DCE8F5';x.textAlign='right';x.fillText(`${g.items.length} поз.`,PW-M-P,y+15);x.textAlign='left';y+=gh;
-    g.items.forEach((it,k)=>{font(19,false);const nm=wrap((it.isNew?'★ ':'')+it.name,cw[1]-2*P);const ni=cols.findIndex(t=>t[0]==='Примечание');font(16,false);const nt=ni>=0&&it.note?wrap(it.note,cw[ni]-2*P):[];font(19,false);const h=Math.max(1,nm.length,Math.ceil(nt.length*22/25))*25+18;if(y+h>PH-M-30){page();hdr();font(16,true);x.fillStyle=PLC.band2;x.fillText(g.name+' (продолжение)',M+P,y+8);y+=34}
+      let cx=M;for(let i=0;i<cols.length;i++){if(i===0){font(13,true);x.fillStyle=KC;put('К'+(j+1),0,cx,y+7)}
+        if(i===1){font(16,true);x.fillStyle='#111';nm.forEach((l,n)=>x.fillText(l,cx+P,y+6+n*20));font(14,false);x.fillStyle='#4A4A4A';cl.forEach((l,n)=>x.fillText(l,cx+P+10,y+8+nm.length*20+n*18))}
+        if(i===ci){font(14,true);x.fillStyle=k.q<=0?PLC.muted:k.q<=5?PLC.low:PLC.ok;put(k.stock,i,cx,y+7)}
+        if(i===pi){font(18,true);x.fillStyle=KC;put(NF0.format(Math.round(k.price)),i,cx,y+6);if(k.sep>k.price){font(13,false);x.fillStyle=PLC.muted;const t=NF0.format(Math.round(k.sep));put(t,i,cx,y+29);const tw=x.measureText(t).width;x.strokeStyle=PLC.muted;x.lineWidth=1.2;x.beginPath();x.moveTo(cx+cw[i]-P-tw,y+36);x.lineTo(cx+cw[i]-P,y+36);x.stroke();font(12,true);x.fillStyle=PLC.ok;put('выгода '+NF0.format(Math.round(k.sep-k.price)),i,cx,y+45)}}
+        cx+=cw[i]}y+=h});y+=6}
+  for(const g of d.groups){font(17,true);const gh=30;if(y+gh+40>PH-M-30){page();hdr()}
+    x.fillStyle=PLC.band2;x.fillRect(M,y,CW,gh);x.fillStyle='#fff';x.fillRect(M,y,5,gh);x.fillStyle='#fff';x.fillText(g.name.toUpperCase(),M+P+8,y+7);font(14,false);x.fillStyle='#DCE8F5';x.textAlign='right';x.fillText(`${g.items.length} поз.`,PW-M-P,y+8);x.textAlign='left';y+=gh;
+    g.items.forEach((it,k)=>{font(16,!!it.isNew);const nm=wrap((it.isNew?'★ ':'')+it.name,cw[1]-2*P);const ni=cols.findIndex(t=>t[0]==='Примечание');font(14,false);const nt=ni>=0&&it.note?wrap(it.note,cw[ni]-2*P):[];font(16,false);const h=Math.max(1,nm.length,Math.ceil(nt.length*18/20))*20+8;if(y+h>PH-M-30){page();hdr();font(14,true);x.fillStyle=PLC.band2;x.fillText(g.name+' (продолжение)',M+P,y+5);y+=24}
       if(it.isNew){x.fillStyle='#E4F5EA';x.fillRect(M,y,CW,h);x.fillStyle=PLC.ok;x.fillRect(M,y,5,h)}else if(k%2){x.fillStyle=PLC.zebra;x.fillRect(M,y,CW,h)}x.strokeStyle=PLC.line;x.lineWidth=1;x.beginPath();x.moveTo(M,y+h);x.lineTo(M+CW,y+h);x.stroke();
-      let cx=M;const mid=y+(h-22)/2+1;cols.forEach((t,i)=>{const lab=t[0];
-        if(lab==='№'){font(16,false);x.fillStyle=PLC.muted;put(String(it.n),i,cx,mid+1)}
-        else if(lab==='Наименование'){font(19,!!it.isNew);x.fillStyle=it.isNew?'#0F5132':'#111';nm.forEach((l,j)=>x.fillText(l,cx+P,y+9+j*25))}
-        else if(lab==='Примечание'){font(16,false);x.fillStyle='#8A3B12';nt.forEach((l,j)=>x.fillText(l,cx+P,y+11+j*22))}
-        else if(lab==='Гарантия'){font(17,false);x.fillStyle=it.war==='—'?PLC.muted:'#333';put(it.war,i,cx,mid+1)}
-        else if(lab==='Наличие'){font(17,true);x.fillStyle=it.q<=0?PLC.muted:it.q<=5?PLC.low:PLC.ok;put(it.stock,i,cx,mid+1)}
-        else{font(20,true);x.fillStyle=PLC.head;put(NF0.format(Math.round(it.price)),i,cx,mid)}cx+=cw[i]});y+=h})}
-  y+=20;if(y+40>PH-M-30)page();font(18,false);x.fillStyle=PLC.muted;x.fillText(`Всего позиций: ${d.total}. Цены указаны в сомах.`,M,y);if(d.anyNew){y+=30;x.fillStyle='#E4F5EA';x.fillRect(M,y-4,26,26);x.fillStyle=PLC.ok;x.fillRect(M,y-4,4,26);font(18,true);x.fillText('★',M+7,y);font(18,false);x.fillStyle=PLC.muted;x.fillText(`— новое поступление (за последние ${d.newDays} дн.)`,M+36,y)}
+      let cx=M;const mid=y+(h-18)/2+1;cols.forEach((t,i)=>{const lab=t[0];
+        if(lab==='№'){font(13,false);x.fillStyle=PLC.muted;put(String(it.n),i,cx,mid+1)}
+        else if(lab==='Наименование'){font(16,!!it.isNew);x.fillStyle=it.isNew?'#0F5132':'#111';nm.forEach((l,j)=>x.fillText(l,cx+P,y+5+j*20))}
+        else if(lab==='Примечание'){font(14,false);x.fillStyle='#8A3B12';nt.forEach((l,j)=>x.fillText(l,cx+P,y+6+j*18))}
+        else if(lab==='Гарантия'){font(14,false);x.fillStyle=it.war==='—'?PLC.muted:'#333';put(it.war,i,cx,mid+1)}
+        else if(lab==='Наличие'){font(14,true);x.fillStyle=it.q<=0?PLC.muted:it.q<=5?PLC.low:PLC.ok;put(it.stock,i,cx,mid+1)}
+        else{font(17,true);x.fillStyle=PLC.head;put(NF0.format(Math.round(it.price)),i,cx,mid-1)}cx+=cw[i]});y+=h})}
+  y+=14;if(y+40>PH-M-30)page();font(15,false);x.fillStyle=PLC.muted;x.fillText(`Всего позиций: ${d.total}. Цены указаны в сомах.`,M,y);if(d.anyNew){y+=24;x.fillStyle='#E4F5EA';x.fillRect(M,y-3,22,22);x.fillStyle=PLC.ok;x.fillRect(M,y-3,4,22);font(15,true);x.fillText('★',M+6,y);font(15,false);x.fillStyle=PLC.muted;x.fillText(`— новое поступление (за последние ${d.newDays} дн.)`,M+36,y)}
   return pages}
 const plPdf=d=>pdfFromJpegs(capPages(()=>plPages(d)).map(c=>jpegOf(c,0.92)));
 function plXlsx(d){const X=v=>String(v??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
