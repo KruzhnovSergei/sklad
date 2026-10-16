@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 16.10.2026 20:38</span>
+      <span class="muted" style="font-size:11px">Версия от 16.10.2026 20:47</span>
     </div>
   </aside>
   <div class="main">
@@ -2429,9 +2429,9 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
     <label class="field" style="flex:0 1 150px"><span>Сборка / работа, сом</span><input data-in="calcf" data-f="work" inputmode="decimal" value="${esc(c.work)}" placeholder="0"></label>
     <label class="field" style="flex:0 1 150px"><span>Округлять вверх до</span><select data-ch="calcround">${[['1','копейки'],['10','10 сом'],['100','100 сом'],['500','500 сом'],['1000','1000 сом']].map(([k,v])=>`<option value="${k}"${String(c.round)===k?' selected':''}>${v}</option>`).join('')}</select></label>
     <div class="field" style="flex:1 1 200px"><span>Цена клиенту</span><b style="padding:4px 0;font-size:26px;font-family:var(--f-display);color:var(--accent)" id="calcPrice">${money(T.price)}</b><span class="small muted" id="calcProfit">наценка ${money(T.profit)}</span></div></div></section>
-  <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${can('calc')?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
-   <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.</p>
-   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${can('calc')?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section></div>`}
+  <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${S.isOwner?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
+   <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.${S.isOwner?' Загружать и удалять прайсы может только владелец, сотрудники с доступом к расчёту ими только пользуются.':''}</p>
+   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${S.isOwner?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section></div>`}
 function calcResHtml(i){const q=(S.calcQ?.[i]||'').trim();if(q.length<2)return '';const R=calcSearch(q);S.calcHits=S.calcHits||{};S.calcHits[i]=R;
   return `<div class="results">${R.length?R.map((r,k)=>`<button data-act="calc-pick" data-i="${i}" data-k="${k}"><span>${esc(r.n)}<span class="psku">${esc(r.supp)}${r.cur&&r.cur!=='KGS'?` · ${NF.format(r.op)} ${CUR[r.cur]||r.cur}`:''}</span></span><b style="white-space:nowrap">${money(r.p)}</b></button>`).join(''):'<div class="empty" style="padding:12px">Ничего не найдено</div>'}</div>`}
 function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>{const e=$('#calcs'+i);if(e)e.textContent=l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'});
@@ -2469,9 +2469,9 @@ async function calcUpSave(){const U=S.cup;const supp=$('#cuSupp').value.trim()||
   const btn=$('[data-act=cu-save]');if(btn){btn.disabled=true;btn.textContent='Загружаю…'}
   const ok=await guard(async()=>{for(let k=0;k<chunks;k++)await db.doc('plrows/'+id+'_'+k).set({list:id,rows:parts[k]});
     for(let k=chunks;k<num(old?.chunks);k++)await db.doc('plrows/'+id+'_'+k).delete();
-    await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'calc');
+    await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'owner');
   if(ok){S.cup=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
-async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','calc')){delete S.plr[id];render()}}
+async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','owner')){delete S.plr[id];render()}}
 /* КП клиенту */
 function calcSpec(){const c=calcState();const T=calcTot();const s=S.set;const L=c.lines.filter(l=>l.pick);let n=0;
   return{title:'КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ',sheet:'КП',shop:[s.shopName||'Магазин',s.shopAddr||'',s.shopPhone?'Тел.: '+s.shopPhone:''].filter(Boolean),sub:[`${c.title?c.title+' · ':''}от ${ds(now())}`],

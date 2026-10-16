@@ -33,8 +33,8 @@ service cloud.firestore {
     match /claims/{id}    { allow read: if member(); allow write: if seller(); }
 
     // Прайсы поставщиков для расчёта ПК — не влияют на учёт
-    match /pricelists/{id} { allow read: if member(); allow write: if admin() || hasPerm('calc'); }
-    match /plrows/{id}     { allow read: if member(); allow write: if admin() || hasPerm('calc'); }
+    match /pricelists/{id} { allow read: if member(); allow write: if isOwner(); }
+    match /plrows/{id}     { allow read: if member(); allow write: if isOwner(); }
 
     // Справочники и складские документы — видят все, меняют администраторы
     match /warehouses/{id} { allow read: if member(); allow write: if admin(); }
