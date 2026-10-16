@@ -1381,7 +1381,7 @@ function jDetail(o){
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
     ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${num(o.total)-num(o.paid??o.total)>0.004?` · в долг ${money(num(o.total)-num(o.paid))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
-  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}
+  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.type==='in'&&S.wh.length>1&&can('stock')?`<button class="btn ghost" data-act="in-wh" data-id="${esc(o.id)}">Изменить склад</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}
    ${can('delete')?(S.jDel===o.id?`<div class="confirm"><span>Удалить ${docNo(o)}? Остатки и долги пересчитаются автоматически.</span><button class="btn danger" data-act="jdel-yes" data-id="${esc(o.id)}">Удалить</button><button class="btn ghost" data-act="jdel-no">Отмена</button></div>`:`<button class="btn link bad" data-act="jdel" data-id="${esc(o.id)}">Удалить документ</button>`):''}</div>`;
   return h}
 async function resolveNames(){
@@ -1706,6 +1706,17 @@ async function snConvSave(){const C=S.snConv;if(!C)return;const err=$('#sncvErr'
   const ok=await guard(async()=>{for(const id in byDoc){const {o,set}=byDoc[id];const items=(o.items||[]).map((it,k)=>set[k]?{...it,q:set[k].length,sn:set[k]}:it);await S.db.doc('ops/'+id).update({items})}
     await S.db.doc('products/'+C.pid).update({serial:true,unit:'шт'})},`Серийные номера сохранены: ${all.size} шт`,'stock');
   if(ok){S.snConv=null;closeModal(true);render()}}
+
+/* ---------- исправление склада в приходе ---------- */
+function inWhCheck(o){const bad=[];const need={};for(const it of o.items||[]){if((it.sn||[]).length){for(const z of it.sn)if(S.snLoc[z]?.wh!==o.wh)bad.push(`${pname(it.p)}: номер ${z} уже продан или перемещён`)}else need[it.p]=(need[it.p]||0)+num(it.q)}
+  for(const p in need)if(qty(o.wh,p)+0.0001<need[p])bad.push(`${pname(p)}: на складе «${wname(o.wh)}» осталось ${q3(qty(o.wh,p))} из ${q3(need[p])}`);return bad}
+function inWhForm(id){const o=S.ops.find(x=>x.id===id);if(!o)return;const bad=inWhCheck(o);
+  openModal(`<h2>Изменить склад: ${docNo(o)}</h2><p>${esc(tlabel(o))} от ${ds(o.at)} · сейчас склад <b>${esc(wname(o.wh))}</b></p>
+  ${bad.length?`<div class="banner" style="margin:0">Перенести нельзя: часть товара уже продана, перемещена или списана с этого склада.<br>${bad.slice(0,6).map(esc).join('<br>')}${bad.length>6?'<br>…':''}<br>Оформите перемещение на нужный склад в «Приход и заказы» → «Перемещение».</div>`
+   :`<label class="field" style="flex:none"><span>Правильный склад</span><select id="inWhSel">${S.wh.filter(w=>w.id!==o.wh).map(w=>`<option value="${esc(w.id)}">${esc(w.name)}</option>`).join('')}</select></label><p class="muted small">Весь товар этого документа переедет на выбранный склад. Цены, оплата, долг поставщику и реализация не изменятся.</p>`}
+  <div class="row end"><button class="btn ghost" data-act="modal-close">${bad.length?'Закрыть':'Отмена'}</button>${bad.length?'':`<button class="btn" data-act="in-wh-save" data-id="${esc(o.id)}">Перенести</button>`}</div>`)}
+async function inWhSave(id){const o=S.ops.find(x=>x.id===id);const to=$('#inWhSel')?.value;if(!o||!to)return;if(inWhCheck(o).length){toast('Товар уже ушёл со склада — перенос невозможен');return}
+  const was=o.wh;if(await guard(()=>S.db.doc('ops/'+id).update({wh:to,whFix:{from:was,at:now(),by:S.uid||null}}),`Склад изменён: «${wname(was)}» → «${wname(to)}»`,'stock')){closeModal(true);render()}}
 /* ---------- товары ---------- */
 function vCatalog(){
   const list=filterProds(S.stockQ,S.showArch).filter(p=>(S.showArch||!p.archived)&&inGroup(p,S.catG));
@@ -2510,6 +2521,7 @@ function cartAdd(pid,sn){const p=S.P[pid];if(!p)return;
   const l=S.cart.find(l=>l.p===pid);if(l)l.q=r3(num(l.q)+1);else S.cart.push({p:pid,q:1,price:num(p.sellPrice),disc:''});$('#cart').innerHTML=cartHtml();updCart()}
 function clearSaleQ(){S.saleQ='';const e=$('#saleQ');if(e){e.value='';$('#saleGrid').innerHTML=saleTiles();e.focus()}}
 const ACT={
+  'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
   'kit-add':t=>{const e=S.kitEd;const i=e.items.find(x=>x.p===t.dataset.id);if(i)i.q=num(i.q)+1;else e.items.push({p:t.dataset.id,q:1});S.kitQ='';kitRender()},'kit-rm':t=>{S.kitEd.items.splice(+t.dataset.i,1);kitRender()},'kit-save':()=>kitSave(),
   'kit-pick':()=>kitPickModal(),'kit-sell':t=>kitSell(t.dataset.id),
