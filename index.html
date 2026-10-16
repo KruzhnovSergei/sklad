@@ -2398,12 +2398,12 @@ function calcLoad(){if(S.pllSub||!S.db)return;S.pllSub=true;S.pll=[];S.plr={};
   S.db.collection('pricelists').onSnapshot(s=>{S.pll=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||'').localeCompare(a.at||''));for(const l of S.pll)calcRows(l);if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()},e=>{S.pllErr=e?.code||'err';if(S.tab==='calc')render()})}
 async function calcRows(l){if(S.plr[l.id]&&S.plr[l.id].v===l.at)return;S.plr[l.id]={v:l.at,rows:null};const rows=[];
   try{for(let k=0;k<num(l.chunks);k++){const d=await S.db.doc('plrows/'+l.id+'_'+k).get();if(d.exists)rows.push(...(d.data().rows||[]))}}catch(e){}
-  S.plr[l.id]={v:l.at,rows:rows.map(r=>({n:String(r.n||''),p:num(r.p),g:r.g||'',k:(String(r.n||'')+' '+(r.gk||r.g||'')).toLowerCase(),l:l.id}))};if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()}
+  S.plr[l.id]={v:l.at,rows:rows.map(r=>({n:String(r.n||''),p:num(r.p),g:r.g||'',nl:String(r.n||'').toLowerCase(),gl:String(r.g||'').toLowerCase(),k:(String(r.n||'')+' '+(r.gk||r.g||'')).toLowerCase(),l:l.id}))};if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()}
 const calcRate=l=>l.cur&&l.cur!=='KGS'?num(l.rate)||0:1;
 function calcSearch(q){const t=q.toLowerCase().split(/\s+/).filter(Boolean);if(!t.length)return [];const out=[];const L={};for(const l of S.pll||[])L[l.id]=l;
-  for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){if(t.every(x=>r.k.includes(x)))out.push({src:'pl',n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:(l.supp||l.file)+(r.g?' · '+r.g:''),l:id})}}
+  for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){if(!t.every(x=>r.k.includes(x)))continue;const rk=t.every(x=>r.nl.includes(x))?0:t.every(x=>r.nl.includes(x)||r.gl.includes(x))?1:2;out.push({src:'pl',rk,n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:(l.supp||l.file)+(r.g?' · '+r.g:''),l:id})}}
   if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase();if(!t.every(x=>n.includes(x)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
-  return out.sort((a,b)=>a.p-b.p).slice(0,60)}
+  return out.sort((a,b)=>(a.rk||0)-(b.rk||0)||a.p-b.p).slice(0,60)}
 function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.pick?num(l.pick.p)*Math.max(1,num(l.q)||1):0),0));const mk=num(c.mk);const work=num(c.work);
   let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;price=rr>1?Math.ceil(price/rr)*rr:r2(price);return{comp,mk,work,price,profit:r2(price-comp)}}
 function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.pll||[];const loading=lists.some(l=>!S.plr[l.id]?.rows);const nRows=Object.values(S.plr||{}).reduce((a,x)=>a+(x.rows?.length||0),0);
@@ -2463,9 +2463,9 @@ function calcUpRender(){const U=S.cup;const ncol=Math.max(0,...U.rows.slice(0,20
   <div class="err" id="cuErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="cu-save"${items.length?'':' disabled'}>Загрузить ${NF.format(items.length)} позиций</button></div>`);$('#mcard').classList.add('wide')}
 async function calcUpSave(){const U=S.cup;const supp=$('#cuSupp').value.trim()||U.file;const cur=U.cur;const rate=cur==='KGS'?1:num($('#cuRate')?.value);if(cur!=='KGS'&&!(rate>0)){$('#cuErr').textContent='Укажите курс валюты';return}
-  const repl=$('#cuRepl')?.value||'';const db=S.db;const id=repl||db.collection('pricelists').doc().id;const items=U.items;const CH=1500;const chunks=Math.ceil(items.length/CH);const old=repl?(S.pll||[]).find(l=>l.id===repl):null;
+  const repl=$('#cuRepl')?.value||'';const db=S.db;const id=repl||db.collection('pricelists').doc().id;const items=U.items.map(x=>({...x,n:x.n.slice(0,400)}));const parts=[];{let cur=[],sz=0;for(const x of items){const b=JSON.stringify(x).length*2;if(cur.length&&sz+b>600000){parts.push(cur);cur=[];sz=0}cur.push(x);sz+=b}if(cur.length)parts.push(cur)}const chunks=parts.length;const old=repl?(S.pll||[]).find(l=>l.id===repl):null;
   const btn=$('[data-act=cu-save]');if(btn){btn.disabled=true;btn.textContent='Загружаю…'}
-  const ok=await guard(async()=>{for(let k=0;k<chunks;k++)await db.doc('plrows/'+id+'_'+k).set({list:id,rows:items.slice(k*CH,(k+1)*CH)});
+  const ok=await guard(async()=>{for(let k=0;k<chunks;k++)await db.doc('plrows/'+id+'_'+k).set({list:id,rows:parts[k]});
     for(let k=chunks;k<num(old?.chunks);k++)await db.doc('plrows/'+id+'_'+k).delete();
     await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'calc');
   if(ok){S.cup=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
