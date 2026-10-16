@@ -402,7 +402,7 @@ const unit=p=>S.P[p]?.unit||'шт';
 const pgroup=p=>{const x=typeof p==='string'?S.P[p]:p;return x?(x.group&&S.G[x.group]?S.G[x.group].name:(x.cat||'Без группы')):'—'};
 const inGroup=(p,g)=>!g||(g==='__none'?!(p.group&&S.G[p.group]):p.group===g);
 function gChips(cur,act,list){const cnt=g=>list.filter(p=>inGroup(p,g)).length;const gs=S.groups.filter(g=>cnt(g.id));const none=cnt('__none');
-  if(!gs.length)return '';return `<div class="gchips" role="group" aria-label="Группы">${[['','Все',list.length],...gs.map(g=>[g.id,g.name,cnt(g.id)]),...(none?[['__none','Без группы',none]]:[])].map(([k,v,n])=>`<button class="gchip" data-act="${act}" data-v="${esc(k)}" aria-pressed="${cur===k}">${esc(v)}<b>${n}</b></button>`).join('')}</div>`}
+  if(!gs.length)return '';return `<div class="row" style="margin-bottom:10px"><select data-ch="${act}" aria-label="Группа" style="flex:0 1 340px${cur?';border-color:var(--accent);font-weight:600':''}">${[['','Все группы',list.length],...gs.map(g=>[g.id,g.name,cnt(g.id)]),...(none?[['__none','Без группы',none]]:[])].map(([k,v,n])=>`<option value="${esc(k)}"${cur===k?' selected':''}>${esc(v)} (${n})</option>`).join('')}</select>${cur?`<button class="btn link" data-act="${act}" data-v="">× Показать все</button>`:''}</div>`}
 const groupOpts=(cur,all='Все группы')=>`<option value="">${all}</option>${S.groups.map(g=>`<option value="${esc(g.id)}"${g.id===cur?' selected':''}>${esc(g.name)}</option>`).join('')}`;
 const wname=w=>S.W[w]?.name||'—';
 const sname=x=>S.SP[x]?.name||'Поставщик';const supDebtOf=x=>r2(S.supDebt[x]||0);
@@ -2782,6 +2782,7 @@ opdlv:t=>{S.op.dlv=t.value;updOp()},
   snf:t=>{S.snF=t.value;const c=S.snCtx;const l=snLine();$('#snList').innerHTML=snListHtml(snWh(c),l.p)},
 };
 const CH={
+  saleg:t=>{S.saleG=t.value;$('#saleGrid').innerHTML=saleTiles()},
   kitpl:t=>{S.kitEd.pl=t.checked},
   'imp-stock':t=>impFileStock(t),'imp-wh':t=>{S.imp.wh=t.value;if(S.imp.items.length)impRender()},'imp-upd':t=>{S.imp.upd=t.checked},
   'imp-file':t=>impFile(t),
