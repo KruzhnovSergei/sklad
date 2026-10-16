@@ -304,7 +304,7 @@ const S={db:null,user:null,uid:null,role:'seller',isOwner:false,offline:false,lo
   wh:[],prod:[],ops:[],sales:[],cust:[],claims:[],groups:[],posL:[],po:{supp:'',wh:'',eta:'',note:'',items:[],paid:'',pay:'transfer',g:'',pm:'goods'},poF:'open',poOpen:null,poPayId:null,moneyL:[],mAcc:'all',mDel:null,staffL:[],seenL:[],ST:{},SEEN:{},supp:[],spays:[],SP:{},supDebt:{},supLast:{},costsL:[],opcL:[],need:8,costs:{},opc:{},ic:{},retQ:{},retSn:{},set:{newPolicy:'pending',shopName:'',shopAddr:'',shopPhone:'',wTerms:''},
   all:[],P:{},W:{},C:{},stock:{},avg:{},snLoc:{},snH:{},debt:{},lastBuy:{},
   tab:ls.get('tab','sale'),curWh:ls.get('curWh',null),
-  cart:[],pay:'cash',cDisc:'',cDiscT:'%',custSel:'',debtOn:false,paidNow:'',note:'',saleQ:'',
+  cart:[],pay:'qr',cDisc:'',cDiscT:'%',custSel:'',debtOn:false,paidNow:'',note:'',saleQ:'',
   opMode:'in',op:{wh:null,toWh:null,party:'',supp:'',debtOn:false,paidNow:'',items:[]},opQ:'',partyTab:'cust',sQ:'',sOpen:null,suppAfter:null,
   stockWh:'all',stockQ:'',stockLow:false,stockCol:new Set(ls.get('stockCol',[])),stockZero:ls.get('stockZero',false),
   cQ:'',cDebtOnly:false,cOpen:null,
@@ -581,7 +581,7 @@ async function postSale(){
   const debtAfter=S.custSel?r2(debtOf(S.custSel)+c.total-paid):null;
   const ref=S.db.collection('sales').doc();
   const ok=await guard(()=>ref.set(o));
-  if(ok){S.cart=[];S.cDisc='';S.debtOn=false;S.paidNow='';S.note='';S.custSel='';render();showReceipt({id:ref.id,...o},debtAfter)}
+  if(ok){S.cart=[];S.cDisc='';S.pay='qr';S.debtOn=false;S.paidNow='';S.note='';S.custSel='';render();showReceipt({id:ref.id,...o},debtAfter)}
 }
 function receiptText(o,debtAfter){
   const L=[],line='-'.repeat(34);L.push(`${(o.init?'Акт ввода начальных остатков':o.cret?'Накладная на возврат поставщику':o.inv?'Расходная накладная':TYPES[o.type].doc).toUpperCase()} № ${docNo(o)}`);L.push(dt(o.at));
