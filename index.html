@@ -2246,14 +2246,14 @@ function billLines(){const v=S.inv;return v.items.filter(l=>invQty(l)>0).map((l,
 function billData(){const s=S.set,v=S.inv,b=v.bill;const rows=billLines();const total=r2(rows.reduce((a,r)=>a+r.sum,0));
   const fixL=t=>String(t||'').replace(/[ \t]*,?[ \t]*(?=ИНН)/g,'\n').replace(/^\n+/,'').replace(/\n{2,}/g,'\n');const fixR=t=>String(t||'').replace(/[ \t]*,?[ \t]+(?=(ОАО|ЗАО|ОсОО|ПАО|АО|ЗАО)[\s«"])/g,'\n').replace(/^\n+/,'').replace(/\n{2,}/g,'\n');
   const orgL=fixL([s.legalName||s.shopName||'Магазин',s.inn?'ИНН '+s.inn:''].filter(Boolean).join(' '));const bk=bankList()[b.bankIdx||0]||bankList()[0]||{};const orgR=[bk.acct?'р/счет '+bk.acct:'',[bk.bank,bk.bik?'БИК '+bk.bik:''].filter(Boolean).join(' ')].filter(Boolean).join('\n');
-  return{title:`Счет на оплату № ${b.no} от ${dLong(b.date)}`,orgL,orgR:fixR(orgR),buyerL:fixL(b.buyer||'—'),buyerR:fixR(b.buyerBank||''),rows,total,words:billWords(total),sign:s.signName||'',acc:s.accName||s.signName||''}}
+  return{title:`Счет на оплату № ${b.no} от ${dLong(b.date)}`,orgL,orgR:fixR(orgR),buyerL:fixL(b.buyer||'—'),buyerR:fixR(acctFix(b.buyerBank||'')),rows,total,words:billWords(total),sign:s.signName||'',acc:s.accName||s.signName||''}}
 function billForm(){const v=S.inv;if(!v.items.length){toast('Сначала добавьте товары');return}
   const c=v.cust?S.C[v.cust]:null;const nextNo=v.bill?.no||String(num(S.set.billNo)+1||1);
   const buyer=v.bill?.buyer||(c?[c.name,c.inn?'ИНН: '+c.inn:''].filter(Boolean).join('\n'):'');
   const buyerBank=v.bill?.buyerBank??(c?[c.acct?'р/счет '+c.acct:'',[c.bank,c.bik?'БИК '+c.bik:''].filter(Boolean).join(' ')].filter(Boolean).join('\n'):'');
   openModal(`<h2>Счёт на оплату</h2><p class="muted small">В счёт попадут все товары, которые сейчас в накладной: ${v.items.length} поз. на ${money(v.items.reduce((a,l)=>a+invSum(l),0))}.</p>
   <div class="row" style="flex:none"><label class="field" style="flex:0 1 140px"><span>Номер счёта</span><input id="bf-no" value="${esc(nextNo)}"></label><label class="field"><span>Дата</span><input type="date" id="bf-date" value="${esc(v.bill?.date||dayKey(now()))}"></label></div>
-  <div class="row" style="flex:none;align-items:flex-start"><label class="field"><span>Покупатель: название и ИНН</span><textarea class="plain" id="bf-buyer" rows="3" placeholder="ОсОО «Название»   ИНН: …">${esc(buyer)}</textarea></label><label class="field"><span>Банковские реквизиты покупателя</span><textarea class="plain" id="bf-bank" rows="3" placeholder="р/счет …&#10;ОАО «Банк» БИК …">${esc(buyerBank)}</textarea></label></div>
+  <div class="row" style="flex:none;align-items:flex-start"><label class="field"><span>Покупатель: название и ИНН</span><textarea class="plain" id="bf-buyer" rows="3" placeholder="ОсОО «Название»   ИНН: …">${esc(buyer)}</textarea></label><label class="field"><span>Банковские реквизиты покупателя</span><textarea class="plain" id="bf-bank" rows="3" placeholder="1030120008697801&#10;ОАО «Банк» БИК 103001">${esc(buyerBank)}</textarea></label></div>
   ${bankList().length>1?`<label class="field" style="flex:none"><span>Наш банковский счёт в счёте</span><select id="bf-bk">${bankList().map((x,i)=>`<option value="${i}"${i===(v.bill?.bankIdx||0)?' selected':''}>${esc([x.bank,x.acct?'р/с '+x.acct:''].filter(Boolean).join(' · ')||'Банк '+(i+1))}</option>`).join('')}</select></label>`:''}
   ${S.set.inn&&bankList().length?'':'<div class="banner" style="margin:0">Ваши ИНН или банковские реквизиты не заполнены. Их можно указать в «Настройки» → «Реквизиты магазина».</div>'}
   <div class="err" id="bf-err"></div>
@@ -2383,6 +2383,7 @@ function kitSell(id){const k=kitList().find(x=>x.id===id);if(!k)return;const sep
   let ser=false;for(const l of lines){const p=S.P[l.p];if(p.serial){ser=true;S.cart.push({p:l.p,q:0,price:l.price,disc:'',sn:[],kit:k.name,kq:l.q})}else S.cart.push({p:l.p,q:l.q,price:l.price,disc:'',kit:k.name})}
   closeModal(true);render();toast(ser?`Комплект «${k.name}» добавлен — выберите серийные номера`:`Комплект «${k.name}» добавлен`)}
 
+const acctFix=t=>String(t||'').split('\n').map(l=>{const m=l.match(/^\s*(\d[\d\s]{9,}\d)(.*)$/);return m&&!/р\s*\/\s*с/i.test(l)?`р/счет ${m[1].replace(/\s+/g,'')}${m[2].trim()?' '+m[2].trim():''}`:l}).join('\n');
 /* ---------- прайс-лист ---------- */
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
