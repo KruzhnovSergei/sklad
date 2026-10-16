@@ -1577,9 +1577,10 @@ function xlsRows(u8){const wb=cfbStream(u8,['Workbook','Book']);if(!wb)throw new
         const avail=wide?Math.floor((cur().length-pos)/2):cur().length-pos;const n=Math.min(cch,avail);s+=dec(cur().subarray(pos,pos+n*(wide?2:1)),wide);pos+=n*(wide?2:1);cch-=n}
       let skip=rt*4+sz;while(skip>0){if(pos>=cur().length){pi++;pos=0;if(pi>=parts.length)break}const n=Math.min(skip,cur().length-pos);pos+=n;skip-=n}
       sst.push(s)}}
-  let lastF=null;
+  let lastF=null;let bof1=false,b5=false,cp='windows-1251';const d8=bytes=>{try{return new TextDecoder(cp).decode(bytes)}catch(e){return dec(bytes,false)}};
   for(let i=0;i<recs.length;i++){const {t,p,l}=recs[i];
-    if(t===0x809){const typ=dv.getUint16(p+2,true);if(typ===0x10){sheetN++;inSheet=sheetN===1}else inSheet=false;continue}
+    if(t===0x42){const c=dv.getUint16(p,true);cp=c===1200?'utf-16le':c===65001?'utf-8':c>=1250&&c<=1258?'windows-'+c:c===866?'ibm866':'windows-1251';continue}
+    if(t===0x809){if(!bof1){bof1=true;b5=dv.getUint16(p,true)<0x600}const typ=dv.getUint16(p+2,true);if(typ===0x10){sheetN++;inSheet=sheetN===1}else inSheet=false;continue}
     if(t===0x0A){if(inSheet)done=true;inSheet=false;continue}
     if(t===0xFC){parseSST(i);continue}
     if(!inSheet||done)continue;
@@ -1588,9 +1589,9 @@ function xlsRows(u8){const wb=cfbStream(u8,['Workbook','Book']);if(!wb)throw new
     else if(t===0x203)put(r,c,dv.getFloat64(p+6,true));
     else if(t===0x27E)put(r,c,rk(dv.getUint32(p+6,true)));
     else if(t===0xBD){const last=dv.getUint16(p+l-2,true);for(let k=0;c+k<=last;k++)put(r,c+k,rk(dv.getUint32(p+4+k*6+2,true)))}
-    else if(t===0x204){const n=dv.getUint16(p+6,true);const w=wb[p+8]&1;put(r,c,dec(wb.subarray(p+9,p+9+n*(w?2:1)),w))}
+    else if(t===0x204||t===0xD6){const n=dv.getUint16(p+6,true);if(b5)put(r,c,d8(wb.subarray(p+8,p+8+n)));else{const w=wb[p+8]&1;put(r,c,dec(wb.subarray(p+9,p+9+n*(w?2:1)),w))}}
     else if(t===0x06){if(dv.getUint16(p+12,true)===0xFFFF){if(wb[p+6]===0){lastF=[r,c]}}else put(r,c,dv.getFloat64(p+6,true))}
-    else if(t===0x207&&lastF){const n=dv.getUint16(p,true);const w=wb[p+2]&1;put(lastF[0],lastF[1],dec(wb.subarray(p+3,p+3+n*(w?2:1)),w));lastF=null}}
+    else if(t===0x207&&lastF){const n=dv.getUint16(p,true);if(b5)put(lastF[0],lastF[1],d8(wb.subarray(p+2,p+2+n)));else{const w=wb[p+2]&1;put(lastF[0],lastF[1],dec(wb.subarray(p+3,p+3+n*(w?2:1)),w))}lastF=null}}
   return rows.map(r=>r||[])}
 async function unzipEntries(u8){const dv=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);let e=u8.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('Повреждённый файл');
   const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out={};
