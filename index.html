@@ -1064,11 +1064,13 @@ function regForm(id){const r=id?regList().find(x=>x.id===id):{};S.regId=id||null
   openModal(`<h2>${id?'Регулярный расход':'Новый регулярный расход'}</h2>
   <div class="row"><label class="field"><span>Статья</span><input id="rgCat" list="rgCats" value="${esc(r.cat||'Аренда')}"><datalist id="rgCats">${EXP_CATS.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label><label class="field"><span>Сумма в месяц, сом</span><input id="rgAmt" inputmode="decimal" value="${esc(r.amount||'')}"></label></div>
   <div class="row"><label class="field"><span>С какого счёта</span><select id="rgAcc">${accList().map(a=>`<option value="${esc(a.id)}"${a.id===(r.acc||'cash')?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label><label class="field"><span>Комментарий</span><input id="rgNote" value="${esc(r.note||'')}" placeholder="Например: зарплата Айбек"></label></div>
+  ${(()=>{const dn=id&&S.moneyL.find(m=>m.reg===id&&m.month===ymKey(new Date()));return dn?`<label class="check"><input type="checkbox" id="rgFix" checked> Исправить и уже проведённый расход за ${esc(monthName(new Date()))} (${money(dn.amount)} от ${ds(dn.at)})</label><p class="muted small">Без галочки новая сумма будет использоваться со следующего месяца.</p>`:''})()}
   <div class="err" id="rgErr"></div>
   <div class="row end">${id?'<button class="btn link bad" data-act="reg-del" style="margin-right:auto">Удалить</button>':''}<button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="reg-save">Сохранить</button></div>`)}
 async function saveReg(del){let regs=[...regList()];const id=S.regId;
   if(del)regs=regs.filter(x=>x.id!==id);else{const d={id:id||('r'+Date.now().toString(36)),cat:$('#rgCat').value.trim()||'Прочее',amount:r2(num($('#rgAmt').value)),acc:$('#rgAcc').value,note:$('#rgNote').value.trim()};if(d.amount<=0){$('#rgErr').textContent='Введите сумму';return}const i=regs.findIndex(x=>x.id===id);if(i>=0)regs[i]=d;else regs.push(d)}
-  if(await guard(()=>S.db.doc('settings/main').set({...S.set,regular:regs}),'Сохранено','money'))closeModal(true)}
+  const fix=!del&&id&&$('#rgFix')?.checked?S.moneyL.find(m=>m.reg===id&&m.month===ymKey(new Date())):null;const d=!del?regs.find(x=>x.id===(id||regs[regs.length-1].id)):null;
+  if(await guard(async()=>{await S.db.doc('settings/main').set({...S.set,regular:regs});if(fix&&d)await S.db.doc('money/'+fix.id).update({amount:d.amount,acc:d.acc,cat:d.cat,note:d.note})},fix?'Сохранено, проведённый расход тоже исправлен':'Сохранено','money'))closeModal(true)}
 
 /* ---------- сборка ПК ---------- */
 const PC_GROUP='Готовые ПК';
