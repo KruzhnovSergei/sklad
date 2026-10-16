@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 16.10.2026 20:55</span>
+      <span class="muted" style="font-size:11px">Версия от 16.10.2026 21:25</span>
     </div>
   </aside>
   <div class="main">
@@ -2407,7 +2407,7 @@ function calcSearch(q){const t=q.toLowerCase().split(/\s+/).filter(Boolean);if(!
   if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase();if(!t.every(x=>n.includes(x)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
   return out.sort((a,b)=>(a.rk||0)-(b.rk||0)||a.p-b.p).slice(0,60)}
 function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.pick?num(l.pick.p)*Math.max(1,num(l.q)||1):0),0));const mk=num(c.mk);const work=num(c.work);
-  let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;price=rr>1?Math.ceil(price/rr)*rr:r2(price);return{comp,mk,work,price,profit:r2(price-comp)}}
+  let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;const rnd=v=>rr>1?Math.ceil(v/rr)*rr:r2(v);price=rnd(price);const bank=num(c.bank);const bprice=bank>0&&price>0?rnd(price*(1+bank/100)):0;return{comp,mk,work,price,profit:r2(price-comp),bank,bprice}}
 function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.pll||[];const loading=lists.some(l=>!S.plr[l.id]?.rows);const nRows=Object.values(S.plr||{}).reduce((a,x)=>a+(x.rows?.length||0),0);
   return `<div class="stack">
   <section class="pane"><div class="pane-h"><h2>Расчёт ПК по прайсам поставщиков</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="calc-reset">Очистить расчёт</button><button class="btn" data-act="calc-dl" data-f="pdf">КП для клиента (PDF)</button><button class="btn ghost" data-act="calc-dl" data-f="xlsx">Excel</button></div></div>
@@ -2428,14 +2428,17 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
     <label class="field" style="flex:0 1 120px"><span>Наценка, %</span><input data-in="calcf" data-f="mk" inputmode="decimal" value="${esc(c.mk)}"></label>
     <label class="field" style="flex:0 1 150px"><span>Сборка / работа, сом</span><input data-in="calcf" data-f="work" inputmode="decimal" value="${esc(c.work)}" placeholder="0"></label>
     <label class="field" style="flex:0 1 150px"><span>Округлять вверх до</span><select data-ch="calcround">${[['1','копейки'],['10','10 сом'],['100','100 сом'],['500','500 сом'],['1000','1000 сом']].map(([k,v])=>`<option value="${k}"${String(c.round)===k?' selected':''}>${v}</option>`).join('')}</select></label>
-    <div class="field" style="flex:1 1 200px"><span>Цена клиенту</span><b style="padding:4px 0;font-size:26px;font-family:var(--f-display);color:var(--accent)" id="calcPrice">${money(T.price)}</b><span class="small muted" id="calcProfit">наценка ${money(T.profit)}</span></div></div></section>
+    <div class="field" style="flex:1 1 200px"><span>Цена клиенту</span><b style="padding:4px 0;font-size:26px;font-family:var(--f-display);color:var(--accent)" id="calcPrice">${money(T.price)}</b><span class="small muted" id="calcProfit">наценка ${money(T.profit)}</span></div></div>
+   <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px;border-top:1px dashed var(--line);padding-top:10px">
+    <label class="field" style="flex:0 1 190px"><span>Наценка банка, %</span><input data-in="calcf" data-f="bank" inputmode="decimal" value="${esc(c.bank||'')}" placeholder="0"></label>
+    <div class="field" style="flex:1 1 260px"><span>Цена в рассрочку</span><b style="padding:4px 0;font-size:22px;font-family:var(--f-display)" id="calcBank">${T.bprice?money(T.bprice):'—'}</b><span class="small muted" id="calcBankD">${T.bprice?`+${money(T.bprice-T.price)} к цене клиенту`:'процент зависит от банка и срока — впишите вручную'}</span></div></div></section>
   <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${S.isOwner?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
    <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.${S.isOwner?' Загружать и удалять прайсы может только владелец, сотрудники с доступом к расчёту ими только пользуются.':''}</p>
    ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${S.isOwner?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section></div>`}
 function calcResHtml(i){const q=(S.calcQ?.[i]||'').trim();if(q.length<2)return '';const R=calcSearch(q);S.calcHits=S.calcHits||{};S.calcHits[i]=R;
   return `<div class="results">${R.length?R.map((r,k)=>`<button data-act="calc-pick" data-i="${i}" data-k="${k}"><span>${esc(r.n)}<span class="psku">${esc(r.supp)}${r.cur&&r.cur!=='KGS'?` · ${NF.format(r.op)} ${CUR[r.cur]||r.cur}`:''}</span></span><b style="white-space:nowrap">${money(r.p)}</b></button>`).join(''):'<div class="empty" style="padding:12px">Ничего не найдено</div>'}</div>`}
 function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>{const e=$('#calcs'+i);if(e)e.textContent=l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'});
-  const a=$('#calcComp'),b=$('#calcPrice'),d=$('#calcProfit');if(a)a.textContent=money(T.comp);if(b)b.textContent=money(T.price);if(d)d.textContent='наценка '+money(T.profit);calcSave()}
+  const a=$('#calcComp'),b=$('#calcPrice'),d=$('#calcProfit');if(a)a.textContent=money(T.comp);if(b)b.textContent=money(T.price);if(d)d.textContent='наценка '+money(T.profit);const bk=$('#calcBank'),bd=$('#calcBankD');if(bk)bk.textContent=T.bprice?money(T.bprice):'—';if(bd)bd.textContent=T.bprice?`+${money(T.bprice-T.price)} к цене клиенту`:'процент зависит от банка и срока — впишите вручную';calcSave()}
 /* загрузка прайса */
 function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-1,C={};
   for(let i=0;i<Math.min(rows.length,40)&&h<0;i++){const r=rows[i]||[];const m={};let pr=-1,nr=-1;r.forEach((v,j)=>{const t=low(v);if(!t)return;const ns=/картин|фото|изображ|photo|image/.test(t)?0:/наимен|назван|name/.test(t)?3:/модель|model|номенклат/.test(t)?2:/товар|описан/.test(t)?1:0;if(ns>nr&&ns>0){nr=ns;m.n=j}else if(ns===0&&!/сумм|кол-?во|остат|гарант/.test(t)){const sc=/дилер|опт|закуп|входн|dealer/.test(t)?3:/цена|price|стоим|розн|доллар|usd|\$|руб|сом|eur|юан/.test(t)?1:0;if(sc>pr&&sc>0){pr=sc;m.p=j}}});if(m.n!=null&&m.p!=null){h=i;C=m}}
@@ -2476,7 +2479,7 @@ async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;i
 function calcSpec(){const c=calcState();const T=calcTot();const s=S.set;const L=c.lines.filter(l=>l.pick);let n=0;
   return{title:'КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ',sheet:'КП',shop:[s.shopName||'Магазин',s.shopAddr||'',s.shopPhone?'Тел.: '+s.shopPhone:''].filter(Boolean),sub:[`${c.title?c.title+' · ':''}от ${ds(now())}`],
     cols:[['№',.06,'q'],['Комплектующее',.22],['Наименование',.6],['Кол-во',.12,'q']],rows:L.map(l=>({cells:[++n,l.label,l.pick.n,Math.max(1,num(l.q)||1)]})),
-    after:[...(num(c.work)?[['Сборка и настройка включены в стоимость',false]]:[]),[`Итоговая стоимость: ${money(T.price)}`,true],['Предложение действительно 3 дня. Цены могут измениться в зависимости от наличия у поставщиков.',false]]}}
+    after:[...(num(c.work)?[['Сборка и настройка включены в стоимость',false]]:[]),[`Итоговая стоимость: ${money(T.price)}`,true],...(T.bprice?[[`Стоимость в рассрочку: ${money(T.bprice)}`,true]]:[]),['Предложение действительно 3 дня. Цены могут измениться в зависимости от наличия у поставщиков.',false]]}}
 
 /* ---------- прайс-лист ---------- */
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
@@ -2641,7 +2644,7 @@ const ACT={
   'calc-add':()=>{calcState().lines.push({label:'Комплектующее',q:1,pick:null});calcSave();render()},'calc-rm':t=>{calcState().lines.splice(+t.dataset.i,1);calcSave();render()},
   'calc-unpick':t=>{calcState().lines[+t.dataset.i].pick=null;calcSave();render();setTimeout(()=>$('#calcq'+t.dataset.i)?.focus(),0)},
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
-  'calc-reset':()=>{const c=calcState();c.lines=CALC_DEF.map(n=>({label:n,q:1,pick:null}));c.title='';c.work='';S.calcQ={};calcSave();render()},
+  'calc-reset':()=>{const c=calcState();c.lines=CALC_DEF.map(n=>({label:n,q:1,pick:null}));c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
   'calc-ldel':t=>calcDel(t.dataset.id),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
