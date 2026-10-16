@@ -283,7 +283,7 @@ const TYPES={in:{label:'Приход',doc:'Приходная накладная
 const PAY={qr:'Оплата по QR',cash:'Наличные',transfer:'Перевод (юр. лица)'};const PAYL={...PAY,card:'Карта'};
 const UNITS=['шт','кг','г','л','м','уп','кор'];
 const ROLE={owner:'Владелец',admin:'Администратор',seller:'Продавец',view:'Просмотр'};
-const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Розничные покупатели: добавление и изменение'],['custopt','Оптовые покупатели: добавление и изменение'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль',1],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена деталей',1]];
+const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Розничные покупатели: добавление и изменение'],['custopt','Оптовые покупатели: добавление и изменение'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['calc','Расчёт ПК по прайсам поставщиков'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль',1],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена деталей',1]];
 const EDK=new Set(PERMS.filter(x=>x[2]).map(x=>x[0]));
 const PRESETS={seller:{label:'Продавец',maxDisc:10,perms:['sell','debt','payments','customers','warranty']},senior:{label:'Старший продавец',maxDisc:20,perms:['sell','debt','payments','customers','custopt','warranty','returns','reports','price']},keeper:{label:'Кладовщик',maxDisc:0,perms:['stock','assembly','warranty']},admin:{label:'Администратор',maxDisc:100,perms:PERMS.map(x=>x[0])}};
 const LVL={admin:'Редактор',seller:'Участник',view:'Просмотр'};
@@ -443,11 +443,11 @@ async function guard(fn,okMsg,need='sell'){
 const now=()=>new Date().toISOString();
 
 /* ---------- отрисовка ---------- */
-const ICO={price:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>',invoices:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',sale:'<path d="M4 7h16l-1.5 9.5a2 2 0 0 1-2 1.5h-9a2 2 0 0 1-2-1.5z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',customers:'<circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 4.6a3 3 0 0 1 0 6.3M21 19c-.4-2.4-1.8-4-3.8-4.6"/>',warranty:'<path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/>',stock:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',ops:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',asm:'<rect x="4" y="3" width="10" height="18" rx="1.5"/><path d="M7 7h4M7 10h4"/><circle cx="9" cy="16" r="1.3"/><path d="M17 8h3v13h-3"/>',catalog:'<path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/>',money:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4"/>',expenses:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',reports:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',journal:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'};
-const NAVG=[['Продажи',['sale','invoices','customers','warranty']],['Склад',['stock','ops','asm','catalog','price']],['Финансы',['money','expenses','reports']],['Учёт',['journal','settings']]];
+const ICO={calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11v6M8 15h2M12 15h2M8 19h2M12 19h2"/>',price:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>',invoices:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',sale:'<path d="M4 7h16l-1.5 9.5a2 2 0 0 1-2 1.5h-9a2 2 0 0 1-2-1.5z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',customers:'<circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 4.6a3 3 0 0 1 0 6.3M21 19c-.4-2.4-1.8-4-3.8-4.6"/>',warranty:'<path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/>',stock:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',ops:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',asm:'<rect x="4" y="3" width="10" height="18" rx="1.5"/><path d="M7 7h4M7 10h4"/><circle cx="9" cy="16" r="1.3"/><path d="M17 8h3v13h-3"/>',catalog:'<path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/>',money:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4"/>',expenses:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',reports:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',journal:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'};
+const NAVG=[['Продажи',['sale','invoices','calc','customers','warranty']],['Склад',['stock','ops','asm','catalog','price']],['Финансы',['money','expenses','reports']],['Учёт',['journal','settings']]];
 function navHtml(tabs){const m=new Map(tabs.map(t=>[t[0],t[1]]));return NAVG.map(([g,ks])=>{const its=ks.filter(k=>m.has(k));return its.length?`<div class="nav-g">${g}</div>`+its.map(k=>`<button data-act="tab" data-v="${k}"${S.tab===k?' aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]||''}</svg>${m.get(k)}</button>`).join(''):''}).join('')}
 function updFab(){const f=$('#cartFab');if(!f)return;if(S.tab!=='sale'||!S.cart.length){f.hidden=true;return}const c=calcCart();f.hidden=false;f.innerHTML=`<span>Чек · ${S.cart.length} поз.</span><span>${money(c.total)} →</span>`}
-function tabsFor(){const acc=access();if(acc==='pending'||acc==='off')return [];return [['sale','Касса',can('sell')],['invoices','Продажи',can('sell')||can('reports')],['stock','Остатки',true],['customers','Контрагенты',true],['warranty','Гарантия',true],['ops','Приход и заказы',can('stock')],['asm','Сборка ПК',can('assembly')||can('pcedit')],['journal','Журнал',true],['reports','Отчёты',can('reports')],['money','Деньги',can('money')],['expenses','Расходы',can('money')],['catalog','Товары и склады',can('catalog')],['price','Прайс-лист',can('price')||can('catalog')],['settings','Настройки',S.isOwner]].filter(t=>t[2])}
+function tabsFor(){const acc=access();if(acc==='pending'||acc==='off')return [];return [['sale','Касса',can('sell')],['invoices','Продажи',can('sell')||can('reports')],['stock','Остатки',true],['customers','Контрагенты',true],['warranty','Гарантия',true],['ops','Приход и заказы',can('stock')],['asm','Сборка ПК',can('assembly')||can('pcedit')],['journal','Журнал',true],['reports','Отчёты',can('reports')],['money','Деньги',can('money')],['expenses','Расходы',can('money')],['catalog','Товары и склады',can('catalog')],['price','Прайс-лист',can('price')||can('catalog')],['calc','Расчёт ПК',can('calc')],['settings','Настройки',S.isOwner]].filter(t=>t[2])}
 function render(){
   S.pending=false;
   {const m=myStaff();const acc=access();$('#who').innerHTML=S.db?`${esc(m?.label||S.meName||'')} <span class="chip role">${S.isOwner?ROLE.owner:acc==='pending'?'Ожидает подтверждения':acc==='off'?'Отключён':esc(m?.position||(acc==='default'?'Продавец':ROLE[S.role]))}</span>${SRV()?'<button class="btn link" data-act="signout" style="padding:0 0 0 4px">Выйти</button>':''}`:''}
@@ -467,7 +467,7 @@ function render(){
   const acc=access();
   if(acc==='pending'||acc==='off'){$('#tabs').innerHTML='';v.innerHTML=`<div class="pane onb stack"><h2>${acc==='off'?'Доступ отключён':'Ожидайте подтверждения'}</h2><p class="muted">${acc==='off'?'Владелец отключил ваш доступ к приложению. Если это ошибка, свяжитесь с ним.':'Вы открыли приложение впервые. Владелец увидит вас в разделе «Настройки» и выдаст доступ. Обновите страницу после подтверждения.'}</p></div>`;return}
   if(!S.wh.length&&!S.prod.length&&S.tab!=='catalog'&&S.tab!=='settings'){v.innerHTML=can('catalog')?vOnboard():'<div class="pane empty">Владелец ещё не создал склады и товары. Загляните позже.</div>';return}
-  v.innerHTML=({price:vPrice,invoices:vInvoices,sale:vSale,stock:vStock,customers:vParties,settings:vSettings,warranty:vWarranty,ops:vOps,asm:vAsm,journal:vJournal,reports:vReports,money:vMoney,expenses:vExpenses,catalog:vCatalog}[S.tab]||vStock)();
+  v.innerHTML=({calc:vCalc,price:vPrice,invoices:vInvoices,sale:vSale,stock:vStock,customers:vParties,settings:vSettings,warranty:vWarranty,ops:vOps,asm:vAsm,journal:vJournal,reports:vReports,money:vMoney,expenses:vExpenses,catalog:vCatalog}[S.tab]||vStock)();
   if(S.tab==='journal'||S.tab==='settings')resolveNames();
   if(S.tab==='sale')updCart();
   if(S.tab==='ops')updOp();
@@ -1609,7 +1609,7 @@ async function xlsxRows(u8){const z=await unzipEntries(u8);const txt=async n=>z[
       if(t==='s')val=ss[num(v)];else if(t==='inlineStr')val=[...c.getElementsByTagName('t')].map(x=>x.textContent).join('');else if(t==='str'||t==='e')val=v??'';else if(v!=null)val=t==='b'?v:parseFloat(v);
       if(val!=null)row[col(c.getAttribute('r'))]=val}}
   return [...rows].map(r=>r||[])}
-function csvRows(text){const sep=(text.split('\n')[0].match(/;/g)||[]).length>(text.split('\n')[0].match(/,/g)||[]).length?';':',';const rows=[];let row=[],cell='',q=false;
+function csvRows(text){const hd=text.split('\n').slice(0,5).join('\n');const cnt=c=>(hd.match(c)||[]).length;const sep=cnt(/\t/g)>cnt(/;/g)&&cnt(/\t/g)>cnt(/,/g)?'\t':cnt(/;/g)>=cnt(/,/g)&&cnt(/;/g)>0?';':',';const rows=[];let row=[],cell='',q=false;
   for(let i=0;i<text.length;i++){const ch=text[i];if(q){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch}
     else if(ch==='"')q=true;else if(ch===sep){row.push(cell);cell=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell=''}else cell+=ch}
   if(cell||row.length){row.push(cell);rows.push(row)}return rows}
@@ -2384,6 +2384,89 @@ function kitSell(id){const k=kitList().find(x=>x.id===id);if(!k)return;const sep
   closeModal(true);render();toast(ser?`Комплект «${k.name}» добавлен — выберите серийные номера`:`Комплект «${k.name}» добавлен`)}
 
 const acctFix=t=>String(t||'').split('\n').map(l=>{const m=l.match(/^\s*(\d[\d\s]{9,}\d)(.*)$/);return m&&!/р\s*\/\s*с/i.test(l)?`р/счет ${m[1].replace(/\s+/g,'')}${m[2].trim()?' '+m[2].trim():''}`:l}).join('\n');
+/* ---------- расчёт ПК по прайсам поставщиков (не влияет на учёт) ---------- */
+const CALC_DEF=['Процессор','Материнская плата','Оперативная память','Накопитель SSD','Видеокарта','Блок питания','Корпус','Охлаждение'];
+const CUR={KGS:'сом',USD:'$',RUB:'₽',CNY:'¥'};
+function calcState(){if(!S.calc){let c=null;try{c=JSON.parse(localStorage.getItem('sk_calc')||'null')}catch(e){}S.calc=c&&Array.isArray(c.lines)?c:{lines:CALC_DEF.map(n=>({label:n,q:1,pick:null})),mk:'15',work:'',round:'100',own:true,title:''}}return S.calc}
+const calcSave=()=>{try{localStorage.setItem('sk_calc',JSON.stringify(S.calc))}catch(e){}};
+function calcLoad(){if(S.pllSub||!S.db)return;S.pllSub=true;S.pll=[];S.plr={};
+  S.db.collection('pricelists').onSnapshot(s=>{S.pll=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||'').localeCompare(a.at||''));for(const l of S.pll)calcRows(l);if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()},e=>{S.pllErr=e?.code||'err';if(S.tab==='calc')render()})}
+async function calcRows(l){if(S.plr[l.id]&&S.plr[l.id].v===l.at)return;S.plr[l.id]={v:l.at,rows:null};const rows=[];
+  try{for(let k=0;k<num(l.chunks);k++){const d=await S.db.doc('plrows/'+l.id+'_'+k).get();if(d.exists)rows.push(...(d.data().rows||[]))}}catch(e){}
+  S.plr[l.id]={v:l.at,rows:rows.map(r=>({n:String(r.n||''),p:num(r.p),l:l.id}))};if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()}
+const calcRate=l=>l.cur&&l.cur!=='KGS'?num(l.rate)||0:1;
+function calcSearch(q){const t=q.toLowerCase().split(/\s+/).filter(Boolean);if(!t.length)return [];const out=[];const L={};for(const l of S.pll||[])L[l.id]=l;
+  for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){const n=r.n.toLowerCase();if(t.every(x=>n.includes(x)))out.push({src:'pl',n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:l.supp||l.file,l:id})}}
+  if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase();if(!t.every(x=>n.includes(x)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
+  return out.sort((a,b)=>a.p-b.p).slice(0,60)}
+function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.pick?num(l.pick.p)*Math.max(1,num(l.q)||1):0),0));const mk=num(c.mk);const work=num(c.work);
+  let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;price=rr>1?Math.ceil(price/rr)*rr:r2(price);return{comp,mk,work,price,profit:r2(price-comp)}}
+function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.pll||[];const loading=lists.some(l=>!S.plr[l.id]?.rows);const nRows=Object.values(S.plr||{}).reduce((a,x)=>a+(x.rows?.length||0),0);
+  return `<div class="stack">
+  <section class="pane"><div class="pane-h"><h2>Расчёт ПК по прайсам поставщиков</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="calc-reset">Очистить расчёт</button><button class="btn" data-act="calc-dl" data-f="pdf">КП для клиента (PDF)</button><button class="btn ghost" data-act="calc-dl" data-f="xlsx">Excel</button></div></div>
+   <p class="muted small" style="margin-bottom:10px">Черновой расчёт: ничего не создаётся в товарах, остатках и документах. В строке комплектующего начните вводить модель, например <b>12400F</b> или <b>b760</b> — найдутся позиции из всех загруженных прайсов${c.own?' и из нашего склада':''}, отсортированные по цене. Расчёт сохраняется на этом компьютере.</p>
+   ${S.pllErr?`<div class="banner" style="margin:0 0 10px">Нет доступа к прайсам поставщиков (${esc(S.pllErr)}). Владельцу нужно обновить правила доступа Firebase.</div>`:''}
+   <label class="field" style="flex:none;margin-bottom:10px"><span>Название сборки (для КП)</span><input data-in="calcf" data-f="title" value="${esc(c.title||'')}" placeholder="Например: Игровой ПК i5-12400F / RTX 4060"></label>
+   <div class="tbl"><table><thead><tr><th style="width:170px">Комплектующее</th><th>Выбранная позиция</th><th class="num" style="width:70px">Кол-во</th><th class="num">Цена, сом</th><th class="num">Сумма</th><th></th></tr></thead><tbody>
+   ${c.lines.map((l,i)=>`<tr><td><input data-in="calcl" data-i="${i}" data-f="label" value="${esc(l.label)}" style="padding:6px 8px;font-weight:600"></td>
+     <td>${l.pick?`<span class="pname">${esc(l.pick.n)}</span><span class="psku">${esc(l.pick.supp||'')}${l.pick.cur&&l.pick.cur!=='KGS'?` · ${NF.format(l.pick.op)} ${CUR[l.pick.cur]||l.pick.cur}`:''} · <button class="btn link" style="padding:0;font-size:12px" data-act="calc-unpick" data-i="${i}">заменить</button></span>`
+       :`<div class="picker"><input data-in="calcq" data-i="${i}" id="calcq${i}" placeholder="Поиск: модель, например 12400F" value="${esc(S.calcQ?.[i]||'')}" autocomplete="off"><div id="calcr${i}">${calcResHtml(i)}</div></div>`}</td>
+     <td class="num"><input class="xs" inputmode="numeric" data-in="calcl" data-i="${i}" data-f="q" value="${esc(l.q??1)}"></td>
+     <td class="num"><input class="sm" inputmode="decimal" data-in="calcp" data-i="${i}" value="${l.pick?esc(l.pick.p):''}" placeholder="—" style="width:100px"></td><td class="num" id="calcs${i}">${l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'}</td>
+     <td><button class="x" data-act="calc-rm" data-i="${i}" aria-label="Убрать строку">×</button></td></tr>`).join('')}
+   </tbody></table></div>
+   <div class="row" style="margin-top:8px"><button class="btn link" data-act="calc-add">+ Добавить строку</button><label class="check" style="margin-left:auto"><input type="checkbox" data-ch="calcown"${c.own?' checked':''}> Искать и в товарах нашего склада</label></div>
+   <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px">
+    <div class="field" style="flex:0 1 190px"><span>Себестоимость комплектующих</span><b style="padding:8px 0;font-size:18px" id="calcComp">${money(T.comp)}</b></div>
+    <label class="field" style="flex:0 1 120px"><span>Наценка, %</span><input data-in="calcf" data-f="mk" inputmode="decimal" value="${esc(c.mk)}"></label>
+    <label class="field" style="flex:0 1 150px"><span>Сборка / работа, сом</span><input data-in="calcf" data-f="work" inputmode="decimal" value="${esc(c.work)}" placeholder="0"></label>
+    <label class="field" style="flex:0 1 150px"><span>Округлять вверх до</span><select data-ch="calcround">${[['1','копейки'],['10','10 сом'],['100','100 сом'],['500','500 сом'],['1000','1000 сом']].map(([k,v])=>`<option value="${k}"${String(c.round)===k?' selected':''}>${v}</option>`).join('')}</select></label>
+    <div class="field" style="flex:1 1 200px"><span>Цена клиенту</span><b style="padding:4px 0;font-size:26px;font-family:var(--f-display);color:var(--accent)" id="calcPrice">${money(T.price)}</b><span class="small muted" id="calcProfit">наценка ${money(T.profit)}</span></div></div></section>
+  <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${can('calc')?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
+   <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.</p>
+   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${can('calc')?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section></div>`}
+function calcResHtml(i){const q=(S.calcQ?.[i]||'').trim();if(q.length<2)return '';const R=calcSearch(q);S.calcHits=S.calcHits||{};S.calcHits[i]=R;
+  return `<div class="results">${R.length?R.map((r,k)=>`<button data-act="calc-pick" data-i="${i}" data-k="${k}"><span>${esc(r.n)}<span class="psku">${esc(r.supp)}${r.cur&&r.cur!=='KGS'?` · ${NF.format(r.op)} ${CUR[r.cur]||r.cur}`:''}</span></span><b style="white-space:nowrap">${money(r.p)}</b></button>`).join(''):'<div class="empty" style="padding:12px">Ничего не найдено</div>'}</div>`}
+function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>{const e=$('#calcs'+i);if(e)e.textContent=l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'});
+  const a=$('#calcComp'),b=$('#calcPrice'),d=$('#calcProfit');if(a)a.textContent=money(T.comp);if(b)b.textContent=money(T.price);if(d)d.textContent='наценка '+money(T.profit);calcSave()}
+/* загрузка прайса */
+function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-1,C={};
+  for(let i=0;i<Math.min(rows.length,40)&&h<0;i++){const r=rows[i]||[];const m={};r.forEach((v,j)=>{const t=low(v);if(!t)return;if(m.n==null&&/наимен|назван|товар|модель|описан|номенклат|name|model/.test(t))m.n=j;else if(m.p==null&&/цена|price|стоим|опт|дилер|руб|сом|usd|\$/.test(t)&&!/сумм|розн.*рек/.test(t))m.p=j});if(m.n!=null&&m.p!=null){h=i;C=m}}
+  const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));
+  if(h<0){const nc={},pc={};rows.slice(0,300).forEach(r=>(r||[]).forEach((v,j)=>{if(typeof v==='string'&&v.trim().length>12&&!/^\d/.test(v.trim()))nc[j]=(nc[j]||0)+1;else if(pn(v)>0)pc[j]=(pc[j]||0)+1}));
+    const best=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0];C={n:+best(nc),p:+best(pc)};h=-1}
+  return{h,C}}
+function calcParse(rows,h,C){const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));const out=[];
+  for(let i=h+1;i<rows.length;i++){const r=rows[i]||[];const n=String(r[C.n]??'').replace(/\s+/g,' ').trim();const p=pn(r[C.p]);if(n&&p>0&&!/^итого|^всего/i.test(n))out.push({n,p:r2(p)})}return out}
+async function calcFile(t){const f=t.files?.[0];t.value='';if(!f)return;let rows;try{rows=await readSheet(f)}catch(e){toast('Не удалось прочитать файл: '+(e?.message||e));return}
+  const g=calcGuess(rows);const old=(S.pll||[]).find(l=>(l.file||'').toLowerCase()===f.name.toLowerCase());
+  S.cup={file:f.name,rows,h:g.h,C:g.C,supp:old?.supp||f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').slice(0,40),cur:old?.cur||'KGS',rate:old?.rate||'',replace:old?.id||''};calcUpRender()}
+function calcUpRender(){const U=S.cup;const ncol=Math.max(0,...U.rows.slice(0,200).map(r=>(r||[]).length));const sample=j=>{const v=U.rows.slice(U.h+1).map(r=>r?.[j]).find(x=>x!=null&&String(x).trim());return v==null?'':String(v).slice(0,30)};
+  const col=j=>{let s='';let n=j+1;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
+  const opts=sel=>Array.from({length:ncol},(_,j)=>`<option value="${j}"${j===sel?' selected':''}>${col(j)}: ${esc(sample(j))}</option>`).join('');
+  const items=calcParse(U.rows,U.h,U.C);U.items=items;const L=(S.pll||[]);
+  openModal(`<h2>Загрузка прайса поставщика</h2><p class="small">Файл: <b>${esc(U.file)}</b></p>
+  <div class="row"><label class="field"><span>Поставщик</span><input id="cuSupp" value="${esc(U.supp)}"></label><label class="field" style="flex:0 1 150px"><span>Валюта цен</span><select data-ch="cu-cur">${Object.keys(CUR).map(k=>`<option value="${k}"${U.cur===k?' selected':''}>${k==='KGS'?'сом':k}</option>`).join('')}</select></label>${U.cur!=='KGS'?`<label class="field" style="flex:0 1 150px"><span>Курс: сом за 1 ${esc(U.cur)}</span><input id="cuRate" inputmode="decimal" value="${esc(U.rate)}" placeholder="${U.cur==='USD'?'87.5':''}"></label>`:''}</div>
+  <div class="row"><label class="field"><span>Колонка с названием</span><select data-ch="cu-n">${opts(U.C.n)}</select></label><label class="field"><span>Колонка с ценой</span><select data-ch="cu-p">${opts(U.C.p)}</select></label></div>
+  ${L.length?`<label class="field" style="flex:none"><span>Заменить ранее загруженный прайс</span><select id="cuRepl"><option value="">— Нет, добавить как новый</option>${L.map(l=>`<option value="${esc(l.id)}"${l.id===U.replace?' selected':''}>${esc(l.supp||'')} · ${esc(l.file||'')}</option>`).join('')}</select></label>`:''}
+  <p class="small">Найдено позиций: <b>${NF.format(items.length)}</b></p>
+  <div class="tbl" style="max-height:260px;overflow:auto">${items.length?`<table><tbody>${items.slice(0,40).map(x=>`<tr><td>${esc(x.n)}</td><td class="num"><b>${NF.format(x.p)}</b></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Не нашёл товаров — выберите другие колонки</div>'}</div>
+  <div class="err" id="cuErr"></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="cu-save"${items.length?'':' disabled'}>Загрузить ${NF.format(items.length)} позиций</button></div>`);$('#mcard').classList.add('wide')}
+async function calcUpSave(){const U=S.cup;const supp=$('#cuSupp').value.trim()||U.file;const cur=U.cur;const rate=cur==='KGS'?1:num($('#cuRate')?.value);if(cur!=='KGS'&&!(rate>0)){$('#cuErr').textContent='Укажите курс валюты';return}
+  const repl=$('#cuRepl')?.value||'';const db=S.db;const id=repl||db.collection('pricelists').doc().id;const items=U.items;const CH=1500;const chunks=Math.ceil(items.length/CH);const old=repl?(S.pll||[]).find(l=>l.id===repl):null;
+  const btn=$('[data-act=cu-save]');if(btn){btn.disabled=true;btn.textContent='Загружаю…'}
+  const ok=await guard(async()=>{for(let k=0;k<chunks;k++)await db.doc('plrows/'+id+'_'+k).set({list:id,rows:items.slice(k*CH,(k+1)*CH)});
+    for(let k=chunks;k<num(old?.chunks);k++)await db.doc('plrows/'+id+'_'+k).delete();
+    await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'calc');
+  if(ok){S.cup=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
+async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','calc')){delete S.plr[id];render()}}
+/* КП клиенту */
+function calcSpec(){const c=calcState();const T=calcTot();const s=S.set;const L=c.lines.filter(l=>l.pick);let n=0;
+  return{title:'КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ',sheet:'КП',shop:[s.shopName||'Магазин',s.shopAddr||'',s.shopPhone?'Тел.: '+s.shopPhone:''].filter(Boolean),sub:[`${c.title?c.title+' · ':''}от ${ds(now())}`],
+    cols:[['№',.06,'q'],['Комплектующее',.22],['Наименование',.6],['Кол-во',.12,'q']],rows:L.map(l=>({cells:[++n,l.label,l.pick.n,Math.max(1,num(l.q)||1)]})),
+    after:[...(num(c.work)?[['Сборка и настройка включены в стоимость',false]]:[]),[`Итоговая стоимость: ${money(T.price)}`,true],['Предложение действительно 3 дня. Цены могут измениться в зависимости от наличия у поставщиков.',false]]}}
+
 /* ---------- прайс-лист ---------- */
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
@@ -2544,6 +2627,12 @@ function cartAdd(pid,sn){const p=S.P[pid];if(!p)return;
   const l=S.cart.find(l=>l.p===pid);if(l)l.q=r3(num(l.q)+1);else S.cart.push({p:pid,q:1,price:num(p.sellPrice),disc:''});$('#cart').innerHTML=cartHtml();updCart()}
 function clearSaleQ(){S.saleQ='';const e=$('#saleQ');if(e){e.value='';$('#saleGrid').innerHTML=saleTiles();e.focus()}}
 const ACT={
+  'calc-add':()=>{calcState().lines.push({label:'Комплектующее',q:1,pick:null});calcSave();render()},'calc-rm':t=>{calcState().lines.splice(+t.dataset.i,1);calcSave();render()},
+  'calc-unpick':t=>{calcState().lines[+t.dataset.i].pick=null;calcSave();render();setTimeout(()=>$('#calcq'+t.dataset.i)?.focus(),0)},
+  'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
+  'calc-reset':()=>{const c=calcState();c.lines=CALC_DEF.map(n=>({label:n,q:1,pick:null}));c.title='';c.work='';S.calcQ={};calcSave();render()},
+  'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
+  'calc-ldel':t=>calcDel(t.dataset.id),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
@@ -2746,6 +2835,10 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
 };
 const keepFocus=(id,fn)=>{const e=document.getElementById(id);const pos=e?.selectionStart;fn();const n=document.getElementById(id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}};
 const IN={
+  calcq:t=>{(S.calcQ??={})[t.dataset.i]=t.value;const e=$('#calcr'+t.dataset.i);if(e)e.innerHTML=calcResHtml(+t.dataset.i)},
+  calcl:t=>{const l=calcState().lines[+t.dataset.i];if(l){l[t.dataset.f]=t.value;calcUpd()}},
+  calcp:t=>{const l=calcState().lines[+t.dataset.i];if(!l)return;if(!l.pick)l.pick={n:l.label+' (цена вручную)',p:0,supp:'вручную'};l.pick.p=r2(num(t.value));calcUpd()},
+  calcf:t=>{calcState()[t.dataset.f]=t.value;calcUpd()},
   kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
   kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
@@ -2788,6 +2881,8 @@ opdlv:t=>{S.op.dlv=t.value;updOp()},
   snf:t=>{S.snF=t.value;const c=S.snCtx;const l=snLine();$('#snList').innerHTML=snListHtml(snWh(c),l.p)},
 };
 const CH={
+  'calc-file':t=>calcFile(t),calcown:t=>{calcState().own=t.checked;calcSave();render()},calcround:t=>{calcState().round=t.value;calcUpd()},
+  'cu-cur':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.cur=t.value;calcUpRender()},'cu-n':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.n=+t.value;calcUpRender()},'cu-p':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.p=+t.value;calcUpRender()},
   saleg:t=>{S.saleG=t.value;$('#saleGrid').innerHTML=saleTiles()},
   kitpl:t=>{S.kitEd.pl=t.checked},
   'imp-stock':t=>impFileStock(t),'imp-wh':t=>{S.imp.wh=t.value;if(S.imp.items.length)impRender()},'imp-upd':t=>{S.imp.upd=t.checked},
