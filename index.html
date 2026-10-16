@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 16.10.2026 20:47</span>
+      <span class="muted" style="font-size:11px">Версия от 16.10.2026 20:55</span>
     </div>
   </aside>
   <div class="main">
@@ -2443,7 +2443,7 @@ function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-
   if(h<0){const nc={},pc={};rows.slice(0,300).forEach(r=>(r||[]).forEach((v,j)=>{if(typeof v==='string'&&v.trim().length>12&&!/^\d/.test(v.trim()))nc[j]=(nc[j]||0)+1;else if(pn(v)>0)pc[j]=(pc[j]||0)+1}));
     const best=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0];const bn=best(nc),bp=best(Object.fromEntries(Object.entries(pc).filter(([k])=>k!==bn)));C={n:bn!=null?+bn:0,p:bp!=null?+bp:1};h=-1}
   let cur='KGS',rate='';const ph=h>=0?low(rows[h][C.p]):'';if(/доллар|usd|\$/.test(ph))cur='USD';else if(/руб|rub|₽/.test(ph))cur='RUB';else if(/юан|cny|rmb|¥/.test(ph))cur='CNY';
-  for(const r of rows.slice(0,Math.max(h,12)))for(const v of r||[]){const m=String(v??'').match(/курс[^\d]{0,10}([\d]+[.,]?\d*)/i);if(m){rate=m[1].replace(',','.');if(cur==='KGS')cur='USD'}}
+  for(const r of rows.slice(0,Math.max(h,12)))for(const v of r||[]){const t=String(v??'');const m1=t.match(/(?:^|[^\d.,])1\s*(?:usd|\$|долл\S*|у\.?\s?е\.?)\s*[=:≈–-]\s*(\d+(?:[.,]\d+)?)/i);const m=m1||t.match(/курс[^\d]{0,10}(\d+(?:[.,]\d+)?)/i);if(m&&num(m[1].replace(',','.'))>=2){rate=m[1].replace(',','.');if(cur==='KGS')cur='USD'}}
   return{h,C,cur,rate}}
 function calcParse(rows,h,C){const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));const out=[];let g='',gs=[];
   for(let i=h+1;i<rows.length;i++){const r=rows[i]||[];const n=String(r[C.n]??'').replace(/\s+/g,' ').trim();const p=pn(r[C.p]);
