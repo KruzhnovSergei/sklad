@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 11:05</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 11:11</span>
     </div>
   </aside>
   <div class="main">
@@ -2515,9 +2515,9 @@ async function calcRows(l){if(S.plr[l.id]&&S.plr[l.id].v===l.at)return;S.plr[l.i
   try{for(let k=0;k<num(l.chunks);k++){const d=await S.db.doc('plrows/'+l.id+'_'+k).get();if(d.exists)rows.push(...(d.data().rows||[]))}}catch(e){}
   S.plr[l.id]={v:l.at,rows:rows.map(r=>({n:String(r.n||''),p:num(r.p),g:r.g||'',nl:String(r.n||'').toLowerCase(),gl:String(r.g||'').toLowerCase(),k:(String(r.n||'')+' '+(r.gk||r.g||'')).toLowerCase(),l:l.id}))};if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()}
 const calcRate=l=>l.cur&&l.cur!=='KGS'?num(l.rate)||0:1;
-const CALC_SYN=[['блок питания',['блок питания','power supply','power unit','psu']],['материнская плата',['материнск','матплат','motherboard','mainboard','m/b']],['мат плата',['материнск','матплат','motherboard','mainboard','m/b']],['жесткий диск',['жестк','hdd']],
+const CALC_SYN=[['блок питания',['блок питания','power supply','power unit','psu']],['материнская плата',['материнск','матплат','motherboard','mainboard','m/b','^mb ']],['мат плата',['материнск','матплат','motherboard','mainboard','m/b','^mb ']],['жесткий диск',['жестк','hdd']],
   ['бп',['блок питания','power supply','power unit','psu']],['видеокарт',['видеокарт','video card','vga','geforce','radeon']],['процессор',['процессор','cpu']],['оперативн',['памят','memory','dimm','ddr']],['памят',['памят','memory','dimm','ddr']],['озу',['памят','memory','dimm','ddr']],
-  ['материнк',['материнск','матплат','motherboard','mainboard','m/b']],['матплат',['материнск','матплат','motherboard','mainboard','m/b']],['корпус',['корпус','^case','chassis']],['кулер',['кулер','cooler','охлажд']],['охлажд',['кулер','cooler','охлажд','cooling']],
+  ['материнк',['материнск','матплат','motherboard','mainboard','m/b','^mb ']],['матплат',['материнск','матплат','motherboard','mainboard','m/b','^mb ']],['корпус',['корпус','^case','chassis']],['кулер',['кулер','cooler','охлажд']],['охлажд',['кулер','cooler','охлажд','cooling']],
   ['монитор',['монитор','monitor','led lcd','lcd']],['ноутбук',['ноутбук','notebook','laptop']],['мыш',['мыш','mouse']],['клавиатур',['клавиатур','keyboard']],['наушник',['наушник','headset','headphone']],['гарнитур',['гарнитур','headset']],
   ['картридж',['картридж','cartridge','toner','тонер']],['кресл',['кресл','chair']],['принтер',['принтер','printer']],['накопител',['накопител','ssd','hdd']],['диск',['диск','ssd','hdd']],['рюкзак',['рюкзак','backpack','bag']],['сумк',['сумк','bag']],['флешк',['флеш','flash','usb drive']],['колонк',['колонк','speaker']],['веб',['веб','web','webcam']]];
 function calcTerms(q){let s=' '+q.toLowerCase().replace(/\s+/g,' ')+' ';const T=[];for(const [k,a] of CALC_SYN)if(k.includes(' ')&&s.includes(' '+k)){T.push(a);s=s.replace(' '+k,' ')}
@@ -2561,7 +2561,7 @@ function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>
   const a=$('#calcComp'),b=$('#calcPrice'),d=$('#calcProfit');if(a)a.textContent=money(T.comp);if(b)b.textContent=money(T.price);if(d)d.textContent='наценка '+money(T.profit);const bk=$('#calcBank'),bd=$('#calcBankD');if(bk)bk.textContent=T.bprice?money(T.bprice):'—';if(bd)bd.textContent=T.bprice?`+${money(T.bprice-T.price)} к цене клиенту`:'процент зависит от банка и срока — впишите вручную';calcSave()}
 /* загрузка прайса */
 function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-1,C={};
-  for(let i=0;i<Math.min(rows.length,40)&&h<0;i++){const r=rows[i]||[];const m={};let pr=-1,nr=-1;r.forEach((v,j)=>{const t=low(v);if(!t)return;const ns=/картин|фото|изображ|photo|image/.test(t)?0:/наимен|назван|name/.test(t)?3:/модель|model|номенклат/.test(t)?2:/товар|описан/.test(t)?1:0;if(ns>nr&&ns>0){nr=ns;m.n=j}else if(ns===0&&!/сумм|кол-?во|остат|гарант/.test(t)){const sc=/дилер|опт|закуп|входн|dealer/.test(t)?3:/цена|price|стоим|розн|доллар|usd|\$|руб|сом|eur|юан/.test(t)?1:0;if(sc>pr&&sc>0){pr=sc;m.p=j}}});if(m.n!=null&&m.p!=null){h=i;C=m}}
+  for(let i=0;i<Math.min(rows.length,40)&&h<0;i++){const r=rows[i]||[];const m={};let pr=-1,nr=-1;r.forEach((v,j)=>{const t=low(v);if(!t)return;const ns=/картин|фото|изображ|photo|image|\.код|^код|код$|артикул|\bcode\b|\bsku\b|штрих/.test(t)?0:/наимен|назван|name/.test(t)?3:/модель|model|номенклат/.test(t)?2:/товар|описан/.test(t)?1:0;if(ns>nr&&ns>0){nr=ns;m.n=j}else if(ns===0&&!/сумм|кол-?во|остат|гарант/.test(t)){const sc=/дилер|опт|закуп|входн|dealer/.test(t)?3:/цена|price|стоим|розн|доллар|usd|\$|руб|сом|eur|юан/.test(t)?1:0;if(sc>pr&&sc>0){pr=sc;m.p=j}}});if(m.n!=null&&m.p!=null){h=i;C=m}}
   const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));
   if(h<0){const nc={},pc={};rows.slice(0,300).forEach(r=>(r||[]).forEach((v,j)=>{if(typeof v==='string'&&v.trim().length>12&&!/^\d/.test(v.trim()))nc[j]=(nc[j]||0)+1;else if(pn(v)>0)pc[j]=(pc[j]||0)+1}));
     const best=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0];const bn=best(nc),bp=best(Object.fromEntries(Object.entries(pc).filter(([k])=>k!==bn)));C={n:bn!=null?+bn:0,p:bp!=null?+bp:1};h=-1}
