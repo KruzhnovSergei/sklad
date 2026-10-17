@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 10:04</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 10:13</span>
     </div>
   </aside>
   <div class="main">
@@ -2560,20 +2560,23 @@ function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-
     const best=o=>Object.keys(o).sort((a,b)=>o[b]-o[a])[0];const bn=best(nc),bp=best(Object.fromEntries(Object.entries(pc).filter(([k])=>k!==bn)));C={n:bn!=null?+bn:0,p:bp!=null?+bp:1};h=-1}
   let cur='KGS',rate='';const ph=h>=0?low(rows[h][C.p]):'';if(/доллар|usd|\$/.test(ph))cur='USD';else if(/руб|rub|₽/.test(ph))cur='RUB';else if(/юан|cny|rmb|¥/.test(ph))cur='CNY';
   for(const r of rows.slice(0,Math.max(h,12)))for(const v of r||[]){const t=String(v??'');const m1=t.match(/(?:^|[^\d.,])1\s*(?:usd|\$|долл\S*|у\.?\s?е\.?)\s*[=:≈–-]\s*(\d+(?:[.,]\d+)?)/i);const m=m1||t.match(/курс[^\d]{0,10}(\d+(?:[.,]\d+)?)/i);if(m&&num(m[1].replace(',','.'))>=2){rate=m[1].replace(',','.');if(cur==='KGS')cur='USD'}}
-  return{h,C,cur,rate}}
+  const expl=/сом|kgs|руб|rub|юан|cny|доллар|usd|\$/.test(ph);
+  return{h,C,cur,rate,expl}}
 function calcParse(rows,h,C){const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));const out=[];let g='',gs=[];
   for(let i=h+1;i<rows.length;i++){const r=rows[i]||[];const n=String(r[C.n]??'').replace(/\s+/g,' ').trim();const p=pn(r[C.p]);
     if(!(p>0)){const t=(r.find(v=>typeof v==='string'&&v.trim()&&!/^\d+$/.test(v.trim()))||'').trim();if(t&&r.filter(v=>v!=null&&String(v).trim()).length<=2){g=t.slice(0,80);gs=[...gs.slice(-4),g]}continue}
     if(n&&!/^итого|^всего/i.test(n))out.push(g?{n,p:r2(p),g,...(gs.length>1?{gk:gs.join(' ')}:{})}:{n,p:r2(p)})}return out}
+function calcLooksUsd(rows,g){const P=calcParse(rows,g.h,g.C).map(x=>x.p).sort((a,b)=>a-b);if(P.length<10)return false;return P[Math.floor(P.length/2)]<300}
 async function calcFile(t){const f=t.files?.[0];t.value='';if(!f)return;let rows;try{rows=await readSheet(f)}catch(e){toast('Не удалось прочитать файл: '+(e?.message||e));return}
   const g=calcGuess(rows);const old=(S.pll||[]).find(l=>(l.file||'').toLowerCase()===f.name.toLowerCase());
-  S.cup={file:f.name,rows,h:g.h,C:g.C,supp:old?.supp||f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s*\d{1,2}[.]\d{1,2}[.]\d{2,4}\s*$/,'').slice(0,40),cur:g.cur!=='KGS'?g.cur:(old?.cur||'KGS'),rate:g.rate||old?.rate||'',replace:old?.id||(S.pll||[]).find(l=>(l.supp||'').toLowerCase()===f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s*\d{1,2}[.]\d{1,2}[.]\d{2,4}\s*$/,'').slice(0,40).toLowerCase())?.id||''};calcUpRender()}
+  S.cup={file:f.name,rows,h:g.h,C:g.C,supp:old?.supp||f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s*\d{1,2}[.]\d{1,2}[.]\d{2,4}\s*$/,'').slice(0,40),cur:g.cur!=='KGS'?g.cur:(old?.cur||(!g.expl&&calcLooksUsd(rows,g)?'USD':'KGS')),curGuess:g.cur==='KGS'&&!old?.cur&&!g.expl&&calcLooksUsd(rows,g),rate:g.rate||old?.rate||'',replace:old?.id||(S.pll||[]).find(l=>(l.supp||'').toLowerCase()===f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s*\d{1,2}[.]\d{1,2}[.]\d{2,4}\s*$/,'').slice(0,40).toLowerCase())?.id||''};calcUpRender()}
 function calcUpRender(){const U=S.cup;const ncol=Math.max(0,...U.rows.slice(0,200).map(r=>(r||[]).length));const sample=j=>{const hv=U.h>=0?String(U.rows[U.h]?.[j]??'').trim():'';if(hv)return hv.slice(0,30);const v=U.rows.slice(U.h+1).map(r=>r?.[j]).find(x=>x!=null&&String(x).trim());return v==null?'':String(v).slice(0,30)};
   const col=j=>{let s='';let n=j+1;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
   const opts=sel=>Array.from({length:ncol},(_,j)=>`<option value="${j}"${j===sel?' selected':''}>${col(j)}: ${esc(sample(j))}</option>`).join('');
   const items=calcParse(U.rows,U.h,U.C);U.items=items;const L=(S.pll||[]);
   openModal(`<h2>Загрузка прайса поставщика</h2><p class="small">Файл: <b>${esc(U.file)}</b></p>
   <div class="row"><label class="field"><span>Поставщик</span><input id="cuSupp" value="${esc(U.supp)}"></label><label class="field" style="flex:0 1 150px"><span>Валюта цен</span><select data-ch="cu-cur">${Object.keys(CUR).map(k=>`<option value="${k}"${U.cur===k?' selected':''}>${k==='KGS'?'сом':k}</option>`).join('')}</select></label>${U.cur!=='KGS'?`<label class="field" style="flex:0 1 150px"><span>Курс: сом за 1 ${esc(U.cur)}</span><input id="cuRate" inputmode="decimal" value="${esc(U.rate)}" placeholder="${U.cur==='USD'?'87.5':''}"></label>`:''}</div>
+  ${U.curGuess&&U.cur==='USD'?'<div class="infobox">В шапке файла валюта не указана, но цены похожи на доллары — поставил USD. Проверьте и впишите курс. Если цены всё же в сомах — выберите «сом».</div>':''}
   <div class="row"><label class="field"><span>Колонка с названием</span><select data-ch="cu-n">${opts(U.C.n)}</select></label><label class="field"><span>Колонка с ценой</span><select data-ch="cu-p">${opts(U.C.p)}</select></label></div>
   ${L.length?`<label class="field" style="flex:none"><span>Заменить ранее загруженный прайс</span><select id="cuRepl"><option value="">— Нет, добавить как новый</option>${L.map(l=>`<option value="${esc(l.id)}"${l.id===U.replace?' selected':''}>${esc(l.supp||'')} · ${esc(l.file||'')}</option>`).join('')}</select></label>`:''}
   <p class="small">Найдено позиций: <b>${NF.format(items.length)}</b></p>
