@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 23:08</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 23:16</span>
     </div>
   </aside>
   <div class="main">
@@ -1125,10 +1125,11 @@ function vAsm(){
    ${sc&&a.items.length?`<div class="kpis" id="asmSum"></div>`:''}
    <div class="row between"><span></span><div class="row"><span class="err" id="asmErr"></span><button class="btn" data-act="asm-post"${ro('assembly')}${a.items.length?'':' disabled'}>Собрать компьютер</button></div></div>
   </section>`:''}
-  <section class="pane"><div class="pane-h"><h2>Собранные компьютеры</h2><span class="muted">${allPc.length}</span></div>
+  <section class="pane"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>Собранные компьютеры</h2><div class="row" style="gap:8px">${S.lblSel?`<span class="small">Выбрано для этикеток: <b>${S.lblSel.size}</b></span><button class="btn" data-act="lbl-batch"${S.lblSel.size?'':' disabled'}>Этикетки A6 (PDF)</button><button class="btn ghost" data-act="lbl-sel-off">Отмена</button>`:`${allPc.some(sn=>pcIn(sn))?'<button class="btn ghost" data-act="lbl-sel-on">Этикетки на несколько ПК</button>':''}<span class="muted">${allPc.length}</span>`}</div></div>
+   ${S.lblSel?'<p class="small muted" style="margin:-4px 0 8px">Отметьте компьютеры на складе — на каждый лист A4 поместится 4 этикетки. У каждой сборки берутся её собственные настройки этикетки (плашка, старая цена, примечание), если вы их уже задавали кнопкой «Этикетка на витрину».</p>':''}
    <input id="asmF" data-in="asmf" class="search" placeholder="S/N компьютера или любой детали, модель" value="${esc(S.asmF)}">
    <div class="tbl">${pcs.length?`<table><thead><tr><th>S/N компьютера</th><th>Модель</th><th>Собран</th><th>Статус</th><th class="num">Цена</th><th class="num">Деталей</th></tr></thead><tbody>${pcs.slice(0,60).map(sn=>{const o=S.pca[sn];const st=pcStatus(sn);const op=S.asmOpen===sn;
-    return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div>`}</div></section></div>`}
+    return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${S.lblSel&&pcIn(sn)?`<span data-act="lbl-pick" data-id="${esc(sn)}" role="checkbox" aria-checked="${S.lblSel.has(sn)}" style="display:inline-block;width:22px;font-size:20px;line-height:1;cursor:pointer;color:var(--accent)">${S.lblSel.has(sn)?'☑':'☐'}</span> `:''}${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div>`}</div></section></div>`}
 function pcPassport(sn){const o=S.pca[sn];const inSt=pcIn(sn);const ca=canPC(sn);const cd=ca&&can('assembly');
   return `<div class="tbl"><table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th></tr></thead><tbody>${pcCompRows(S.pcComp[sn]||[])||'<tr><td colspan="3" class="muted">Деталей нет</td></tr>'}</tbody></table></div>
   ${can('cost')?`<p class="small muted" style="margin-top:6px">Себестоимость: ${money(S.pcu[sn])}${num(S.opc[o.id]?.labor)?`, включая работу ${money(S.opc[o.id].labor)}`:''}${num(o.price)&&num(S.pcu[sn])?` · наценка ${NF.format(r2((num(o.price)-S.pcu[sn])/S.pcu[sn]*100))}%`:''}</p>`:''}
@@ -2715,7 +2716,7 @@ function lblDraw(x,d,X,Y,W,H,cut){const F='Arial, "Helvetica Neue", Helvetica, s
   if(d.sub){font(36,false);x.fillStyle=BLUE2;const sl=wrap(d.sub,IW).slice(0,2);sl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(44)));y+=sl.length*u(44)+u(10)}
   x.fillStyle=YEL;x.fillRect(X+P,y,IW,u(8));y+=u(30);
   const hasOld=d.old&&num(d.old)>num(d.price);const boxH=(hasOld?u(80):0)+u(200);const priceH=boxH+(d.note?u(80):0)+u(50);const avail=Y+H-P-priceH-y;const sp=d.spec||[];
-  let fs=48;let rows;for(;fs>=20;fs-=2){font(fs,false);const lh=fs*1.28;const cw=sp.some(r=>r.cat)?Math.min(IW*0.36,u(330)):0;rows=[];let h=0;for(const r of sp){const ls=wrap(r.n,IW-cw-u(10)).slice(0,2);rows.push({r,ls,cw});h+=ls.length*u(lh)+u(fs*0.35)}if(h<=avail)break}
+  let fs=48;let rows;for(;fs>=20;fs-=2){font(fs,true);const cw=sp.some(r=>r.cat)?Math.min(IW*0.42,Math.max(...sp.map(r=>x.measureText(r.cat||'').width))+u(fs*0.6)):0;font(fs,false);const lh=fs*1.28;rows=[];let h=0;for(const r of sp){const ls=wrap(r.n,IW-cw-u(10)).slice(0,2);rows.push({r,ls,cw});h+=ls.length*u(lh)+u(fs*0.35)}if(h<=avail)break}
   const lh=u(fs*1.28);for(const {r,ls,cw} of rows){if(y+ls.length*lh>Y+H-P-priceH+u(10))break;if(r.cat){font(fs,true);x.fillStyle=BLUE;x.fillText(r.cat,X+P,y)}font(fs,false);x.fillStyle=DARK;ls.forEach((l,i)=>x.fillText(l,X+P+cw,y+i*lh));y+=ls.length*lh+u(fs*0.35)}
   let py=Y+H-P-priceH+u(30);
   if(d.note){const nh=u(64);x.fillStyle=BLUE;x.fillRect(X+P,py,IW,nh);font(38,true);x.fillStyle=YEL;x.fillText(wrap(d.note,IW-u(40))[0]||'',X+P+u(20),py+u(13),IW-u(40));py+=nh+u(16)}
@@ -2739,10 +2740,15 @@ function lblRender(){const d=S.lbl;const B=['','ШОК ЦЕНА','АКЦИЯ','�
    <div class="field" style="flex:none"><span>Плашка</span><div class="row" style="gap:6px;flex-wrap:wrap">${B.map(b=>`<button class="btn ${d.badge===b?'':'ghost'}" style="padding:5px 10px;font-size:12px" data-act="lbl-badge" data-v="${esc(b)}">${b||'Без плашки'}</button>`).join('')}</div><input data-in="lbl" data-f="badge" value="${esc(d.badge)}" placeholder="или свой текст, например «−15% до конца месяца»" style="margin-top:6px"></div>
    <label class="field" style="flex:none"><span>Примечание (красным над ценой)</span><input data-in="lbl" data-f="note" value="${esc(d.note)}" placeholder="Например: рассрочка 0-0-12, Windows 11 установлен"></label>
    <div class="row"><label class="field"><span>Гарантия</span><input data-in="lbl" data-f="war" value="${esc(d.war)}" placeholder="12 мес."></label><label class="field"><span>Размер</span><select data-ch="lbl-per"><option value="1"${d.per==='1'?' selected':''}>A4 — 1 на листе</option><option value="2"${d.per==='2'?' selected':''}>A5 — 2 на листе A4</option><option value="4"${d.per==='4'?' selected':''}>A6 — 4 на листе A4</option></select></label></div>
-   <p class="muted small">Характеристики берутся из комплектации компьютера. Если поменяете детали — этикетка обновится. Настройки этикетки запоминаются на этом компьютере.</p></div>
+   <p class="muted small">Характеристики берутся из комплектации компьютера. Если поменяете детали — этикетка обновится. Настройки этикетки запоминаются на этом компьютере — их же использует печать «Этикетки на несколько ПК».</p></div>
    <div style="flex:0 0 260px"><canvas id="lblPrev" width="520" height="736" style="width:260px;height:368px;border:1px solid var(--line);border-radius:6px;background:#fff"></canvas></div></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Закрыть</button><button class="btn" data-act="lbl-dl">Скачать PDF</button></div>`);$('#mcard').classList.add('wide');lblPrev()}
 function lblPrev(){const c=$('#lblPrev');if(!c)return;const x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);lblDraw(x,S.lbl,0,0,c.width,c.height,false)}
+async function lblBatch(){const L=[...(S.lblSel||[])].filter(sn=>S.pca[sn]&&pcIn(sn));if(!L.length){toast('Отметьте компьютеры');return}
+  const K=200/150,PW=1240,PH=1754;const mk=()=>{const pages=[];for(let i=0;i<L.length;i+=4){const c=document.createElement('canvas');c.width=Math.round(PW*K);c.height=Math.round(PH*K);const x=c.getContext('2d');x.scale(K,K);x.fillStyle='#fff';x.fillRect(0,0,PW,PH);
+      L.slice(i,i+4).forEach((sn,k)=>{const d={...lblState(sn),spec:lblSpec(sn)};lblDraw(x,d,(k%2)*PW/2,Math.floor(k/2)*PH/2,PW/2,PH/2,true)});pages.push(c)}return pages};
+  try{await saveFile(`Этикетки ${L.length} шт.pdf`,pdfFromJpegs(capPages(mk).map(c=>jpegOf(c,0.92))));S.lblSel=null;render()}catch(e){console.error(e);toast('Не удалось подготовить файл')}}
+function lblKeep(){const d=S.lbl;if(!d)return;const {spec,...keep}=d;lblSave(d.sn,keep)}
 async function lblDl(){const d=S.lbl;if(!d)return;const {spec,...keep}=d;lblSave(d.sn,keep);try{await saveFile(`Этикетка ${d.sn}.pdf`,pdfFromJpegs(capPages(()=>lblPages(d)).map(c=>jpegOf(c,0.92))))}catch(e){console.error(e);toast('Не удалось подготовить файл')}}
 
 /* ---------- прайс-лист ---------- */
@@ -3061,7 +3067,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
   'asm-gen':()=>{S.asm.sn=nextPcSn();const e=$('#asmSn');if(e)e.value=S.asm.sn},
   'asm-post':postAsm,'asm-demo':()=>asmDemo(),
   'asm-open':t=>{if(window.getSelection()?.toString())return;S.asmOpen=S.asmOpen===t.dataset.id?null:t.dataset.id;S.asmDis=null;render()},
-  'pc-lbl':t=>lblForm(t.dataset.id),'lbl-dl':()=>lblDl(),'lbl-badge':t=>{S.lbl.badge=t.dataset.v;lblRender()},
+  'pc-lbl':t=>lblForm(t.dataset.id),'lbl-dl':()=>lblDl(),'lbl-badge':t=>{S.lbl.badge=t.dataset.v;lblKeep();lblRender()},'lbl-sel-on':()=>{S.lblSel=new Set();render()},'lbl-sel-off':()=>{S.lblSel=null;render()},'lbl-pick':t=>{const sn=t.dataset.id;if(S.lblSel.has(sn))S.lblSel.delete(sn);else S.lblSel.add(sn);render()},'lbl-batch':()=>lblBatch(),
   'pc-pass':t=>{const sn=t.dataset.id;if(S.pca[sn])saveFile(`Паспорт ${sn}.html`,pcPassDoc(sn))},
   'pc-dis':t=>{S.asmDis=t.dataset.id;render()},
   'pc-dis-no':()=>{S.asmDis=null;render()},
@@ -3136,7 +3142,7 @@ const IN={
   calcf:t=>{calcState()[t.dataset.f]=t.value;calcUpd()},
   kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
   impsn:t=>{const I=S.imp;const x=I?.items[I.snEdit];const e=$('#impSnCnt');if(x&&e)e.textContent=`Введено: ${impSnParse(t.value).length} из ${q3(x.qty)}`},
-  lbl:t=>{S.lbl[t.dataset.f]=t.value;lblPrev()},
+  lbl:t=>{S.lbl[t.dataset.f]=t.value;lblKeep();lblPrev()},
   kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
@@ -3194,7 +3200,7 @@ const CH={
   stwh:t=>{S.stockWh=t.value;render()},stlow:t=>{S.stockLow=t.checked;render()},stzero:t=>{S.stockZero=t.checked;ls.set('stockZero',t.checked);render()},
   cdebt:t=>{S.cDebtOnly=t.checked;render()},
   opwh:t=>{S.op.wh=t.value;S.op.items.forEach(i=>{if(S.P[i.p]?.serial&&S.opMode!=='in'){i.sn=[];i.q=0}});render()},opto:t=>{S.op.toWh=t.value},
-  'lbl-per':t=>{S.lbl.per=t.value},
+  'lbl-per':t=>{S.lbl.per=t.value;lblKeep()},
   repwh:t=>{S.repWh=t.value;render()},offwh:t=>{S.offWh=t.value;render()},arch:t=>{S.showArch=t.checked;render()},
   retsn:t=>{const l=S.retCtx.lines[+t.dataset.i];if(t.checked){if(!l.sel.includes(t.value))l.sel.push(t.value)}else l.sel=l.sel.filter(x=>x!==t.value);updRet()},
   opsupp:t=>{S.op.supp=t.value},
