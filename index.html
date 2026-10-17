@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:53</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 20:40</span>
     </div>
   </aside>
   <div class="main">
@@ -542,7 +542,7 @@ function cartHtml(){
    ${maxD!=null?`<div class="muted small">Вы можете дать скидку до ${NF.format(maxD)}%</div>`:''}</div>
    <div class="total"><span>Итого<small class="muted" id="cEff"></small></span><b id="cartTotal"></b></div>
    <div class="stack" style="gap:10px">
-   <div class="row"><select id="custSel" data-ch="custsel" style="flex:1 1 160px" aria-label="Покупатель"><option value="">Без покупателя</option>${cs.map(x=>custOpt(x,x.id===S.custSel)).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="cart"${roC()}>+ Покупатель</button></div>
+   <div class="row"><select id="custSel" data-ch="custsel" style="flex:1 1 160px${S.custSel?'':';border-color:var(--warn,#B4600B)'}" aria-label="Покупатель" required><option value="">— Выберите покупателя —</option>${cs.map(x=>custOpt(x,x.id===S.custSel)).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="cart"${roC()}>+ Покупатель</button></div>
    <div class="infobox" id="custInfo"></div>
    <div class="seg" role="group" aria-label="Способ оплаты">${Object.entries(PAY).map(([k,v])=>`<button data-act="pay" data-v="${k}" aria-pressed="${S.pay===k}">${v}</button>`).join('')}</div>
    <div id="payAccBox">${accBox(S.pay,'cartAcc',S.payAcc,'Куда поступит оплата')}</div>
@@ -577,6 +577,7 @@ function updCart(){
 async function postSale(){
   const err=$('#saleErr');err.textContent='';const c=calcCart();
   if(!allowedWh().some(w=>w.id===S.curWh)){err.textContent='Вам нельзя продавать с этого склада';return}
+  if(!S.custSel||!S.C[S.custSel]){err.textContent='Укажите покупателя — без него продажу провести нельзя. Нового клиента можно добавить кнопкой «+ Покупатель».';const cs=$('#custSel');if(cs){cs.focus();cs.scrollIntoView({block:'center',behavior:'smooth'})}return}
   if(S.cart.some((l,i)=>c.L[i].q<=0)){err.textContent=S.cart.some(l=>S.P[l.p]?.serial&&!(l.sn||[]).length)?'Выберите серийные номера для товаров с учётом по номерам':'Укажите количество больше нуля';return}
   const need={};S.cart.forEach((l,i)=>need[l.p]=(need[l.p]||0)+c.L[i].q);
   for(const p in need)if(r3(need[p])>qty(S.curWh,p)){err.textContent=`Недостаточно «${pname(p)}»: на складе ${q3(qty(S.curWh,p))}`;return}
@@ -3110,7 +3111,7 @@ const CH={
   'imp-file':t=>impFile(t),
   cartacc:t=>{S.payAcc=t.value},
   curwh:t=>{S.curWh=t.value;ls.set('curWh',S.curWh);let had=false;S.cart.forEach(l=>{if((l.sn||[]).length){l.sn=[];l.q=0;had=true}});render();if(S.cart.length)toast(had?'Склад изменён: выберите серийные номера заново':'Склад продажи изменён, проверьте остатки в чеке')},
-  custsel:t=>{S.custSel=t.value;updCart()},
+  custsel:t=>{S.custSel=t.value;t.style.borderColor=t.value?'':'var(--warn,#B4600B)';updCart()},
   debton:t=>{S.debtOn=t.checked;if(S.debtOn&&S.paidNow==='')S.paidNow='0';$('#cart').innerHTML=cartHtml();updCart()},
   stwh:t=>{S.stockWh=t.value;render()},stlow:t=>{S.stockLow=t.checked;render()},stzero:t=>{S.stockZero=t.checked;ls.set('stockZero',t.checked);render()},
   cdebt:t=>{S.cDebtOnly=t.checked;render()},
