@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:13</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:26</span>
     </div>
   </aside>
   <div class="main">
@@ -1601,7 +1601,7 @@ function vSettings(){
    ${pend.length?`<h3 style="font-size:14px;margin:4px 0 8px">Ожидают подтверждения</h3><div class="tbl" style="margin-bottom:14px"><table><tbody>${pend.map(x=>`<tr><td><span class="pname" data-uid="${esc(x.id)}" data-fb="Новый сотрудник">…</span><span class="psku">${SRV()?esc(x.email||''):`доступ «${lvlName(x.lvl)}»`} · заходил ${dt(x.at)}</span></td><td style="white-space:nowrap;text-align:right"><button class="btn ghost" data-act="st-quick" data-id="${esc(x.id)}">Принять как продавца</button> <button class="btn link" data-act="st-edit" data-id="${esc(x.id)}">Настроить права</button></td></tr>`).join('')}</tbody></table></div>`:''}
    <div class="tbl">${st.length?`<table><thead><tr><th>Сотрудник</th><th>${SRV()?'Доступ':'Доступ в «Поделиться»'}</th><th>Права</th><th class="num">Скидка до</th><th>Последний вход</th><th></th></tr></thead><tbody>${st.map(x=>{const sn=S.SEEN[x.id];const needEd=!SRV()&&(x.perms||[]).some(k=>EDK.has(k))&&sn&&sn.lvl!=='admin';
     return `<tr${x.off?' style="opacity:.55"':''}><td><span class="pname" data-uid="${esc(x.id)}" data-fb="Сотрудник">…</span><span class="psku">${esc(x.position||'')}${x.off?' · отключён':''}</span></td><td>${SRV()?lvlName(x.lvl||lvlOf(x.perms)):sn?lvlName(sn.lvl):'<span class="muted">ещё не заходил</span>'}${needEd?' <span class="chip low">нужен «Редактор»</span>':''}</td>
-    <td class="small">${(x.perms||[]).length?PERMS.filter(pp=>(x.perms||[]).includes(pp[0])).map(pp=>pp[1]).join(', '):'<span class="muted">нет прав</span>'}${(x.whs||[]).length?`<span class="psku">продаёт: ${x.whs.map(w=>esc(wname(w))).join(', ')}</span>`:''}${(x.vwhs||[]).length?`<span class="psku">остатки: ${x.vwhs.map(w=>esc(wname(w))).join(', ')}</span>`:''}</td><td class="num">${num(x.maxDisc)>=100?'без огр.':NF.format(num(x.maxDisc))+'%'}${num(x.pct)?`<span class="psku">${NF.format(num(x.pct))}% от маржи</span>`:''}</td><td class="muted">${sn?ds(sn.at):'—'}</td>
+    <td class="small">${(x.perms||[]).length?PERMS.filter(pp=>(x.perms||[]).includes(pp[0])).map(pp=>pp[1]).join(', '):'<span class="muted">нет прав</span>'}${(x.whs||[]).length?`<span class="psku">продаёт: ${x.whs.map(w=>esc(wname(w))).join(', ')}</span>`:''}${(x.vwhs||[]).length?`<span class="psku">остатки: ${x.vwhs.map(w=>esc(wname(w))).join(', ')}</span>`:''}${(x.cwhs||[]).length?`<span class="psku">расчёт ПК: ${x.cwhs.map(w=>esc(wname(w))).join(', ')}</span>`:''}</td><td class="num">${num(x.maxDisc)>=100?'без огр.':NF.format(num(x.maxDisc))+'%'}${num(x.pct)?`<span class="psku">${NF.format(num(x.pct))}% от маржи</span>`:''}</td><td class="muted">${sn?ds(sn.at):'—'}</td>
     <td style="white-space:nowrap"><button class="btn link" data-act="prev-as" data-id="${esc(x.id)}" title="Посмотреть программу глазами этого сотрудника">Посмотреть как он</button><button class="btn link" data-act="st-edit" data-id="${esc(x.id)}">Настроить</button><button class="btn link" data-act="st-off" data-id="${esc(x.id)}">${x.off?'Включить':'Отключить'}</button><button class="btn link bad" data-act="st-del" data-id="${esc(x.id)}">Удалить</button></td></tr>`}).join('')}</tbody></table>`:`<div class="empty">Сотрудников пока нет.</div>`}</div></section>
   ${SRV()?'':`<section class="pane"><div class="pane-h"><h2>Новые сотрудники</h2></div>
    <p class="muted small" style="margin-bottom:10px">Что видит человек, которому вы дали ссылку, пока вы не добавили его в список сотрудников.</p>
@@ -1633,7 +1633,7 @@ async function impRun(){const d=S.impData;if(!d||!S.db.batch)return;const okC=ne
   for(const [c,L] of Object.entries(d.cols)){if(!okC.has(c)||!Array.isArray(L))continue;for(const x of L){if(!x||!x.id)continue;const {id,...r}=x;W.push([c,String(id),r])}}
   if(await guard(async()=>{for(let i=0;i<W.length;i+=400){const b=S.db.batch();for(const [c,id,r] of W.slice(i,i+400))b.set(S.db.doc(c+'/'+id),r);await b.commit();if(W.length>400)toast(`Загружено ${Math.min(i+400,W.length)} из ${W.length}`)}},`Загружено записей: ${W.length}`,'owner')){S.impData=null;closeModal(true)}}
 function staffForm(uid){const x=uid?S.ST[uid]:null;
-  S.sf={uid:uid||null,isNew:!x,perms:new Set(x?.perms||PRESETS.seller.perms),whs:new Set(x?.whs||[]),vwhs:new Set(x?.vwhs||[]),maxDisc:x?num(x.maxDisc):PRESETS.seller.maxDisc};S.sfHits=[];
+  S.sf={uid:uid||null,isNew:!x,perms:new Set(x?.perms||PRESETS.seller.perms),whs:new Set(x?.whs||[]),vwhs:new Set(x?.vwhs||[]),cwhs:new Set(x?.cwhs||[]),maxDisc:x?num(x.maxDisc):PRESETS.seller.maxDisc};S.sfHits=[];
   openModal(`<h2>${x?'Права сотрудника':'Новый сотрудник'}</h2>
   ${uid?`<p><b data-uid="${esc(uid)}" data-fb="Сотрудник">…</b>${S.SEEN[uid]&&!SRV()?` <span class="muted small">доступ «${lvlName(S.SEEN[uid].lvl)}»</span>`:S.SEEN[uid]?.email?` <span class="muted small">${esc(S.SEEN[uid].email)}</span>`:''}</p>`
    :`${S.user?`<label class="field"><span>Найдите человека по имени</span><input id="sfQ" data-in="sfq" placeholder="Начните вводить имя" autocomplete="off"></label><div class="hits" id="sfHits"></div>`:'<p class="muted">Поиск людей недоступен в этом просмотре. Дайте сотруднику ссылку, и он появится в списке «Ожидают подтверждения».</p>'}`}
@@ -1642,7 +1642,8 @@ function staffForm(uid){const x=uid?S.ST[uid]:null;
   <div class="perm" id="sfPerms">${sfPermsHtml()}</div>
   <div class="row"><label class="field" style="flex:0 1 200px"><span>Максимальная скидка, %</span><input id="sfDisc" inputmode="decimal" value="${esc(S.sf.maxDisc)}"></label><label class="field" style="flex:0 1 200px"><span>Процент от маржи, %</span><input id="sfPct" inputmode="decimal" value="${esc(x?.pct||'')}" placeholder="0 — не начислять"></label><span class="muted small" style="flex:1 1 200px">Скидка 100 — без ограничений. Процент от маржи считается в «Расходах» за выбранный период.</span></div>
   ${saleWhs().length>1?`<div class="field"><span>Продаёт со складов</span><div class="perm">${saleWhs().map(w=>`<label><input type="checkbox" data-ch="sfwh" value="${esc(w.id)}"${S.sf.whs.has(w.id)?' checked':''}>${esc(w.name)}</label>`).join('')}</div><span class="muted small">Сотрудник сможет продавать в «Кассе» и оформлять накладные только с отмеченных складов и увидит в «Продажах» только их продажи. Если ничего не отмечено — доступны все склады.</span></div>
-  <div class="field"><span>Видит остатки складов</span><div class="perm">${saleWhs().map(w=>`<label><input type="checkbox" data-ch="sfvwh" value="${esc(w.id)}"${S.sf.vwhs.has(w.id)?' checked':''}>${esc(w.name)}</label>`).join('')}</div><span class="muted small">В разделе «Остатки», в выгрузке остатков и в подсказках «есть на другом складе» будут только отмеченные склады. Если ничего не отмечено — видны все.</span></div>`:''}
+  <div class="field"><span>Видит остатки складов</span><div class="perm">${saleWhs().map(w=>`<label><input type="checkbox" data-ch="sfvwh" value="${esc(w.id)}"${S.sf.vwhs.has(w.id)?' checked':''}>${esc(w.name)}</label>`).join('')}</div><span class="muted small">В разделе «Остатки», в выгрузке остатков и в подсказках «есть на другом складе» будут только отмеченные склады. Если ничего не отмечено — видны все.</span></div>
+  <div class="field"><span>Расчёт ПК: ищет наш товар на складах</span><div class="perm">${saleWhs().map(w=>`<label><input type="checkbox" data-ch="sfcwh" value="${esc(w.id)}"${S.sf.cwhs.has(w.id)?' checked':''}>${esc(w.name)}</label>`).join('')}</div><span class="muted small">С галочкой «Искать и в товарах нашего склада» в «Расчёте ПК» будет предлагаться товар только с отмеченных складов — например, без склада брака. Если ничего не отмечено — все склады, кроме подотчётных.</span></div>`:''}
   <div class="err" id="sfErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="sf-save">Сохранить</button></div>`);
   if(S.user&&!uid)setTimeout(()=>{$('#sfQ')?.focus();sfSearch('')},30);else setTimeout(resolveNames,0)}
@@ -1652,7 +1653,7 @@ function sfSearch(q){clearTimeout(sfT);sfT=setTimeout(async()=>{if(!S.user||!S.s
   S.sfHits=(hits||[]).filter(h=>h.id&&!h.isMe);const box=$('#sfHits');if(!box)return;
   box.innerHTML=S.sfHits.length?S.sfHits.slice(0,20).map(h=>{const b=document.createElement('button');b.dataset.act='sf-pick';b.dataset.id=h.id;b.setAttribute('aria-pressed',S.sf.uid===h.id);const n=document.createElement('span');n.textContent=h.name;const m=document.createElement('span');m.className='muted small';m.textContent=S.ST[h.id]?'уже сотрудник':h.guest?'гость':'';b.append(n,m);return b.outerHTML}).join(''):`<div class="muted small" style="padding:8px 10px">Никого не найдено. ${SRV()?'Сначала сотрудник должен один раз войти в программу.':'Сначала дайте человеку доступ в меню «Поделиться».'}</div>`},q?250:0)}
 async function saveStaff(){const f=S.sf;const err=$('#sfErr');if(!f.uid){err.textContent='Выберите человека из списка';return}
-  const d={label:$('#sfLabel').value.trim(),position:$('#sfPos').value.trim(),perms:[...f.perms],maxDisc:Math.min(100,Math.max(0,num($('#sfDisc').value))),pct:Math.min(100,Math.max(0,num($('#sfPct')?.value))),whs:[...f.whs].filter(w=>S.W[w]),vwhs:[...f.vwhs].filter(w=>S.W[w]),off:!!S.ST[f.uid]?.off,lvl:lvlOf([...f.perms])};
+  const d={label:$('#sfLabel').value.trim(),position:$('#sfPos').value.trim(),perms:[...f.perms],maxDisc:Math.min(100,Math.max(0,num($('#sfDisc').value))),pct:Math.min(100,Math.max(0,num($('#sfPct')?.value))),whs:[...f.whs].filter(w=>S.W[w]),vwhs:[...f.vwhs].filter(w=>S.W[w]),cwhs:[...f.cwhs].filter(w=>S.W[w]),off:!!S.ST[f.uid]?.off,lvl:lvlOf([...f.perms])};
   const ref=S.db.doc('staff/'+f.uid);const ok=await guard(()=>S.ST[f.uid]?ref.update(d):ref.set({...d,addedAt:now()}),'Права сохранены','owner');
   if(ok){S.sf=null;closeModal(true);render()}}
 
@@ -2534,9 +2535,11 @@ const CALC_SYN=[['блок питания',['блок питания','power sup
   ['картридж',['картридж','cartridge','toner','тонер']],['кресл',['кресл','chair']],['принтер',['принтер','printer']],['накопител',['накопител','ssd','hdd']],['диск',['диск','ssd','hdd']],['рюкзак',['рюкзак','backpack','bag']],['сумк',['сумк','bag']],['флешк',['флеш','flash','usb drive']],['колонк',['колонк','speaker']],['веб',['веб','web','webcam']]];
 function calcTerms(q){let s=' '+q.toLowerCase().replace(/\s+/g,' ')+' ';const T=[];for(const [k,a] of CALC_SYN)if(k.includes(' ')&&s.includes(' '+k)){T.push(a);s=s.replace(' '+k,' ')}
   for(const w of s.split(' ').filter(Boolean)){const m=CALC_SYN.find(([k])=>!k.includes(' ')&&w.startsWith(k));T.push(m?[w,...m[1]]:[w])}return T}
+function calcAllowWh(){const SW=saleWhs();if(S.isOwner)return SW;const a=myStaff()?.cwhs||[];const r=a.length?SW.filter(w=>a.includes(w.id)):SW;return r}
+function calcWhs(){const A=calcAllowWh();const sel=calcState().ownWh||[];const r=sel.length?A.filter(w=>sel.includes(w.id)):A;return r.length?r:A}
 function calcSearch(q){const T=calcTerms(q);if(!T.length)return [];const hv=(s,a)=>a.some(x=>x[0]==='^'?s.startsWith(x.slice(1)):s.includes(x));const out=[];const L={};for(const l of S.pll||[])L[l.id]=l;
   for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){if(!T.every(a=>hv(r.k,a)))continue;const rk=T.every(a=>hv(r.nl,a))?0:T.every(a=>hv(r.nl,a)||hv(r.gl,a))?1:2;out.push({src:'pl',rk,n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:(l.supp||l.file)+(r.g?' · '+r.g:''),l:id})}}
-  if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase()+' '+pgroup(p).toLowerCase();if(!T.every(a=>hv(n,a)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
+  const CWH=calcWhs();if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase()+' '+pgroup(p).toLowerCase();if(!T.every(a=>hv(n,a)))continue;const q_=qtyIn(CWH,p.id);if(q_<=0)continue;const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;const by=CWH.filter(w=>qty(w.id,p.id)>0).map(w=>`${w.name}: ${q3(qty(w.id,p.id))}`).join(', ');out.push({src:'own',n:p.name,p:r2(pp),supp:'Наш склад · '+(CWH.length>1?by:q3(q_)+' шт'),pid:p.id,q:q_})}
   return out.sort((a,b)=>(a.rk||0)-(b.rk||0)||a.p-b.p).slice(0,60)}
 function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.pick?num(l.pick.p)*Math.max(1,num(l.q)||1):0),0));const mk=num(c.mk);const work=num(c.work);
   let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;const rnd=v=>rr>1?Math.ceil(v/rr)*rr:r2(v);price=rnd(price);const bank=num(c.bank);const bprice=bank>0&&price>0?rnd(price*(1+bank/100)):0;return{comp,mk,work,price,profit:r2(price-comp),bank,bprice}}
@@ -2555,6 +2558,7 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
      <td><button class="x" data-act="calc-rm" data-i="${i}" aria-label="Убрать строку">×</button></td></tr>`).join('')}
    </tbody></table></div>
    <div class="row" style="margin-top:8px"><button class="btn link" data-act="calc-add">+ Добавить строку</button><label class="check" style="margin-left:auto"><input type="checkbox" data-ch="calcown"${c.own?' checked':''}> Искать и в товарах нашего склада</label></div>
+   ${c.own&&calcAllowWh().length>1?`<div class="row" style="gap:6px 14px;justify-content:flex-end;margin-top:4px"><span class="muted small">Склады:</span>${calcAllowWh().map(w=>`<label class="check small"><input type="checkbox" data-ch="calcownwh" value="${esc(w.id)}"${calcWhs().some(x=>x.id===w.id)?' checked':''}> ${esc(w.name)}</label>`).join('')}</div>`:''}
    <div class="row" style="align-items:flex-end;margin-top:10px;gap:14px">
     <div class="field" style="flex:0 1 190px"><span>Себестоимость комплектующих</span><b style="padding:8px 0;font-size:18px" id="calcComp">${money(T.comp)}</b></div>
     <label class="field" style="flex:0 1 120px"><span>Наценка, %</span><input data-in="calcf" data-f="mk" inputmode="decimal" value="${esc(c.mk)}"></label>
@@ -3090,7 +3094,7 @@ opdlv:t=>{S.op.dlv=t.value;updOp()},
   snf:t=>{S.snF=t.value;const c=S.snCtx;const l=snLine();$('#snList').innerHTML=snListHtml(snWh(c),l.p)},
 };
 const CH={
-  'calc-file':t=>calcFile(t),calcown:t=>{calcState().own=t.checked;calcSave();render()},calcround:t=>{calcState().round=t.value;calcUpd()},
+  'calc-file':t=>calcFile(t),calcown:t=>{calcState().own=t.checked;calcSave();render()},calcownwh:t=>{const c=calcState();const A=calcAllowWh().map(w=>w.id);let cur=calcWhs().map(w=>w.id);cur=t.checked?[...new Set([...cur,t.value])]:cur.filter(x=>x!==t.value);if(!cur.length){t.checked=true;toast('Оставьте хотя бы один склад');return}c.ownWh=cur.length===A.length?[]:cur;calcSave();S.calcQ&&Object.keys(S.calcQ).forEach(i=>{const e=$('#calcr'+i);if(e&&typeof calcResHtml==='function')e.innerHTML=calcResHtml(+i)})},calcround:t=>{calcState().round=t.value;calcUpd()},
   'cu-cur':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.cur=t.value;calcUpRender()},'cu-n':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.n=+t.value;calcUpRender()},'cu-p':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.p=+t.value;calcUpRender()},
   saleg:t=>{S.saleG=t.value;$('#saleGrid').innerHTML=saleTiles()},
   kitpl:t=>{S.kitEd.pl=t.checked},
@@ -3139,7 +3143,7 @@ opdlvacc:t=>{S.op.dlvAcc=t.value},
   asmg:t=>{S.asmG=t.value;$('#asmPick').innerHTML=asmPickOpts()},
   asmpick:t=>{const id=t.value;t.value='';if(id)ACT['asm-add']({dataset:{id}})},
   sfperm:t=>{if(t.checked)S.sf.perms.add(t.value);else S.sf.perms.delete(t.value)},
-  sfvwh:t=>{if(t.checked)S.sf.vwhs.add(t.value);else S.sf.vwhs.delete(t.value)},
+  sfvwh:t=>{if(t.checked)S.sf.vwhs.add(t.value);else S.sf.vwhs.delete(t.value)},sfcwh:t=>{if(t.checked)S.sf.cwhs.add(t.value);else S.sf.cwhs.delete(t.value)},
 sfwh:t=>{if(t.checked)S.sf.whs.add(t.value);else S.sf.whs.delete(t.value)},
   stg:t=>{S.stockG=t.value;render()},catg:t=>{S.catG=t.value;render()},
   opg:t=>{S.opG=t.value;S.opQ='';render()},
