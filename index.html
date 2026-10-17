@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 01:00</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 10:04</span>
     </div>
   </aside>
   <div class="main">
@@ -1753,9 +1753,9 @@ function impMatch(it){const s=it.sku.toLowerCase(),n=it.name.toLowerCase();retur
 function impPlan(){const I=S.imp;const gNew=new Set();let nNew=0,nOld=0,q=0,sum=0;const skip=[],warn=[];
   for(const it of I.items){it.p=impMatch(it);it.why='';
     if(it.qty<=0){it.why='остаток 0 — не загружается';skip.push(it);continue}
-    if(it.p&&it.p.serial){it.why='серийный товар — нужны S/N, введите вручную';skip.push(it);continue}
+    if(it.p&&it.p.serial&&!(it.sn||[]).length){it.why='серийный товар — нажмите «S/N» и введите номера';skip.push(it);continue}
     if(it.p)nOld++;else{nNew++;if(it.group&&!S.groups.some(g=>(g.name||'').toLowerCase()===it.group.toLowerCase()))gNew.add(it.group)}
-    if(!it.price&&!(it.p&&num(it.p.sellPrice)))warn.push(it);q+=it.qty;sum+=it.qty*it.cost}
+    if(!it.price&&!(it.p&&num(it.p.sellPrice)))warn.push(it);const qn=(it.sn||[]).length||it.qty;q+=qn;sum+=qn*it.cost}
   return{gNew,nNew,nOld,q,sum,skip,warn,ok:I.items.filter(x=>!x.why)}}
 function impOpen(){S.imp={step:1,wh:S.op.wh||S.curWh,items:[],file:'',upd:true};impRender()}
 function impRender(){const I=S.imp;if(!I)return;const whOpts=S.wh.map(w=>`<option value="${esc(w.id)}"${w.id===I.wh?' selected':''}>${esc(w.name)}</option>`).join('');
@@ -1770,12 +1770,22 @@ function impRender(){const I=S.imp;if(!I)return;const whOpts=S.wh.map(w=>`<optio
     ${P.warn.length?`<div class="infobox">Без цены продажи (${P.warn.length}): ${P.warn.slice(0,6).map(x=>esc(x.name)).join(', ')}${P.warn.length>6?' и др.':''}. Цену можно поставить потом в «Товары и склады».</div>`:''}
     <label class="check"><input type="checkbox" data-ch="imp-upd"${I.upd?' checked':''}> Для товаров, которые уже есть в программе, обновить цену продажи из файла</label>
     <div class="tbl" style="max-height:340px;overflow:auto"><table><thead><tr><th>Товар</th><th>Группа</th><th class="num">Остаток</th><th class="num">Себест.</th><th class="num">Цена</th><th></th></tr></thead><tbody>
-    ${I.items.map(x=>`<tr${x.why?' style="opacity:.5"':''}><td><span class="pname">${esc(x.name)}</span><span class="psku">${esc(x.sku)}</span></td><td class="small">${esc(x.group||'—')}</td><td class="num">${q3(x.qty)}</td><td class="num">${NF.format(x.cost)}</td><td class="num">${x.price?NF.format(x.price):'<span class="muted">—</span>'}</td><td>${x.why?`<span class="chip out">пропуск</span>`:x.p?'<span class="chip t-move">есть</span>':'<span class="chip ok">новый</span>'}</td></tr>`).join('')}</tbody></table></div>`}
+    ${I.items.map((x,k)=>{const n=(x.sn||[]).length;const snOk=x.qty>0&&(!x.p||x.p.serial);const snBtn=snOk?(x.p?.serial||n?`<button class="btn ${n?'ghost':''}" style="padding:4px 10px;font-size:12px;opacity:1" data-act="imp-sn" data-i="${k}">S/N ${n}/${q3(x.qty)}</button>`:`<button class="btn link" style="padding:0;font-size:12px" data-act="imp-sn" data-i="${k}" title="Товар будет создан с учётом по серийным номерам">+ S/N</button>`):'';
+      return `<tr${x.why&&!(x.p?.serial&&x.qty>0)?' style="opacity:.5"':''}><td><span class="pname"${x.why?' style="opacity:.6"':''}>${esc(x.name)}</span><span class="psku">${esc(x.sku)}${n?` · <span class="mono">${esc(x.sn.slice(0,3).join(', '))}${n>3?' …':''}</span>`:''}</span></td><td class="small">${esc(x.group||'—')}</td><td class="num">${n&&n<x.qty?`<b>${n}</b> <span class="muted small">из ${q3(x.qty)}</span>`:q3(x.qty)}</td><td class="num">${NF.format(x.cost)}</td><td class="num">${x.price?NF.format(x.price):'<span class="muted">—</span>'}</td><td style="white-space:nowrap">${x.why?`<span class="chip out">пропуск</span>`:x.p?'<span class="chip t-move">есть</span>':'<span class="chip ok">новый</span>'} ${snBtn}</td></tr>${I.snEdit===k?`<tr><td colspan="6" style="background:var(--surface-2,#f6f7f5)"><div class="stack" style="gap:6px"><span class="small">Серийные номера: <b>${esc(x.name)}</b> — по одному в строке, можно сканером. В остатке: ${q3(x.qty)} шт.</span><textarea id="impSnTa" rows="5" data-in="impsn">${esc((x.sn||[]).join('\n'))}</textarea><div class="row" style="gap:8px;align-items:center"><span class="small muted" id="impSnCnt">Введено: ${n} из ${q3(x.qty)}</span><span class="err" id="impSnErr" style="margin:0;flex:1"></span><button class="btn ghost" data-act="imp-sn-cancel">Отмена</button><button class="btn" data-act="imp-sn-ok">Готово</button></div></div></td></tr>`:''}`}).join('')}</tbody></table></div>`}
   openModal(`<h2>Загрузка остатков из Excel</h2>
   <label class="field" style="flex:none"><span>На какой склад</span><select data-ch="imp-wh">${whOpts}</select></label>
   ${body}<div class="err" id="impErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button>${I.items.length?`<button class="btn ghost" data-act="imp-reset">Другой файл</button><button class="btn" data-act="imp-run"${I.plan?.ok.length?'':' disabled'}>Загрузить ${I.plan?.ok.length||0} товаров</button>`:''}</div>`);
-  $('#mcard').classList.add('wide')}
+  $('#mcard').classList.add('wide');
+  const tb=$('#mcard .tbl[style*="max-height"]');if(tb&&I.scroll!=null)tb.scrollTop=I.scroll;if(I.snEdit!=null){const ta=$('#impSnTa');if(ta){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length)}}}
+const impSnParse=v=>[...new Set(String(v||'').split(/[\n\r,;\t]+/).map(x=>x.trim()).filter(Boolean))];
+function impSnSave(){const I=S.imp;const x=I.items[I.snEdit];if(!x)return;const raw=String($('#impSnTa').value||'').split(/[\n\r,;\t]+/).map(z=>z.trim()).filter(Boolean);const L=impSnParse($('#impSnTa').value);const er=$('#impSnErr');
+  if(raw.length!==L.length){er.textContent='Есть повторяющиеся номера';return}
+  if(L.length>x.qty){er.textContent=`Номеров больше, чем в остатке (${q3(x.qty)})`;return}
+  const other=new Set(I.items.filter((y,k)=>k!==I.snEdit).flatMap(y=>y.sn||[]));const d1=L.find(z=>other.has(z));if(d1){er.textContent=`Номер ${d1} уже введён у другого товара`;return}
+  const d2=L.find(z=>S.snLoc[z]);if(d2){er.textContent=`Номер ${d2} уже числится на складе «${wname(S.snLoc[d2].wh)}»`;return}
+  if(L.length)x.sn=L;else delete x.sn;I.snEdit=null;impKeep();impRender()}
+function impKeep(){const tb=$('#mcard .tbl[style*="max-height"]');if(S.imp&&tb)S.imp.scroll=tb.scrollTop}
 async function impFileStock(t){const f=t.files?.[0];if(!f)return;const I=S.imp;I.err='';
   try{const rows=await readSheet(f);const r=impParse(rows);if(r.err){I.err=r.err;I.items=[]}else if(!r.items.length){I.err='В файле не найдено ни одного товара.';I.items=[]}else{I.items=r.items;I.file=f.name}}
   catch(e){I.err='Не удалось прочитать файл: '+(e?.message||e)+'. Попробуйте сохранить его в Excel как .xlsx.'}
@@ -1788,10 +1798,10 @@ async function impRunStock(){const I=S.imp;if(!I?.plan)return;const P=I.plan;if(
   const items=[],prices=[];const at=now();
   for(const x of P.ok){let pid=x.p?.id;
     if(!pid){pid=db.collection('products').doc().id;const g=x.group?gid[x.group.toLowerCase()]||null:null;
-      set('products/'+pid,{name:x.name,sku:x.sku,group:g,cat:g?x.group:'',unit:'шт',minStock:0,sellPrice:x.price,serial:false,warranty:0,archived:false,createdAt:at})}
+      set('products/'+pid,{name:x.name,sku:x.sku,group:g,cat:g?x.group:'',unit:'шт',minStock:0,sellPrice:x.price,serial:!!(x.sn||[]).length,warranty:0,archived:false,createdAt:at})}
     else if(I.upd&&x.price&&num(x.p.sellPrice)!==x.price)upd('products/'+pid,{sellPrice:x.price});
     if(!S.costs[pid]||num(S.costs[pid].buyPrice)!==x.cost)set('costs/'+pid,{buyPrice:x.cost});
-    items.push({p:pid,q:x.qty});prices.push({p:pid,price:x.cost})}
+    const sn=x.sn||[];items.push(sn.length?{p:pid,q:sn.length,sn:[...sn]}:{p:pid,q:x.qty});prices.push({p:pid,price:x.cost})}
   const opId=db.collection('ops').doc().id;const tot=r2(items.reduce((a,it,k)=>a+it.q*prices[k].price,0));
   set('opcosts/'+opId,{items:prices,total:tot,paid:0,init:true});
   set('ops/'+opId,{type:'in',at,wh:I.wh,items,party:'Ввод остатков · '+I.file,init:true,by:S.uid||null});
@@ -1799,7 +1809,7 @@ async function impRunStock(){const I=S.imp;if(!I?.plan)return;const P=I.plan;if(
   const ok=await guard(async()=>{
     if(db.batch){for(let i=0;i<W.length;i+=400){const b=db.batch();for(const [op,path,d] of W.slice(i,i+400))op==='set'?b.set(db.doc(path),d):b.update(db.doc(path),d);await b.commit()}}
     else{let n=0;for(const [op,path,d] of W){await (op==='set'?db.doc(path).set(d):db.doc(path).update(d));if(++n%25===0&&btn)btn.textContent=`Загружаю… ${Math.round(n/W.length*100)}%`}}},
-    `Загружено: ${items.length} товаров, ${q3(P.q)} шт на «${wname(I.wh)}»`,'stock');
+    `Загружено: ${items.length} товаров, ${q3(P.q)} шт на «${wname(I.wh)}»${items.some(i=>i.sn)?', с серийными номерами':''}`,'stock');
   if(ok){S.imp=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить загрузку'}}
 
 
@@ -2794,7 +2804,8 @@ const ACT={
   'kit-add':t=>{const e=S.kitEd;const i=e.items.find(x=>x.p===t.dataset.id);if(i)i.q=num(i.q)+1;else e.items.push({p:t.dataset.id,q:1});S.kitQ='';kitRender()},'kit-rm':t=>{S.kitEd.items.splice(+t.dataset.i,1);kitRender()},'kit-save':()=>kitSave(),
   'kit-pick':()=>kitPickModal(),'kit-sell':t=>kitSell(t.dataset.id),
   'sn-conv':t=>{if(!can('stock')||!can('catalog')){toast('Нужны права на приход и товары');return}snConvForm(t.dataset.id)},'sncv-save':()=>snConvSave(),
-  'imp-stock':()=>impOpen(),'imp-run':()=>impRunStock(),'imp-reset':()=>{S.imp.items=[];S.imp.plan=null;impRender()},
+  'imp-stock':()=>impOpen(),'imp-run':()=>impRunStock(),'imp-reset':()=>{S.imp.items=[];S.imp.plan=null;S.imp.snEdit=null;S.imp.scroll=null;impRender()},
+  'imp-sn':t=>{impKeep();S.imp.snEdit=+t.dataset.i;impRender()},'imp-sn-cancel':()=>{impKeep();S.imp.snEdit=null;impRender()},'imp-sn-ok':()=>impSnSave(),
   signout:()=>window.SK_SIGNOUT&&window.SK_SIGNOUT(),'exp-all':()=>expAll(),'imp-yes':()=>impRun(),
   tab:t=>{S.tab=t.dataset.v;if(S.tab==='settings')S.bankEdit=null;ls.set('tab',S.tab);document.body.classList.remove('nav-open');render();window.scrollTo(0,0)},
   menu:()=>{document.body.classList.toggle('nav-open')},
@@ -3010,6 +3021,7 @@ const IN={
   calcp:t=>{const l=calcState().lines[+t.dataset.i];if(!l)return;if(!l.pick)l.pick={n:l.label+' (цена вручную)',p:0,supp:'вручную'};l.pick.p=r2(num(t.value));calcUpd()},
   calcf:t=>{calcState()[t.dataset.f]=t.value;calcUpd()},
   kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
+  impsn:t=>{const I=S.imp;const x=I?.items[I.snEdit];const e=$('#impSnCnt');if(x&&e)e.textContent=`Введено: ${impSnParse(t.value).length} из ${q3(x.qty)}`},
   kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
