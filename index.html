@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 21:02</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 21:31</span>
     </div>
   </aside>
   <div class="main">
@@ -1110,7 +1110,7 @@ function vAsm(){
   const models=S.prod.filter(p=>!p.archived&&isPcProd(p));const sc=can('cost');const f=S.asmF.trim().toLowerCase();
   const full=can('assembly');const allPc=Object.keys(S.pca).filter(sn=>visPC(sn)&&(full||canPC(sn)));const pcs=allPc.filter(sn=>{if(!f)return true;const o=S.pca[sn];return sn.toLowerCase().includes(f)||pname(o.out.p).toLowerCase().includes(f)||(o.party||'').toLowerCase().includes(f)||(S.pcComp[sn]||[]).some(i=>[...(i.sn||[]),...(i.rsn||[])].some(x=>x.toLowerCase().includes(f)))}).sort((x,y)=>(S.pca[y].at||'').localeCompare(S.pca[x].at||''));
   return `<div class="stack">${full?'':'<div class="infobox">Здесь компьютеры, которые сейчас на ваших складах. Можно менять цену продажи и заменять или снимать детали.</div>'}
-  ${full?`<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Новая сборка</h2><span class="muted small">Запишите серийные номера деталей до сборки, они сохранятся в паспорте компьютера</span></div>
+  ${full?`<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Новая сборка</h2><span class="muted small">Запишите серийные номера деталей до сборки, они сохранятся в паспорте компьютера</span>${S.isOwner?(S.prod.some(p=>p.demo&&/^ТЕСТ /.test(p.name||''))?'<button class="btn ghost" data-act="demo-clear">Удалить тестовые данные</button>':'<button class="btn ghost" data-act="asm-demo">Создать тестовый ПК</button>'):''}</div>
    <div class="row" style="align-items:flex-end">
     <label class="field"><span>Склад</span><select id="asmWh" data-ch="asmwh"${AW.length<2?' disabled':''}>${AW.map(w=>`<option value="${esc(w.id)}"${w.id===a.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label>
     <div class="field" style="flex:2 1 260px"><span>Модель компьютера</span><div class="row" style="gap:6px;flex-wrap:nowrap"><select id="asmOut" data-ch="asmout"><option value="">${models.length?'Выберите модель':'Создайте модель кнопкой +'}</option>${models.map(p=>`<option value="${esc(p.id)}"${p.id===a.out?' selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn ghost" data-act="asm-newmodel" style="padding:8px 12px" title="Новая модель компьютера" aria-label="Новая модель компьютера"${ro('catalog')}>+</button></div></div>
@@ -1170,6 +1170,25 @@ function asmResults(){const q=S.asmQ.trim();if(!q)return '';const list=filterPro
 function updAsm(){const box=$('#asmSum');const a=S.asm;let parts=0,n=0;a.items.forEach((it,i)=>{const q=S.P[it.p]?.serial?(it.sn||[]).length:num(it.q);const v=q*cost(it.p);parts+=v;n+=q;const e=$('#asum'+i);if(e)e.textContent=NF.format(r2(v))});
   if(!box)return;const lab=num(a.labor),tot=parts+lab,pr=num(a.price)||num(S.P[a.out]?.sellPrice),pf=pr-tot;
   box.innerHTML=`<div class="kpi"><span>Детали, ${q3(n)} шт</span><b>${money(parts)}</b></div><div class="kpi"><span>Работа по сборке</span><b>${money(lab)}</b></div><div class="kpi main"><span>Себестоимость компьютера</span><b>${money(tot)}</b></div>${pr?`<div class="kpi"><span>${num(a.price)?'При цене':'При цене модели'} ${money(pr)}</span><b style="color:${pf<0?'var(--bad)':'var(--good)'}">${pf<0?'убыток':'прибыль'} ${money(Math.abs(pf))}${tot?` · ${NF.format(r2(pf/tot*100))}%`:''}</b></div>`:''}`}
+async function asmDemo(){const wh=(S.asm?.wh&&S.W[S.asm.wh]&&!S.W[S.asm.wh].office)?S.asm.wh:(saleWhs().find(w=>w.id===S.curWh)||saleWhs()[0])?.id;if(!wh){toast('Сначала создайте склад');return}
+  const db=S.db;const t0=Date.now();const at=new Date(t0).toISOString(),at2=new Date(t0+2000).toISOString();const st=new Date(t0).toISOString().slice(5,10).replace('-','')+String(t0).slice(-3);const W=[];const set=(path,d)=>W.push([path,d]);
+  let pg=pcGroupId();if(!pg){pg=db.collection('groups').doc().id;set('groups/'+pg,{name:PC_GROUP,warranty:12,serial:true,createdAt:at})}
+  const g1=db.collection('groups').doc().id,g2=db.collection('groups').doc().id;
+  set('groups/'+g1,{name:'ТЕСТ комплектующие',warranty:12,serial:true,demo:true,createdAt:at});set('groups/'+g2,{name:'ТЕСТ без серийных номеров',warranty:6,serial:false,demo:true,createdAt:at});
+  const P=[['ТЕСТ Процессор Intel Core i5-12400F','CPU',1,12500,15500,3,1],['ТЕСТ Материнская плата B760M DDR4','MB',1,7100,8900,3,1],['ТЕСТ Видеокарта RTX 4060 8GB','VGA',1,38000,44000,3,1],['ТЕСТ SSD 512GB NVMe','SSD',1,3200,4200,3,1],['ТЕСТ Блок питания 650W 80+ Bronze','PSU',1,3500,4500,3,1],
+    ['ТЕСТ Оперативная память DDR4 8GB 3200','RAM',0,1900,2500,8,2],['ТЕСТ Корпус ATX с подсветкой','CASE',0,2800,3800,3,1],['ТЕСТ Кулер для процессора 120mm','COOL',0,900,1300,4,1]];
+  const items=[],prices=[],asmIt=[];
+  for(const [name,code,ser,b,sp,q,use] of P){const id=db.collection('products').doc().id;
+    set('products/'+id,{name,sku:'TEST-'+code,group:ser?g1:g2,cat:ser?'ТЕСТ комплектующие':'ТЕСТ без серийных номеров',unit:'шт',minStock:0,sellPrice:sp,serial:!!ser,warranty:ser?12:6,archived:false,demo:true,createdAt:at});set('costs/'+id,{buyPrice:b,demo:true});
+    if(ser){const sn=Array.from({length:q},(_,k)=>`TEST-${code}-${st}-${k+1}`);items.push({p:id,q,sn});asmIt.push({p:id,q:1,sn:[sn[0]]})}else{items.push({p:id,q});asmIt.push({p:id,q:use})}
+    prices.push({p:id,price:b})}
+  const pm=db.collection('products').doc().id;set('products/'+pm,{name:'ТЕСТ Игровой ПК i5-12400F / RTX 4060',sku:'TEST-PC',group:pg,cat:PC_GROUP,unit:'шт',minStock:0,sellPrice:95000,serial:true,warranty:12,archived:false,demo:true,createdAt:at});set('costs/'+pm,{buyPrice:0,demo:true});
+  const inId=db.collection('ops').doc().id;const tot=r2(items.reduce((a,it,k)=>a+it.q*prices[k].price,0));
+  set('opcosts/'+inId,{items:prices,total:tot,paid:0,init:true,demo:true});set('ops/'+inId,{type:'in',at,wh,items,party:'Ввод остатков · ТЕСТ',init:true,by:S.uid||null,demo:true});
+  const pcSn='PC-TEST-'+st;const aId=db.collection('ops').doc().id;set('opcosts/'+aId,{labor:1500,demo:true});
+  set('ops/'+aId,{type:'asm',at:at2,wh,items:asmIt,out:{p:pm,sn:[pcSn]},party:'Тестовая сборка — можно продавать, менять детали, разбирать',price:95000,by:S.uid||null,demo:true});
+  const ok=await guard(async()=>{for(const [path,d] of W)await db.doc(path).set(d)},`Создан тестовый ПК ${pcSn} и детали для ещё 2 сборок на «${wname(wh)}»`,'catalog');
+  if(ok){S.asmOpen=pcSn;S.asmF='';S.asm={wh,out:pm,sn:'',note:'',labor:'',price:'',items:[]};render()}}
 async function postAsm(){const a=S.asm,err=$('#asmErr');err.textContent='';if(!allowedWh().some(w=>w.id===a.wh)){err.textContent='Вам нельзя собирать на этом складе';return}
   if(!a.out){err.textContent='Выберите модель компьютера';return}
   const sn=a.sn.trim();if(!sn){err.textContent='Укажите серийный номер компьютера или нажмите «Создать»';return}
@@ -2989,7 +3008,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
     S.asmQ='';render();if(pr.serial)snOpen('asm',i,isNew);else setTimeout(()=>{const e=$('#ar'+i);e?.focus()},0)},
   'asm-rm':t=>{S.asm.items.splice(+t.dataset.i,1);render()},
   'asm-gen':()=>{S.asm.sn=nextPcSn();const e=$('#asmSn');if(e)e.value=S.asm.sn},
-  'asm-post':postAsm,
+  'asm-post':postAsm,'asm-demo':()=>asmDemo(),
   'asm-open':t=>{if(window.getSelection()?.toString())return;S.asmOpen=S.asmOpen===t.dataset.id?null:t.dataset.id;S.asmDis=null;render()},
   'pc-pass':t=>{const sn=t.dataset.id;if(S.pca[sn])saveFile(`Паспорт ${sn}.html`,pcPassDoc(sn))},
   'pc-dis':t=>{S.asmDis=t.dataset.id;render()},
