@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 21:31</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 21:41</span>
     </div>
   </aside>
   <div class="main">
@@ -1133,7 +1133,7 @@ function pcPassport(sn){const o=S.pca[sn];const inSt=pcIn(sn);const ca=canPC(sn)
   return `<div class="tbl"><table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th></tr></thead><tbody>${pcCompRows(S.pcComp[sn]||[])||'<tr><td colspan="3" class="muted">Деталей нет</td></tr>'}</tbody></table></div>
   ${can('cost')?`<p class="small muted" style="margin-top:6px">Себестоимость: ${money(S.pcu[sn])}${num(S.opc[o.id]?.labor)?`, включая работу ${money(S.opc[o.id].labor)}`:''}${num(o.price)&&num(S.pcu[sn])?` · наценка ${NF.format(r2((num(o.price)-S.pcu[sn])/S.pcu[sn]*100))}%`:''}</p>`:''}
   ${inSt&&ca?`<div class="row" style="margin-top:8px;gap:8px"><label class="row" style="gap:6px">Цена продажи, сом <input class="sm" id="pcPrice" inputmode="decimal" value="${esc(o.price||'')}" placeholder="${esc(num(S.P[o.out.p]?.sellPrice)||'')}" style="width:120px"></label><button class="btn ghost" data-act="pc-price" data-id="${esc(sn)}">Сохранить цену</button><span class="muted small">${num(o.price)?'':'Сейчас действует цена модели'}</span></div>`:''}
-  <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="pc-pass" data-id="${esc(sn)}">Паспорт для печати</button>${inSt&&ca?`<button class="btn ghost" data-act="pc-mod" data-id="${esc(sn)}">Заменить или снять детали</button>`:''}${inSt&&cd?(S.asmDis===sn?`<div class="confirm"><span>Разобрать ${esc(sn)}? Все детали вернутся на склад «${esc(wname(pcWh(sn)))}».</span><button class="btn danger" data-act="pc-dis-yes" data-id="${esc(sn)}">Разобрать</button><button class="btn ghost" data-act="pc-dis-no">Отмена</button></div>`:`<button class="btn link bad" data-act="pc-dis" data-id="${esc(sn)}">Разобрать</button>`):''}</div>
+  <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="pc-pass" data-id="${esc(sn)}">Паспорт для печати</button>${inSt?`<button class="btn ghost" data-act="pc-lbl" data-id="${esc(sn)}">Этикетка на витрину</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pc-mod" data-id="${esc(sn)}">Заменить или снять детали</button>`:''}${inSt&&cd?(S.asmDis===sn?`<div class="confirm"><span>Разобрать ${esc(sn)}? Все детали вернутся на склад «${esc(wname(pcWh(sn)))}».</span><button class="btn danger" data-act="pc-dis-yes" data-id="${esc(sn)}">Разобрать</button><button class="btn ghost" data-act="pc-dis-no">Отмена</button></div>`:`<button class="btn link bad" data-act="pc-dis" data-id="${esc(sn)}">Разобрать</button>`):''}</div>
   ${inSt&&ca&&pcWh(sn)!==o.wh?`<p class="muted small" style="margin-top:6px">Компьютер сейчас на складе «${esc(wname(pcWh(sn)))}». Снятые детали вернутся на этот склад, новые берутся с него же.</p>`:''}${inSt&&!ca?`<p class="muted small" style="margin-top:6px">Компьютер на складе «${esc(wname(pcWh(sn)))}», у вас нет доступа к изменению на этом складе.</p>`:''}`}
 function modPickOpts(){const m=S.mod;const used=m.add.flatMap(x=>x.sn||[]);const list=S.prod.filter(p=>!p.archived&&!isPcProd(p)&&inGroup(p,m.g)&&qty(m.wh,p.id)>0);
   if(!list.length)return '<option value="">На складе нет деталей'+(m.g?' в этой группе':'')+'</option>';const by={};for(const p of list)(by[pgroup(p)]??=[]).push(p);
@@ -2694,6 +2694,53 @@ function offSpec(){const {L,all,ws}=offSel();const multi=all&&L.length>1;const R
     rows:R.map(r=>({cells:[++n,r.p.name,r.q,...(sc?[r2(r.c),r2(r.q*r.c)]:[])],note:[r.sn.length?'S/N: '+r.sn.join(', '):'',multi?r.ws.map(w=>w.name).join(', '):''].filter(Boolean).join(' · ')})),
     after:[...(sc?[[`Итого: ${money(tot)}`,true]]:[]),[`Всего наименований: ${R.length}, единиц: ${q3(units)}`,false]],signs:['Выдал','Принял (подотчётное лицо)']}}
 
+/* ---------- этикетка на витрину ---------- */
+const LBL_CAT=[[/кулер|cooler|охлажд|водян|вентилятор/i,'Охлаждение'],[/процессор|\bcpu\b/i,'Процессор'],[/материнск|матплат|motherboard|mainboard|^mb\b|m\/b/i,'Мат. плата'],[/видеокарт|\brtx\b|\bgtx\b|radeon|geforce|\bvga\b/i,'Видеокарта'],[/оперативн|памят|\bddr\d|\bram\b|dimm/i,'Память'],[/\bssd\b|nvme|\bhdd\b|накопител|жестк/i,'Накопитель'],[/блок питания|power supply|power unit|\bpsu\b|\bбп\b/i,'Блок питания'],[/корпус|\bcase\b/i,'Корпус'],[/wi-?fi|bluetooth/i,'Сеть'],[/windows|ос /i,'Система']];
+const LBL_ORD=['Процессор','Мат. плата','Память','Видеокарта','Накопитель','Блок питания','Корпус','Охлаждение','Сеть','Система',''];
+function lblSpec(sn){const L=S.pcComp[sn]||[];return L.map(i=>{let n=pname(i.p).replace(/^ТЕСТ\s+/,'');const m=LBL_CAT.find(([r])=>r.test(n));const cat=m?m[1]:'';
+  if(cat&&cat!=='Охлаждение')n=n.replace(/^(процессор|видеокарта|оперативная память|память|твердотельный накопитель|накопитель|блок питания|корпус|материнская плата|мат\.? ?плата|матплата)\s+/i,'');
+  return{cat,n:n+(num(i.q)>1?` ×${q3(i.q)}`:'')}}).sort((a,b)=>LBL_ORD.indexOf(a.cat)-LBL_ORD.indexOf(b.cat))}
+function lblState(sn){const o=S.pca[sn];let st={};try{st=JSON.parse(localStorage.getItem('sk_lbl_'+sn)||'{}')}catch(e){}const pr=S.P[o.out.p]||{};
+  return{title:st.title??(pr.name||'').replace(/^ТЕСТ\s+/,''),sub:st.sub??(o.party||''),price:st.price??pcPrice(sn),old:st.old??'',badge:st.badge??'',note:st.note??'',per:st.per??'1',war:st.war??pWTxt(pr),sn}}
+function lblSave(sn,st){try{localStorage.setItem('sk_lbl_'+sn,JSON.stringify(st))}catch(e){}}
+function lblDraw(x,d,X,Y,W,H,cut){const F='Arial, "Helvetica Neue", Helvetica, sans-serif';const s=Math.min(W/1100,H/1550)*1.0;const u=v=>Math.round(v*s*10)/10;const P=u(60);
+  const font=(sz,b)=>{x.font=`${b?'bold ':''}${u(sz)}px ${F}`};const wrap=(t,w)=>{const out=[];let line='';for(const wd of String(t).split(/\s+/)){const tt=line?line+' '+wd:wd;if(x.measureText(tt).width>w&&line){out.push(line);line=wd}else line=tt}if(line)out.push(line);return out};
+  x.save();x.textBaseline='top';x.fillStyle='#fff';x.fillRect(X,Y,W,H);
+  if(cut){x.setLineDash([u(14),u(10)]);x.strokeStyle='#999';x.lineWidth=1;x.strokeRect(X+1,Y+1,W-2,H-2);x.setLineDash([])}
+  const RED='#D62828',DARK='#111',ACC='#1D6A4F';let y=Y+P;const IW=W-2*P;
+  font(30,true);x.fillStyle='#666';x.textAlign='left';x.fillText((S.set.shopName||'').toUpperCase(),X+P,y);if(d.war){x.textAlign='right';x.fillStyle=ACC;x.fillText('Гарантия '+d.war,X+W-P,y)}x.textAlign='left';y+=u(52);
+  if(d.badge){font(64,true);const bw=Math.min(IW,x.measureText(d.badge.toUpperCase()).width+u(70));const bh=u(96);x.fillStyle=RED;x.beginPath();x.moveTo(X+P,y);x.lineTo(X+P+bw,y);x.lineTo(X+P+bw-u(22),y+bh/2);x.lineTo(X+P+bw,y+bh);x.lineTo(X+P,y+bh);x.closePath();x.fill();x.fillStyle='#fff';x.fillText(d.badge.toUpperCase(),X+P+u(26),y+u(16),bw-u(60));y+=bh+u(30)}
+  font(66,true);x.fillStyle=DARK;const tl=wrap(d.title||'Компьютер',IW).slice(0,3);tl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(76)));y+=tl.length*u(76)+u(8);
+  if(d.sub){font(36,false);x.fillStyle='#444';const sl=wrap(d.sub,IW).slice(0,2);sl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(44)));y+=sl.length*u(44)+u(10)}
+  x.fillStyle=ACC;x.fillRect(X+P,y,IW,u(5));y+=u(28);
+  const priceH=(d.old&&num(d.old)>num(d.price)?u(80):0)+u(170)+(d.note?u(70):0)+u(60);const avail=Y+H-P-priceH-y;const sp=d.spec||[];
+  let fs=48;let rows;for(;fs>=20;fs-=2){font(fs,false);const lh=fs*1.28;const cw=d.spec.some(r=>r.cat)?Math.min(IW*0.36,u(330)):0;rows=[];let h=0;for(const r of sp){const ls=wrap(r.n,IW-cw-u(10)).slice(0,2);rows.push({r,ls,cw});h+=ls.length*u(lh)+u(fs*0.35)}if(h<=avail)break}
+  const lh=u(fs*1.28);for(const {r,ls,cw} of rows){if(y+ls.length*lh>Y+H-P-priceH+u(10))break;if(r.cat){font(fs,true);x.fillStyle=ACC;x.fillText(r.cat,X+P,y)}font(fs,false);x.fillStyle=DARK;ls.forEach((l,i)=>x.fillText(l,X+P+cw,y+i*lh));y+=ls.length*lh+u(fs*0.35)}
+  let py=Y+H-P-priceH+u(20);
+  if(d.note){font(40,true);x.fillStyle=RED;x.fillText(wrap(d.note,IW)[0]||'',X+P,py);py+=u(70)}
+  if(d.old&&num(d.old)>num(d.price)){font(54,false);x.fillStyle='#888';const t=NF.format(r2(num(d.old)))+' сом';x.fillText(t,X+P,py);const tw=x.measureText(t).width;x.strokeStyle='#888';x.lineWidth=u(5);x.beginPath();x.moveTo(X+P-u(4),py+u(30));x.lineTo(X+P+tw+u(4),py+u(30));x.stroke();
+    const pct=Math.round((1-num(d.price)/num(d.old))*100);if(pct>0){font(46,true);x.fillStyle=RED;x.fillText('−'+pct+'%',X+P+tw+u(30),py+u(4))}py+=u(80)}
+  font(150,true);x.fillStyle=d.old&&num(d.old)>num(d.price)||d.badge?RED:DARK;const pt=NF.format(r2(num(d.price)));x.fillText(pt,X+P,py);const pw=x.measureText(pt).width;font(70,true);x.fillText(' сом',X+P+pw,py+u(64));
+  font(24,false);x.fillStyle='#999';x.textAlign='right';x.fillText('S/N '+d.sn,X+W-P,Y+H-P+u(16));x.textAlign='left';x.restore()}
+function lblPages(d){const K=200/150,PW=1240,PH=1754;const c=document.createElement('canvas');c.width=Math.round(PW*K);c.height=Math.round(PH*K);const x=c.getContext('2d');x.scale(K,K);x.fillStyle='#fff';x.fillRect(0,0,PW,PH);
+  const per=+d.per||1;const cells=per===4?[[0,0],[1,0],[0,1],[1,1]]:per===2?[[0,0],[0,1]]:[[0,0]];const cw=per===4?PW/2:PW,ch=per===1?PH:PH/2;
+  for(const [i,j] of cells)lblDraw(x,d,i*cw,j*ch,cw,ch,per>1);return [c]}
+function lblForm(sn){if(!S.pca[sn])return;S.lbl={...lblState(sn),spec:lblSpec(sn)};lblRender()}
+function lblRender(){const d=S.lbl;const B=['','ШОК ЦЕНА','АКЦИЯ','СКИДКА','ХИТ ПРОДАЖ','НОВИНКА','ЛУЧШАЯ ЦЕНА'];
+  openModal(`<h2>Этикетка на витрину · ${esc(d.sn)}</h2>
+  <div class="row" style="align-items:flex-start;gap:16px"><div class="stack" style="flex:1 1 320px;gap:10px">
+   <label class="field" style="flex:none"><span>Название</span><input data-in="lbl" data-f="title" value="${esc(d.title)}"></label>
+   <label class="field" style="flex:none"><span>Подзаголовок (необязательно)</span><input data-in="lbl" data-f="sub" value="${esc(d.sub)}" placeholder="Например: для игр и работы в 1080p"></label>
+   <div class="row"><label class="field"><span>Цена, сом</span><input data-in="lbl" data-f="price" inputmode="decimal" value="${esc(d.price)}"></label><label class="field"><span>Старая цена (зачеркнуть)</span><input data-in="lbl" data-f="old" inputmode="decimal" value="${esc(d.old)}" placeholder="для скидки"></label></div>
+   <div class="field" style="flex:none"><span>Плашка</span><div class="row" style="gap:6px;flex-wrap:wrap">${B.map(b=>`<button class="btn ${d.badge===b?'':'ghost'}" style="padding:5px 10px;font-size:12px" data-act="lbl-badge" data-v="${esc(b)}">${b||'Без плашки'}</button>`).join('')}</div><input data-in="lbl" data-f="badge" value="${esc(d.badge)}" placeholder="или свой текст, например «−15% до конца месяца»" style="margin-top:6px"></div>
+   <label class="field" style="flex:none"><span>Примечание (красным над ценой)</span><input data-in="lbl" data-f="note" value="${esc(d.note)}" placeholder="Например: рассрочка 0-0-12, Windows 11 установлен"></label>
+   <div class="row"><label class="field"><span>Гарантия</span><input data-in="lbl" data-f="war" value="${esc(d.war)}" placeholder="12 мес."></label><label class="field"><span>Размер</span><select data-ch="lbl-per"><option value="1"${d.per==='1'?' selected':''}>A4 — 1 на листе</option><option value="2"${d.per==='2'?' selected':''}>A5 — 2 на листе A4</option><option value="4"${d.per==='4'?' selected':''}>A6 — 4 на листе A4</option></select></label></div>
+   <p class="muted small">Характеристики берутся из комплектации компьютера. Если поменяете детали — этикетка обновится. Настройки этикетки запоминаются на этом компьютере.</p></div>
+   <div style="flex:0 0 260px"><canvas id="lblPrev" width="520" height="736" style="width:260px;height:368px;border:1px solid var(--line);border-radius:6px;background:#fff"></canvas></div></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Закрыть</button><button class="btn" data-act="lbl-dl">Скачать PDF</button></div>`);$('#mcard').classList.add('wide');lblPrev()}
+function lblPrev(){const c=$('#lblPrev');if(!c)return;const x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);lblDraw(x,S.lbl,0,0,c.width,c.height,false)}
+async function lblDl(){const d=S.lbl;if(!d)return;const {spec,...keep}=d;lblSave(d.sn,keep);try{await saveFile(`Этикетка ${d.sn}.pdf`,pdfFromJpegs(capPages(()=>lblPages(d)).map(c=>jpegOf(c,0.92))))}catch(e){console.error(e);toast('Не удалось подготовить файл')}}
+
 /* ---------- прайс-лист ---------- */
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
@@ -3010,6 +3057,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
   'asm-gen':()=>{S.asm.sn=nextPcSn();const e=$('#asmSn');if(e)e.value=S.asm.sn},
   'asm-post':postAsm,'asm-demo':()=>asmDemo(),
   'asm-open':t=>{if(window.getSelection()?.toString())return;S.asmOpen=S.asmOpen===t.dataset.id?null:t.dataset.id;S.asmDis=null;render()},
+  'pc-lbl':t=>lblForm(t.dataset.id),'lbl-dl':()=>lblDl(),'lbl-badge':t=>{S.lbl.badge=t.dataset.v;lblRender()},
   'pc-pass':t=>{const sn=t.dataset.id;if(S.pca[sn])saveFile(`Паспорт ${sn}.html`,pcPassDoc(sn))},
   'pc-dis':t=>{S.asmDis=t.dataset.id;render()},
   'pc-dis-no':()=>{S.asmDis=null;render()},
@@ -3084,6 +3132,7 @@ const IN={
   calcf:t=>{calcState()[t.dataset.f]=t.value;calcUpd()},
   kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
   impsn:t=>{const I=S.imp;const x=I?.items[I.snEdit];const e=$('#impSnCnt');if(x&&e)e.textContent=`Введено: ${impSnParse(t.value).length} из ${q3(x.qty)}`},
+  lbl:t=>{S.lbl[t.dataset.f]=t.value;lblPrev()},
   kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
@@ -3141,6 +3190,7 @@ const CH={
   stwh:t=>{S.stockWh=t.value;render()},stlow:t=>{S.stockLow=t.checked;render()},stzero:t=>{S.stockZero=t.checked;ls.set('stockZero',t.checked);render()},
   cdebt:t=>{S.cDebtOnly=t.checked;render()},
   opwh:t=>{S.op.wh=t.value;S.op.items.forEach(i=>{if(S.P[i.p]?.serial&&S.opMode!=='in'){i.sn=[];i.q=0}});render()},opto:t=>{S.op.toWh=t.value},
+  'lbl-per':t=>{S.lbl.per=t.value},
   repwh:t=>{S.repWh=t.value;render()},offwh:t=>{S.offWh=t.value;render()},arch:t=>{S.showArch=t.checked;render()},
   retsn:t=>{const l=S.retCtx.lines[+t.dataset.i];if(t.checked){if(!l.sel.includes(t.value))l.sel.push(t.value)}else l.sel=l.sel.filter(x=>x!==t.value);updRet()},
   opsupp:t=>{S.op.supp=t.value},
