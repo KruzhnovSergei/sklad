@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:26</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:40</span>
     </div>
   </aside>
   <div class="main">
@@ -2520,7 +2520,10 @@ const acctFix=t=>String(t||'').split('\n').map(l=>{const m=l.match(/^\s*(\d[\d\s
 /* ---------- расчёт ПК по прайсам поставщиков (не влияет на учёт) ---------- */
 const CALC_DEF=['Процессор','Материнская плата','Оперативная память','Накопитель SSD','Видеокарта','Блок питания','Корпус','Охлаждение'];
 const CUR={KGS:'сом',USD:'$',RUB:'₽',CNY:'¥'};
-function calcState(){if(!S.calc){let c=null;try{c=JSON.parse(localStorage.getItem('sk_calc')||'null')}catch(e){}S.calc=c&&Array.isArray(c.lines)?c:{lines:CALC_DEF.map(n=>({label:n,q:1,pick:null})),mk:'15',work:'',round:'100',own:true,title:''}}return S.calc}
+const calcDefLines=()=>CALC_DEF.map((n,i)=>({label:n,q:1,pick:null,fix:i}));
+function calcFix(c){if(!c.fx2){const used=new Set();for(const l of c.lines){const i=CALC_DEF.indexOf(l.label);if(i>=0&&!used.has(i)&&l.fix==null){l.fix=i;used.add(i)}}c.fx2=1}
+  for(let i=0;i<CALC_DEF.length;i++){if(c.lines.some(l=>l.fix===i))continue;let pos=0;c.lines.forEach((l,k)=>{if(l.fix!=null&&l.fix<i)pos=k+1});c.lines.splice(pos,0,{label:CALC_DEF[i],q:1,pick:null,fix:i})}return c}
+function calcState(){if(!S.calc){let c=null;try{c=JSON.parse(localStorage.getItem('sk_calc')||'null')}catch(e){}S.calc=calcFix(c&&Array.isArray(c.lines)?c:{lines:calcDefLines(),mk:'15',work:'',round:'100',own:true,title:'',fx2:1})}return S.calc}
 const calcSave=()=>{try{localStorage.setItem('sk_calc',JSON.stringify(S.calc))}catch(e){}};
 function calcLoad(){if(S.pllSub||!S.db)return;S.pllSub=true;S.pll=[];S.plr={};
   S.db.collection('pricelists').onSnapshot(s=>{S.pll=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||'').localeCompare(a.at||''));for(const l of S.pll)calcRows(l);if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()},e=>{S.pllErr=e?.code||'err';if(S.tab==='calc')render()})}
@@ -2555,7 +2558,7 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
        :`<div class="picker"><input data-in="calcq" data-i="${i}" id="calcq${i}" placeholder="Поиск: модель, например 12400F" value="${esc(S.calcQ?.[i]||'')}" autocomplete="off"><div id="calcr${i}">${calcResHtml(i)}</div></div>`}</td>
      <td class="num"><input class="xs" inputmode="numeric" data-in="calcl" data-i="${i}" data-f="q" value="${esc(l.q??1)}"></td>
      <td class="num"><input class="sm" inputmode="decimal" data-in="calcp" data-i="${i}" value="${l.pick?esc(l.pick.p):''}" placeholder="—" style="width:100px"></td><td class="num" id="calcs${i}">${l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'}</td>
-     <td><button class="x" data-act="calc-rm" data-i="${i}" aria-label="Убрать строку">×</button></td></tr>`).join('')}
+     <td>${l.fix!=null?(l.pick?`<button class="x" data-act="calc-rm" data-i="${i}" aria-label="Очистить строку" title="Очистить (строка закреплена)">×</button>`:''):`<button class="x" data-act="calc-rm" data-i="${i}" aria-label="Убрать строку" title="Удалить строку">×</button>`}</td></tr>`).join('')}
    </tbody></table></div>
    <div class="row" style="margin-top:8px"><button class="btn link" data-act="calc-add">+ Добавить строку</button><label class="check" style="margin-left:auto"><input type="checkbox" data-ch="calcown"${c.own?' checked':''}> Искать и в товарах нашего склада</label></div>
    ${c.own&&calcAllowWh().length>1?`<div class="row" style="gap:6px 14px;justify-content:flex-end;margin-top:4px"><span class="muted small">Склады:</span>${calcAllowWh().map(w=>`<label class="check small"><input type="checkbox" data-ch="calcownwh" value="${esc(w.id)}"${calcWhs().some(x=>x.id===w.id)?' checked':''}> ${esc(w.name)}</label>`).join('')}</div>`:''}
@@ -2820,10 +2823,10 @@ function cartAdd(pid,sn){const p=S.P[pid];if(!p)return;
   const l=S.cart.find(l=>l.p===pid);if(l)l.q=r3(num(l.q)+1);else S.cart.push({p:pid,q:1,price:num(p.sellPrice),disc:''});$('#cart').innerHTML=cartHtml();updCart()}
 function clearSaleQ(){S.saleQ='';const e=$('#saleQ');if(e){e.value='';$('#saleGrid').innerHTML=saleTiles();e.focus()}}
 const ACT={
-  'calc-add':()=>{calcState().lines.push({label:'Комплектующее',q:1,pick:null});calcSave();render()},'calc-rm':t=>{calcState().lines.splice(+t.dataset.i,1);calcSave();render()},
+  'calc-add':()=>{calcState().lines.push({label:'Комплектующее',q:1,pick:null});calcSave();render()},'calc-rm':t=>{const i=+t.dataset.i;const l=calcState().lines[i];if(l&&l.fix!=null){l.pick=null;l.q=1;if(S.calcQ)S.calcQ[i]=''}else calcState().lines.splice(i,1);calcSave();render()},
   'calc-unpick':t=>{calcState().lines[+t.dataset.i].pick=null;calcSave();render();setTimeout(()=>$('#calcq'+t.dataset.i)?.focus(),0)},
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
-  'calc-reset':()=>{const c=calcState();c.lines=CALC_DEF.map(n=>({label:n,q:1,pick:null}));c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
+  'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
   'calc-ldel':t=>calcDel(t.dataset.id),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
