@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 21:41</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 23:08</span>
     </div>
   </aside>
   <div class="main">
@@ -2703,25 +2703,29 @@ function lblSpec(sn){const L=S.pcComp[sn]||[];return L.map(i=>{let n=pname(i.p).
 function lblState(sn){const o=S.pca[sn];let st={};try{st=JSON.parse(localStorage.getItem('sk_lbl_'+sn)||'{}')}catch(e){}const pr=S.P[o.out.p]||{};
   return{title:st.title??(pr.name||'').replace(/^ТЕСТ\s+/,''),sub:st.sub??(o.party||''),price:st.price??pcPrice(sn),old:st.old??'',badge:st.badge??'',note:st.note??'',per:st.per??'1',war:st.war??pWTxt(pr),sn}}
 function lblSave(sn,st){try{localStorage.setItem('sk_lbl_'+sn,JSON.stringify(st))}catch(e){}}
-function lblDraw(x,d,X,Y,W,H,cut){const F='Arial, "Helvetica Neue", Helvetica, sans-serif';const s=Math.min(W/1100,H/1550)*1.0;const u=v=>Math.round(v*s*10)/10;const P=u(60);
+function lblDraw(x,d,X,Y,W,H,cut){const F='Arial, "Helvetica Neue", Helvetica, sans-serif';const s=Math.min(W/1100,H/1550);const u=v=>Math.round(v*s*10)/10;const P=u(60);
   const font=(sz,b)=>{x.font=`${b?'bold ':''}${u(sz)}px ${F}`};const wrap=(t,w)=>{const out=[];let line='';for(const wd of String(t).split(/\s+/)){const tt=line?line+' '+wd:wd;if(x.measureText(tt).width>w&&line){out.push(line);line=wd}else line=tt}if(line)out.push(line);return out};
+  const BLUE='#0B3C8C',BLUE2='#1652B8',YEL='#FFD200',YEL2='#FFF4B8',DARK='#0A1F44';
   x.save();x.textBaseline='top';x.fillStyle='#fff';x.fillRect(X,Y,W,H);
-  if(cut){x.setLineDash([u(14),u(10)]);x.strokeStyle='#999';x.lineWidth=1;x.strokeRect(X+1,Y+1,W-2,H-2);x.setLineDash([])}
-  const RED='#D62828',DARK='#111',ACC='#1D6A4F';let y=Y+P;const IW=W-2*P;
-  font(30,true);x.fillStyle='#666';x.textAlign='left';x.fillText((S.set.shopName||'').toUpperCase(),X+P,y);if(d.war){x.textAlign='right';x.fillStyle=ACC;x.fillText('Гарантия '+d.war,X+W-P,y)}x.textAlign='left';y+=u(52);
-  if(d.badge){font(64,true);const bw=Math.min(IW,x.measureText(d.badge.toUpperCase()).width+u(70));const bh=u(96);x.fillStyle=RED;x.beginPath();x.moveTo(X+P,y);x.lineTo(X+P+bw,y);x.lineTo(X+P+bw-u(22),y+bh/2);x.lineTo(X+P+bw,y+bh);x.lineTo(X+P,y+bh);x.closePath();x.fill();x.fillStyle='#fff';x.fillText(d.badge.toUpperCase(),X+P+u(26),y+u(16),bw-u(60));y+=bh+u(30)}
+  const IW=W-2*P;const hb=u(110);x.fillStyle=BLUE;x.fillRect(X,Y,W,hb);x.fillStyle=YEL;x.fillRect(X,Y+hb,W,u(12));
+  font(44,true);x.fillStyle='#fff';x.textAlign='left';x.fillText((S.set.shopName||'').toUpperCase(),X+P,Y+u(32),IW*0.6);if(d.war){font(34,true);x.textAlign='right';x.fillStyle=YEL;x.fillText('Гарантия '+d.war,X+W-P,Y+u(38))}x.textAlign='left';
+  let y=Y+hb+u(12)+u(40);
+  if(d.badge){font(64,true);const bw=Math.min(IW,x.measureText(d.badge.toUpperCase()).width+u(70));const bh=u(96);x.fillStyle=YEL;x.beginPath();x.moveTo(X+P,y);x.lineTo(X+P+bw,y);x.lineTo(X+P+bw-u(22),y+bh/2);x.lineTo(X+P+bw,y+bh);x.lineTo(X+P,y+bh);x.closePath();x.fill();x.fillStyle=BLUE;x.fillText(d.badge.toUpperCase(),X+P+u(26),y+u(16),bw-u(60));y+=bh+u(30)}
   font(66,true);x.fillStyle=DARK;const tl=wrap(d.title||'Компьютер',IW).slice(0,3);tl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(76)));y+=tl.length*u(76)+u(8);
-  if(d.sub){font(36,false);x.fillStyle='#444';const sl=wrap(d.sub,IW).slice(0,2);sl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(44)));y+=sl.length*u(44)+u(10)}
-  x.fillStyle=ACC;x.fillRect(X+P,y,IW,u(5));y+=u(28);
-  const priceH=(d.old&&num(d.old)>num(d.price)?u(80):0)+u(170)+(d.note?u(70):0)+u(60);const avail=Y+H-P-priceH-y;const sp=d.spec||[];
-  let fs=48;let rows;for(;fs>=20;fs-=2){font(fs,false);const lh=fs*1.28;const cw=d.spec.some(r=>r.cat)?Math.min(IW*0.36,u(330)):0;rows=[];let h=0;for(const r of sp){const ls=wrap(r.n,IW-cw-u(10)).slice(0,2);rows.push({r,ls,cw});h+=ls.length*u(lh)+u(fs*0.35)}if(h<=avail)break}
-  const lh=u(fs*1.28);for(const {r,ls,cw} of rows){if(y+ls.length*lh>Y+H-P-priceH+u(10))break;if(r.cat){font(fs,true);x.fillStyle=ACC;x.fillText(r.cat,X+P,y)}font(fs,false);x.fillStyle=DARK;ls.forEach((l,i)=>x.fillText(l,X+P+cw,y+i*lh));y+=ls.length*lh+u(fs*0.35)}
-  let py=Y+H-P-priceH+u(20);
-  if(d.note){font(40,true);x.fillStyle=RED;x.fillText(wrap(d.note,IW)[0]||'',X+P,py);py+=u(70)}
-  if(d.old&&num(d.old)>num(d.price)){font(54,false);x.fillStyle='#888';const t=NF.format(r2(num(d.old)))+' сом';x.fillText(t,X+P,py);const tw=x.measureText(t).width;x.strokeStyle='#888';x.lineWidth=u(5);x.beginPath();x.moveTo(X+P-u(4),py+u(30));x.lineTo(X+P+tw+u(4),py+u(30));x.stroke();
-    const pct=Math.round((1-num(d.price)/num(d.old))*100);if(pct>0){font(46,true);x.fillStyle=RED;x.fillText('−'+pct+'%',X+P+tw+u(30),py+u(4))}py+=u(80)}
-  font(150,true);x.fillStyle=d.old&&num(d.old)>num(d.price)||d.badge?RED:DARK;const pt=NF.format(r2(num(d.price)));x.fillText(pt,X+P,py);const pw=x.measureText(pt).width;font(70,true);x.fillText(' сом',X+P+pw,py+u(64));
-  font(24,false);x.fillStyle='#999';x.textAlign='right';x.fillText('S/N '+d.sn,X+W-P,Y+H-P+u(16));x.textAlign='left';x.restore()}
+  if(d.sub){font(36,false);x.fillStyle=BLUE2;const sl=wrap(d.sub,IW).slice(0,2);sl.forEach((l,i)=>x.fillText(l,X+P,y+i*u(44)));y+=sl.length*u(44)+u(10)}
+  x.fillStyle=YEL;x.fillRect(X+P,y,IW,u(8));y+=u(30);
+  const hasOld=d.old&&num(d.old)>num(d.price);const boxH=(hasOld?u(80):0)+u(200);const priceH=boxH+(d.note?u(80):0)+u(50);const avail=Y+H-P-priceH-y;const sp=d.spec||[];
+  let fs=48;let rows;for(;fs>=20;fs-=2){font(fs,false);const lh=fs*1.28;const cw=sp.some(r=>r.cat)?Math.min(IW*0.36,u(330)):0;rows=[];let h=0;for(const r of sp){const ls=wrap(r.n,IW-cw-u(10)).slice(0,2);rows.push({r,ls,cw});h+=ls.length*u(lh)+u(fs*0.35)}if(h<=avail)break}
+  const lh=u(fs*1.28);for(const {r,ls,cw} of rows){if(y+ls.length*lh>Y+H-P-priceH+u(10))break;if(r.cat){font(fs,true);x.fillStyle=BLUE;x.fillText(r.cat,X+P,y)}font(fs,false);x.fillStyle=DARK;ls.forEach((l,i)=>x.fillText(l,X+P+cw,y+i*lh));y+=ls.length*lh+u(fs*0.35)}
+  let py=Y+H-P-priceH+u(30);
+  if(d.note){const nh=u(64);x.fillStyle=BLUE;x.fillRect(X+P,py,IW,nh);font(38,true);x.fillStyle=YEL;x.fillText(wrap(d.note,IW-u(40))[0]||'',X+P+u(20),py+u(13),IW-u(40));py+=nh+u(16)}
+  const by=py;x.fillStyle=YEL;x.fillRect(X+P,by,IW,boxH);x.fillStyle=BLUE;x.fillRect(X+P,by,u(14),boxH);py=by+u(18);
+  if(hasOld){font(54,false);x.fillStyle='#5A6478';const t=NF.format(r2(num(d.old)))+' сом';x.fillText(t,X+P+u(40),py);const tw=x.measureText(t).width;x.strokeStyle='#C62828';x.lineWidth=u(6);x.beginPath();x.moveTo(X+P+u(36),py+u(30));x.lineTo(X+P+u(44)+tw,py+u(30));x.stroke();
+    const pct=Math.round((1-num(d.price)/num(d.old))*100);if(pct>0){font(46,true);const pt='−'+pct+'%';const pw=x.measureText(pt).width+u(30);x.fillStyle=BLUE;x.fillRect(X+P+u(60)+tw,py-u(4),pw,u(62));x.fillStyle=YEL;x.fillText(pt,X+P+u(75)+tw,py+u(4))}py+=u(80)}
+  font(150,true);x.fillStyle=BLUE;const pt=NF.format(r2(num(d.price)));x.fillText(pt,X+P+u(40),py,IW-u(260));const pw=Math.min(x.measureText(pt).width,IW-u(260));font(70,true);x.fillText(' сом',X+P+u(40)+pw,py+u(66));
+  font(24,false);x.fillStyle='#8A94A6';x.textAlign='right';x.fillText('S/N '+d.sn,X+W-P,Y+H-P+u(20));x.textAlign='left';
+  if(cut){x.setLineDash([u(14),u(10)]);x.strokeStyle='#999';x.lineWidth=1;x.strokeRect(X+1,Y+1,W-2,H-2);x.setLineDash([])}
+  x.restore()}
 function lblPages(d){const K=200/150,PW=1240,PH=1754;const c=document.createElement('canvas');c.width=Math.round(PW*K);c.height=Math.round(PH*K);const x=c.getContext('2d');x.scale(K,K);x.fillStyle='#fff';x.fillRect(0,0,PW,PH);
   const per=+d.per||1;const cells=per===4?[[0,0],[1,0],[0,1],[1,1]]:per===2?[[0,0],[0,1]]:[[0,0]];const cw=per===4?PW/2:PW,ch=per===1?PH:PH/2;
   for(const [i,j] of cells)lblDraw(x,d,i*cw,j*ch,cw,ch,per>1);return [c]}
