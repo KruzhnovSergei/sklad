@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 12:59</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:03</span>
     </div>
   </aside>
   <div class="main">
@@ -343,7 +343,7 @@ const visDoc=(o,J)=>!J||(o.wh?J.has(o.wh)||(o.toWh&&J.has(o.toWh)):o.by&&o.by===
 function allowedWh(){const SW=saleWhs();if(S.isOwner)return SW;const m=myStaff();const a=m?.whs||[];return a.length?SW.filter(w=>a.includes(w.id)):SW}
 const ro=k=>can(k)?'':' disabled';
 const ckind=c=>c&&c.kind==='opt'?'opt':'retail';const CKIND={retail:'Розничный',opt:'Оптовый'};
-const cperm=k=>k==='opt'?'custopt':'customers';const canCust=k=>can(cperm(k));const canAnyCust=()=>can('customers')||can('custopt');
+const cperm=k=>k==='opt'?'custopt':'customers';const custKind=()=>{const r=can('customers'),o=can('custopt');return r===o?null:r?'retail':'opt'};const visCust=()=>{const k=custKind();return k?S.cust.filter(c=>ckind(c)===k):S.cust};const canCust=k=>can(cperm(k));const canAnyCust=()=>can('customers')||can('custopt');
 const roC=()=>canAnyCust()?'':' disabled';
 const custOpt=(x,sel)=>`<option value="${esc(x.id)}"${sel?' selected':''}>${esc(x.name)}${ckind(x)==='opt'?' · опт':''}${debtOf(x.id)>0?' · долг '+NF.format(debtOf(x.id)):''}</option>`;
 const roA=()=>ro('catalog');
@@ -535,7 +535,7 @@ function cartHtml(){
     <span>скидка</span><input class="xs" inputmode="decimal" id="cd${i}" aria-label="Скидка на строку, %" data-in="cart" data-i="${i}" data-f="disc" value="${esc(l.disc)}" placeholder="0">%</div></div>
     <div style="display:flex;align-items:center;gap:4px"><span class="lt" id="lt${i}"></span><button class="x" data-act="cart-rm" data-i="${i}" aria-label="Убрать">×</button></div>
     <div class="warn" id="lw${i}"></div></div>`}).join('');
-  const cs=S.cust.filter(x=>!x.archived||x.id===S.custSel);
+  const cs=visCust().filter(x=>!x.archived||x.id===S.custSel);
   h+=`<div class="sumrows">
    <div class="row between"><span class="muted">Подытог</span><span class="num" id="cSub"></span></div>
    <div class="row between"><span class="row" style="gap:6px"><span class="muted">Скидка на чек</span><input class="xs" id="cDisc" data-in="cdisc" inputmode="decimal" value="${esc(S.cDisc)}" placeholder="0" aria-label="Скидка на чек"><span class="seg mini">${['%','сом'].map(t=>`<button data-act="cdisct" data-v="${t}" aria-pressed="${S.cDiscT===t}">${t}</button>`).join('')}</span></span><span class="num" id="cCd"></span></div>
@@ -699,7 +699,7 @@ function snListModal(pid){const p=S.P[pid];const whs=S.stockWh==='all'?viewWh():
 /* ---------- покупатели ---------- */
 function vCustomers(){
   const f=S.cQ.trim().toLowerCase();const fd=f.replace(/\D/g,'');
-  const KC=S.cKind||'all';const base=S.cust.filter(c=>KC==='all'||ckind(c)===KC);
+  const VC=visCust();const KK=custKind();const KC=KK||S.cKind||'all';const base=VC.filter(c=>KC==='all'||ckind(c)===KC);
   const list=base.filter(c=>(!f||(c.name||'').toLowerCase().includes(f)||(fd&&(c.phone||'').replace(/\D/g,'').includes(fd)))&&(!S.cDebtOnly||debtOf(c.id)>0.004))
     .sort((a,b)=>debtOf(b.id)-debtOf(a.id)||(a.name||'').localeCompare(b.name||'','ru'));
   const tot=base.reduce((s,c)=>s+Math.max(0,debtOf(c.id)),0),nD=base.filter(c=>debtOf(c.id)>0.004).length;
@@ -707,12 +707,12 @@ function vCustomers(){
   return `<div class="stack">
   <div class="kpis"><div class="kpi main"><span>Покупатели должны</span><b>${money(tot)}</b></div><div class="kpi"><span>Должников</span><b>${nD}</b></div><div class="kpi"><span>${KC==='opt'?'Оптовых покупателей':KC==='retail'?'Розничных покупателей':'Покупателей в базе'}</span><b>${base.length}</b></div></div>
   <section class="pane"><div class="pane-h"><h2>Покупатели и долги</h2><button class="btn" data-act="cust-new"${roC()}>Добавить покупателя</button></div>
-  <div class="seg" role="group" aria-label="Вид покупателей" style="margin-bottom:12px">${[['all','Все',S.cust.length],['retail','Розничные',S.cust.filter(c=>ckind(c)==='retail').length],['opt','Оптовые',S.cust.filter(c=>ckind(c)==='opt').length]].map(([k,v,n])=>`<button data-act="ckind" data-v="${k}" aria-pressed="${KC===k}">${v} <span class="muted">${n}</span></button>`).join('')}</div>
+  ${KK?`<p class="muted small" style="margin:0 0 12px">Вам открыты только ${KK==='opt'?'оптовые':'розничные'} покупатели.</p>`:`<div class="seg" role="group" aria-label="Вид покупателей" style="margin-bottom:12px">${[['all','Все',S.cust.length],['retail','Розничные',S.cust.filter(c=>ckind(c)==='retail').length],['opt','Оптовые',S.cust.filter(c=>ckind(c)==='opt').length]].map(([k,v,n])=>`<button data-act="ckind" data-v="${k}" aria-pressed="${KC===k}">${v} <span class="muted">${n}</span></button>`).join('')}</div>`}
   <div class="row" style="margin-bottom:12px"><input id="cQ" data-in="cq" placeholder="Имя или телефон" value="${esc(S.cQ)}" style="flex:1 1 220px"><label class="check"><input type="checkbox" id="cDebtOnly" data-ch="cdebt"${S.cDebtOnly?' checked':''}> Только должники</label></div>
   <div class="tbl">${list.length?`<table><thead><tr><th>Покупатель</th><th class="num">Долг / предоплата</th><th class="num">Лимит</th><th>Последняя покупка</th><th></th></tr></thead><tbody>
   ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}${ckind(c)==='opt'?' <span class="chip t-move">опт</span>':''}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
    <td style="white-space:nowrap"><button class="btn link" data-act="pay-new" data-id="${esc(c.id)}"${ro('payments')}>${d>0.004?'Принять оплату':'Принять предоплату'}</button><button class="btn link" data-act="cust-edit" data-id="${esc(c.id)}"${canCust(ckind(c))?'':' disabled'}>Изменить</button>${canCust(ckind(c))&&!hist.has(c.id)?`<button class="btn link bad" data-act="cust-del" data-id="${esc(c.id)}">Удалить</button>`:''}</td></tr>
-   ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${base.length?'Никого не найдено':S.cust.length?'В этой группе покупателей пока нет.':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
+   ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${base.length?'Никого не найдено':VC.length?'В этой группе покупателей пока нет.':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
 function custHist(c){
   const h=S.sales.filter(o=>o.cust===c.id).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
   const note=c.note?`<p class="small muted" style="margin-bottom:8px">${esc(c.note)}</p>`:'';
@@ -2243,7 +2243,7 @@ function invResults(){const v=S.inv;const q=(v.q||'').trim();if(!q&&!v.g)return 
   return `<div class="results"${q?'':' style="position:static;margin-top:6px;max-height:280px"'}>${list.length?list.map(p=>{const a=invAvail(p.id);return `<button data-act="inv-add" data-id="${esc(p.id)}"${a>0?'':' style="opacity:.55"'}><span>${esc(p.name)} <span class="psku" style="display:inline">${p.serial?'S/N ':''}${esc(p.sku||'')}</span></span><span class="muted">${q3(a)} ${esc(p.unit||'шт')} · ${money(num(p.sellPrice))}</span></button>`}).join(''):'<div class="empty" style="padding:14px">Не найдено</div>'}</div>`}
 function vInvEdit(){const v=S.inv;const sc=can('cost');const o=v.doc;const lock=v.id&&invLocked(v.id);const ro_=v.id&&(!canEditSale()||lock);
   if(!v.wh||!S.W[v.wh])v.wh=S.curWh||S.wh[0]?.id;
-  const cs=[...S.cust].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));
+  const cs=[...visCust()].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));if(S.inv?.cust&&!cs.some(x=>x.id===S.inv.cust)&&S.C[S.inv.cust])cs.unshift(S.C[S.inv.cust]);
   const dis=ro_?' disabled':'';
   return `<section class="pane stack"><div class="pane-h" style="margin:0;flex-wrap:wrap;gap:8px"><h2>${v.id?`Расходная накладная ${o.inv?'':'(чек) '}<span class="mono">${docNo(o)}</span>`:'Новая расходная накладная'}</h2>
    <div class="row" style="gap:6px">${v.id?`<span class="muted small">Накладная:</span><button class="btn ghost" style="padding:6px 12px" data-act="inv-dl" data-f="pdf">PDF</button><button class="btn ghost" style="padding:6px 12px" data-act="inv-dl" data-f="xlsx">Excel</button><span class="muted small">Товарный чек:</span><button class="btn ghost" style="padding:6px 12px" data-act="tc-dl" data-f="pdf" data-id="${esc(o.id)}">PDF</button><button class="btn ghost" style="padding:6px 12px" data-act="tc-dl" data-f="xlsx" data-id="${esc(o.id)}">Excel</button><span class="muted small">Гарантийный талон:</span><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="pdf" data-id="${esc(o.id)}">PDF</button><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="xlsx" data-id="${esc(o.id)}">Excel</button>`:''}<button class="btn link" data-act="inv-close">← К списку</button></div></div>
