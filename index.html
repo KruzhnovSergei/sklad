@@ -249,7 +249,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 10:13</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 11:05</span>
     </div>
   </aside>
   <div class="main">
@@ -2515,9 +2515,16 @@ async function calcRows(l){if(S.plr[l.id]&&S.plr[l.id].v===l.at)return;S.plr[l.i
   try{for(let k=0;k<num(l.chunks);k++){const d=await S.db.doc('plrows/'+l.id+'_'+k).get();if(d.exists)rows.push(...(d.data().rows||[]))}}catch(e){}
   S.plr[l.id]={v:l.at,rows:rows.map(r=>({n:String(r.n||''),p:num(r.p),g:r.g||'',nl:String(r.n||'').toLowerCase(),gl:String(r.g||'').toLowerCase(),k:(String(r.n||'')+' '+(r.gk||r.g||'')).toLowerCase(),l:l.id}))};if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()}
 const calcRate=l=>l.cur&&l.cur!=='KGS'?num(l.rate)||0:1;
-function calcSearch(q){const t=q.toLowerCase().split(/\s+/).filter(Boolean);if(!t.length)return [];const out=[];const L={};for(const l of S.pll||[])L[l.id]=l;
-  for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){if(!t.every(x=>r.k.includes(x)))continue;const rk=t.every(x=>r.nl.includes(x))?0:t.every(x=>r.nl.includes(x)||r.gl.includes(x))?1:2;out.push({src:'pl',rk,n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:(l.supp||l.file)+(r.g?' · '+r.g:''),l:id})}}
-  if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase();if(!t.every(x=>n.includes(x)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
+const CALC_SYN=[['блок питания',['блок питания','power supply','power unit','psu']],['материнская плата',['материнск','матплат','motherboard','mainboard','m/b']],['мат плата',['материнск','матплат','motherboard','mainboard','m/b']],['жесткий диск',['жестк','hdd']],
+  ['бп',['блок питания','power supply','power unit','psu']],['видеокарт',['видеокарт','video card','vga','geforce','radeon']],['процессор',['процессор','cpu']],['оперативн',['памят','memory','dimm','ddr']],['памят',['памят','memory','dimm','ddr']],['озу',['памят','memory','dimm','ddr']],
+  ['материнк',['материнск','матплат','motherboard','mainboard','m/b']],['матплат',['материнск','матплат','motherboard','mainboard','m/b']],['корпус',['корпус','^case','chassis']],['кулер',['кулер','cooler','охлажд']],['охлажд',['кулер','cooler','охлажд','cooling']],
+  ['монитор',['монитор','monitor','led lcd','lcd']],['ноутбук',['ноутбук','notebook','laptop']],['мыш',['мыш','mouse']],['клавиатур',['клавиатур','keyboard']],['наушник',['наушник','headset','headphone']],['гарнитур',['гарнитур','headset']],
+  ['картридж',['картридж','cartridge','toner','тонер']],['кресл',['кресл','chair']],['принтер',['принтер','printer']],['накопител',['накопител','ssd','hdd']],['диск',['диск','ssd','hdd']],['рюкзак',['рюкзак','backpack','bag']],['сумк',['сумк','bag']],['флешк',['флеш','flash','usb drive']],['колонк',['колонк','speaker']],['веб',['веб','web','webcam']]];
+function calcTerms(q){let s=' '+q.toLowerCase().replace(/\s+/g,' ')+' ';const T=[];for(const [k,a] of CALC_SYN)if(k.includes(' ')&&s.includes(' '+k)){T.push(a);s=s.replace(' '+k,' ')}
+  for(const w of s.split(' ').filter(Boolean)){const m=CALC_SYN.find(([k])=>!k.includes(' ')&&w.startsWith(k));T.push(m?[w,...m[1]]:[w])}return T}
+function calcSearch(q){const T=calcTerms(q);if(!T.length)return [];const hv=(s,a)=>a.some(x=>x[0]==='^'?s.startsWith(x.slice(1)):s.includes(x));const out=[];const L={};for(const l of S.pll||[])L[l.id]=l;
+  for(const id in S.plr){const l=L[id];if(!l||!S.plr[id].rows)continue;const rt=calcRate(l);for(const r of S.plr[id].rows){if(!T.every(a=>hv(r.k,a)))continue;const rk=T.every(a=>hv(r.nl,a))?0:T.every(a=>hv(r.nl,a)||hv(r.gl,a))?1:2;out.push({src:'pl',rk,n:r.n,p:r2(r.p*rt),op:r.p,cur:l.cur||'KGS',supp:(l.supp||l.file)+(r.g?' · '+r.g:''),l:id})}}
+  if(calcState().own)for(const p of S.prod){if(p.archived)continue;const n=(p.name||'').toLowerCase()+' '+(p.sku||'').toLowerCase()+' '+pgroup(p).toLowerCase();if(!T.every(a=>hv(n,a)))continue;const q_=qtyAll(p.id);const pp=can('cost')?cost(p.id):num(p.sellPrice);if(!(pp>0))continue;out.push({src:'own',n:p.name,p:r2(can('cost')?cost(p.id):num(p.sellPrice)),supp:'Наш склад'+(q_>0?` · ${q3(q_)} шт`:' · нет в наличии'),pid:p.id,q:q_})}
   return out.sort((a,b)=>(a.rk||0)-(b.rk||0)||a.p-b.p).slice(0,60)}
 function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.pick?num(l.pick.p)*Math.max(1,num(l.q)||1):0),0));const mk=num(c.mk);const work=num(c.work);
   let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;const rnd=v=>rr>1?Math.ceil(v/rr)*rr:r2(v);price=rnd(price);const bank=num(c.bank);const bprice=bank>0&&price>0?rnd(price*(1+bank/100)):0;return{comp,mk,work,price,profit:r2(price-comp),bank,bprice}}
@@ -2564,7 +2571,9 @@ function calcGuess(rows){const low=v=>String(v??'').trim().toLowerCase();let h=-
   return{h,C,cur,rate,expl}}
 function calcParse(rows,h,C){const pn=v=>typeof v==='number'?v:num(String(v??'').replace(/[^\d,.\-]/g,''));const out=[];let g='',gs=[];
   for(let i=h+1;i<rows.length;i++){const r=rows[i]||[];const n=String(r[C.n]??'').replace(/\s+/g,' ').trim();const p=pn(r[C.p]);
-    if(!(p>0)){const t=(r.find(v=>typeof v==='string'&&v.trim()&&!/^\d+$/.test(v.trim()))||'').trim();if(t&&r.filter(v=>v!=null&&String(v).trim()).length<=2){g=t.slice(0,80);gs=[...gs.slice(-4),g]}continue}
+    if(!(p>0)){const t=(r.find(v=>typeof v==='string'&&v.trim()&&!/^\d+$/.test(v.trim()))||'').trim();const nc=typeof r[C.n]==='string'?r[C.n].trim():'';
+      if(t&&r.filter(v=>v!=null&&String(v).trim()).length<=2){g=t.slice(0,80);gs=[...gs.slice(-4),g]}
+      else if(nc&&nc.length<=60&&!/^\d+$/.test(nc)&&!r.some(v=>typeof v==='number')){g=nc;gs=[...gs.slice(-4),g]}continue}
     if(n&&!/^итого|^всего/i.test(n))out.push(g?{n,p:r2(p),g,...(gs.length>1?{gk:gs.join(' ')}:{})}:{n,p:r2(p)})}return out}
 function calcLooksUsd(rows,g){const P=calcParse(rows,g.h,g.C).map(x=>x.p).sort((a,b)=>a-b);if(P.length<10)return false;return P[Math.floor(P.length/2)]<300}
 async function calcFile(t){const f=t.files?.[0];t.value='';if(!f)return;let rows;try{rows=await readSheet(f)}catch(e){toast('Не удалось прочитать файл: '+(e?.message||e));return}
