@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:03</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 19:13</span>
     </div>
   </aside>
   <div class="main">
@@ -1102,16 +1102,16 @@ const pcPrice=sn=>{const o=S.pca[sn];return o?(num(o.price)||num(S.P[o.out.p]?.s
 const pcIn=(sn)=>{const o=S.pca[sn];const l=S.snLoc[sn];return !!(o&&l&&l.p===o.out.p)};
 const pcWh=sn=>pcIn(sn)?S.snLoc[sn].wh:null;
 const pcNeed=()=>can('assembly')?'assembly':'pcedit';
-function canPC(sn){const w=pcWh(sn);if(!w)return false;if(S.isOwner)return true;if(!can('assembly')&&!can('pcedit'))return false;const J=jourWh();return !J||J.has(w)}
+function canPC(sn){const w=pcWh(sn);if(!w)return false;if(S.isOwner)return true;if(!can('assembly')&&!can('pcedit'))return false;return allowedWh().some(x=>x.id===w)}
 const pcCompRows=x=>(Array.isArray(x)?x:(x.items||[])).map(i=>`<tr><td>${esc(pname(i.p))}</td><td>${[...(i.sn||[]),...(i.rsn||[])].map(x=>`<span class="sn">${esc(x)}</span>`).join(' ')||'<span class="muted">—</span>'}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td></tr>`).join('');
 function vAsm(){
-  if(!S.wh.length)return emptyWh();const a=S.asm;if(!a.wh||!S.W[a.wh]||S.W[a.wh].office)a.wh=saleWhs().find(w=>w.id===S.curWh)?S.curWh:saleWhs()[0]?.id;
+  if(!S.wh.length)return emptyWh();const AW=allowedWh();if(!AW.length)return '<div class="pane empty">Вам не открыт ни один склад. Обратитесь к владельцу.</div>';const a=S.asm;if(!a.wh||!AW.some(w=>w.id===a.wh))a.wh=AW.find(w=>w.id===S.curWh)?S.curWh:AW[0].id;const myW=new Set(AW.map(w=>w.id));const visPC=sn=>S.isOwner||myW.has(pcWh(sn)||S.pca[sn]?.wh);
   const models=S.prod.filter(p=>!p.archived&&isPcProd(p));const sc=can('cost');const f=S.asmF.trim().toLowerCase();
-  const full=can('assembly');const pcs=Object.keys(S.pca).filter(sn=>{if(!full&&!canPC(sn))return false;if(!f)return true;const o=S.pca[sn];return sn.toLowerCase().includes(f)||pname(o.out.p).toLowerCase().includes(f)||(o.party||'').toLowerCase().includes(f)||(S.pcComp[sn]||[]).some(i=>[...(i.sn||[]),...(i.rsn||[])].some(x=>x.toLowerCase().includes(f)))}).sort((x,y)=>(S.pca[y].at||'').localeCompare(S.pca[x].at||''));
+  const full=can('assembly');const allPc=Object.keys(S.pca).filter(sn=>visPC(sn)&&(full||canPC(sn)));const pcs=allPc.filter(sn=>{if(!f)return true;const o=S.pca[sn];return sn.toLowerCase().includes(f)||pname(o.out.p).toLowerCase().includes(f)||(o.party||'').toLowerCase().includes(f)||(S.pcComp[sn]||[]).some(i=>[...(i.sn||[]),...(i.rsn||[])].some(x=>x.toLowerCase().includes(f)))}).sort((x,y)=>(S.pca[y].at||'').localeCompare(S.pca[x].at||''));
   return `<div class="stack">${full?'':'<div class="infobox">Здесь компьютеры, которые сейчас на ваших складах. Можно менять цену продажи и заменять или снимать детали.</div>'}
   ${full?`<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Новая сборка</h2><span class="muted small">Запишите серийные номера деталей до сборки, они сохранятся в паспорте компьютера</span></div>
    <div class="row" style="align-items:flex-end">
-    <label class="field"><span>Склад</span><select id="asmWh" data-ch="asmwh">${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===a.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label>
+    <label class="field"><span>Склад</span><select id="asmWh" data-ch="asmwh"${AW.length<2?' disabled':''}>${AW.map(w=>`<option value="${esc(w.id)}"${w.id===a.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label>
     <div class="field" style="flex:2 1 260px"><span>Модель компьютера</span><div class="row" style="gap:6px;flex-wrap:nowrap"><select id="asmOut" data-ch="asmout"><option value="">${models.length?'Выберите модель':'Создайте модель кнопкой +'}</option>${models.map(p=>`<option value="${esc(p.id)}"${p.id===a.out?' selected':''}>${esc(p.name)}</option>`).join('')}</select><button class="btn ghost" data-act="asm-newmodel" style="padding:8px 12px" title="Новая модель компьютера" aria-label="Новая модель компьютера"${ro('catalog')}>+</button></div></div>
     <div class="field"><span>Серийный номер компьютера</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="asmSn" data-in="asmsn" value="${esc(a.sn)}" placeholder="PC-…"><button class="btn ghost" data-act="asm-gen" style="padding:8px 10px">Создать</button></div></div>
    </div>
@@ -1124,7 +1124,7 @@ function vAsm(){
    ${sc&&a.items.length?`<div class="kpis" id="asmSum"></div>`:''}
    <div class="row between"><span></span><div class="row"><span class="err" id="asmErr"></span><button class="btn" data-act="asm-post"${ro('assembly')}${a.items.length?'':' disabled'}>Собрать компьютер</button></div></div>
   </section>`:''}
-  <section class="pane"><div class="pane-h"><h2>Собранные компьютеры</h2><span class="muted">${full?Object.keys(S.pca).length:pcs.length}</span></div>
+  <section class="pane"><div class="pane-h"><h2>Собранные компьютеры</h2><span class="muted">${allPc.length}</span></div>
    <input id="asmF" data-in="asmf" class="search" placeholder="S/N компьютера или любой детали, модель" value="${esc(S.asmF)}">
    <div class="tbl">${pcs.length?`<table><thead><tr><th>S/N компьютера</th><th>Модель</th><th>Собран</th><th>Статус</th><th class="num">Цена</th><th class="num">Деталей</th></tr></thead><tbody>${pcs.slice(0,60).map(sn=>{const o=S.pca[sn];const st=pcStatus(sn);const op=S.asmOpen===sn;
     return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div>`}</div></section></div>`}
@@ -1169,7 +1169,7 @@ function asmResults(){const q=S.asmQ.trim();if(!q)return '';const list=filterPro
 function updAsm(){const box=$('#asmSum');const a=S.asm;let parts=0,n=0;a.items.forEach((it,i)=>{const q=S.P[it.p]?.serial?(it.sn||[]).length:num(it.q);const v=q*cost(it.p);parts+=v;n+=q;const e=$('#asum'+i);if(e)e.textContent=NF.format(r2(v))});
   if(!box)return;const lab=num(a.labor),tot=parts+lab,pr=num(a.price)||num(S.P[a.out]?.sellPrice),pf=pr-tot;
   box.innerHTML=`<div class="kpi"><span>Детали, ${q3(n)} шт</span><b>${money(parts)}</b></div><div class="kpi"><span>Работа по сборке</span><b>${money(lab)}</b></div><div class="kpi main"><span>Себестоимость компьютера</span><b>${money(tot)}</b></div>${pr?`<div class="kpi"><span>${num(a.price)?'При цене':'При цене модели'} ${money(pr)}</span><b style="color:${pf<0?'var(--bad)':'var(--good)'}">${pf<0?'убыток':'прибыль'} ${money(Math.abs(pf))}${tot?` · ${NF.format(r2(pf/tot*100))}%`:''}</b></div>`:''}`}
-async function postAsm(){const a=S.asm,err=$('#asmErr');err.textContent='';
+async function postAsm(){const a=S.asm,err=$('#asmErr');err.textContent='';if(!allowedWh().some(w=>w.id===a.wh)){err.textContent='Вам нельзя собирать на этом складе';return}
   if(!a.out){err.textContent='Выберите модель компьютера';return}
   const sn=a.sn.trim();if(!sn){err.textContent='Укажите серийный номер компьютера или нажмите «Создать»';return}
   if(S.snH[sn]){err.textContent='Такой серийный номер уже есть';return}
