@@ -17,6 +17,7 @@
 :root{
   --bg:#ECF0EE; --surface:#FFFFFF; --sunk:#F5F7F6; --ink:#15201C; --muted:#5B6964; --line:#D3DBD7;
   --accent:#1D6A4F; --accent-ink:#FFFFFF; --accent-soft:#B9DCCB;
+  --g1:#1D6A4F; --g2:#2C5F9E; --g3:#B4600B; --g4:#6B4F9A;
   --good:#2C7A4B; --warn:#A8620B; --bad:#B0281F; --warn-bg:#FBEBD3; --bad-bg:#F8DEDA; --good-bg:#DCEFE3;
   --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
   --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -26,11 +27,13 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0F1513; --surface:#17201C; --sunk:#121a17; --ink:#E3ECE7; --muted:#93A29C; --line:#2A3631;
   --accent:#54C195; --accent-ink:#08130F; --accent-soft:#25523F;
+  --g1:#54C195; --g2:#7FA9E0; --g3:#E6A15A; --g4:#B9A4E3;
   --good:#6FCF97; --warn:#E6A650; --bad:#F2877E; --warn-bg:#3A2C15; --bad-bg:#3D1F1C; --good-bg:#183324;
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0F1513; --surface:#17201C; --sunk:#121a17; --ink:#E3ECE7; --muted:#93A29C; --line:#2A3631;
   --accent:#54C195; --accent-ink:#08130F; --accent-soft:#25523F;
+  --g1:#54C195; --g2:#7FA9E0; --g3:#E6A15A; --g4:#B9A4E3;
   --good:#6FCF97; --warn:#E6A650; --bad:#F2877E; --warn-bg:#3A2C15; --bad-bg:#3D1F1C; --good-bg:#183324;
   color-scheme:dark}
 *{box-sizing:border-box}
@@ -40,7 +43,15 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .side .brand{padding:0 8px 10px;font-size:17px}
 .main{min-width:0;width:100%;max-width:1360px;padding-inline:24px;padding-block:20px 56px}
 #tabs{display:flex;flex-direction:column;gap:1px}
-.nav-g{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:12px 10px 4px;font-weight:600}
+.nav-sec{--gc:var(--accent);margin-top:10px;border-radius:10px;background:var(--sunk);border-left:3px solid var(--gc);padding:2px 4px 5px;display:flex;flex-direction:column;gap:1px}
+.nav-sec:first-child{margin-top:4px}
+.nav-g{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--gc);padding:9px 10px 5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.nav-g::after{content:"";flex:1;height:1px;background:var(--gc);opacity:.25}
+.nav-sec svg{color:var(--gc)}
+.nav-sec button:hover{background:var(--surface)!important}
+.nav-sec button[aria-current="page"]{background:var(--surface)!important;background:color-mix(in srgb,var(--gc) 18%,var(--surface))!important;box-shadow:inset 3px 0 0 var(--gc);font-weight:700}
+.nav-sec button[aria-current="page"] svg{color:var(--gc)!important}
+.g-sale{--gc:var(--g1)}.g-stock{--gc:var(--g2)}.g-fin{--gc:var(--g3)}.g-acc{--gc:var(--g4)}
 #tabs button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border-radius:8px;color:var(--ink);font-size:14px;cursor:pointer;line-height:1.25}
 #tabs button:hover{background:var(--sunk)}
 #tabs button[aria-current="page"]{background:var(--accent-soft);font-weight:600}
@@ -249,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.10.2026 11:20</span>
+      <span class="muted" style="font-size:11px">Версия от 17.10.2026 12:59</span>
     </div>
   </aside>
   <div class="main">
@@ -448,7 +459,7 @@ const now=()=>new Date().toISOString();
 /* ---------- отрисовка ---------- */
 const ICO={office:'<path d="M3 10h18M5 10v10M19 10v10M8 10V4h8v6M10 14h4"/>',buy:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>',calc:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M12 11h2M16 11v6M8 15h2M12 15h2M8 19h2M12 19h2"/>',price:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.5"/>',invoices:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',sale:'<path d="M4 7h16l-1.5 9.5a2 2 0 0 1-2 1.5h-9a2 2 0 0 1-2-1.5z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',customers:'<circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 4.6a3 3 0 0 1 0 6.3M21 19c-.4-2.4-1.8-4-3.8-4.6"/>',warranty:'<path d="M12 3l7 3v5c0 4.6-3 8.3-7 10-4-1.7-7-5.4-7-10V6z"/><path d="M9 12l2 2 4-4"/>',stock:'<path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',ops:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',asm:'<rect x="4" y="3" width="10" height="18" rx="1.5"/><path d="M7 7h4M7 10h4"/><circle cx="9" cy="16" r="1.3"/><path d="M17 8h3v13h-3"/>',catalog:'<path d="M4 5h7v6H4zM13 5h7v6h-7zM4 13h7v6H4zM13 13h7v6h-7z"/>',money:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4"/>',expenses:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',reports:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',journal:'<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/>',settings:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'};
 const NAVG=[['Продажи',['sale','invoices','calc','customers','warranty']],['Склад',['stock','ops','office','buy','asm','catalog','price']],['Финансы',['money','expenses','reports']],['Учёт',['journal','settings']]];
-function navHtml(tabs){const m=new Map(tabs.map(t=>[t[0],t[1]]));return NAVG.map(([g,ks])=>{const its=ks.filter(k=>m.has(k));return its.length?`<div class="nav-g">${g}</div>`+its.map(k=>`<button data-act="tab" data-v="${k}"${S.tab===k?' aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]||''}</svg>${m.get(k)}</button>`).join(''):''}).join('')}
+function navHtml(tabs){const m=new Map(tabs.map(t=>[t[0],t[1]]));return NAVG.map(([g,ks])=>{const its=ks.filter(k=>m.has(k));const gc={'Продажи':'g-sale','Склад':'g-stock','Финансы':'g-fin','Учёт':'g-acc'}[g]||'';return its.length?`<div class="nav-sec ${gc}"><div class="nav-g">${g}</div>`+its.map(k=>`<button data-act="tab" data-v="${k}"${S.tab===k?' aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]||''}</svg>${m.get(k)}</button>`).join('')+'</div>':''}).join('')}
 function updFab(){const f=$('#cartFab');if(!f)return;if(S.tab!=='sale'||!S.cart.length){f.hidden=true;return}const c=calcCart();f.hidden=false;f.innerHTML=`<span>Чек · ${S.cart.length} поз.</span><span>${money(c.total)} →</span>`}
 function tabsFor(){const acc=access();if(acc==='pending'||acc==='off')return [];return [['sale','Касса',can('sell')],['invoices','Продажи',can('sell')||can('reports')],['stock','Остатки',true],['customers','Контрагенты',true],['warranty','Гарантия',true],['ops','Приход и заказы',can('stock')],['buy','Скупка',can('buy')],['asm','Сборка ПК',can('assembly')||can('pcedit')],['office','Подотчёт',can('stock')||can('catalog')],['journal','Журнал',true],['reports','Отчёты',can('reports')],['money','Деньги',can('money')],['expenses','Расходы',can('money')],['catalog','Товары и склады',can('catalog')],['price','Прайс-лист',can('price')||can('catalog')],['calc','Расчёт ПК',can('calc')],['settings','Настройки',S.isOwner]].filter(t=>t[2])}
 function render(){
