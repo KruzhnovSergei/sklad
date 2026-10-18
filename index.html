@@ -2739,7 +2739,7 @@ function siteCat(nl,gl){
   if(/(mainboard|main board|t-?con|подсветк|плата)[^,]*(^|[^a-zа-я])(for|для)([^a-zа-я])[^,]*(hisense|samsung|lg|tcl|xiaomi|artel|philips|sony|телевизор|tv)/.test(nl)||/для телевизор|(^|[^a-z])for tv/.test(nl))return SITE_NAMES.indexOf('Запчасти для телевизоров');if(/домофон|intercom|touch memory|ds-?1990|ibutton/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');if(/(^|[^a-z])ajax([^a-z]|$)/.test(nl))return SITE_NAMES.indexOf('Видеонаблюдение и безопасность');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
   // Блоки питания без слов «блок питания»: 80 PLUS, ATX 3.0, разъёмы 24 (20+4)Pin, 12VHPWR, «модульный»
   const PS=SITE_NAMES.indexOf('Блоки питания');
-  if(a&&a.c===PS&&a.i>0&&/(^|[^a-zа-я])(корпус|case|chassis)/.test(nl)&&!/для корпус|for case/.test(nl))return SITE_NAMES.indexOf('Корпуса');
+  if(a&&((a.c===PS&&a.i>0)||a.c===SITE_NAMES.indexOf('Корпуса'))&&/(^|[^a-zа-я])(корпус|case|chassis)/.test(nl)&&!/для корпус|for case/.test(nl))return SITE_NAMES.indexOf('Корпуса');
   if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
   if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
   const VG=SITE_NAMES.indexOf('Видеокарты'),MB=SITE_NAMES.indexOf('Материнские платы'),MN=SITE_NAMES.indexOf('Мониторы');
