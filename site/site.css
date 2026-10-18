@@ -4,6 +4,7 @@
   --f-display:'Unbounded',sans-serif;--f-body:'Manrope',system-ui,sans-serif;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
 a{color:var(--ink)}a:hover{color:var(--ink2)}
