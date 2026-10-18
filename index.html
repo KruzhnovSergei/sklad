@@ -2720,18 +2720,22 @@ const SITE_CATS=[
   ['Сетевое оборудование',['роутер','маршрутизатор','router','коммутатор','switch','wi-fi','wifi','точка доступа','сетев']],
   ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
   ['Компьютеры и моноблоки',['моноблок','all-in-one','системный блок','компьютер','неттоп','мини-пк','mini pc','minipc']],
+  ['Видеонаблюдение и безопасность',['брелок','бесконтактн','замок','видеонаблюд','видеокамер','ip камер','ip-камер','видеорегистратор','домофон','ezviz','hikvision','dahua']],
   ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','крепление','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
 ];
 const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
 const siteLetter=ch=>!!ch&&/[a-zа-яё0-9]/i.test(ch);
 function siteFind(s){let best=null;if(!s)return null;
-  SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){let i=s.indexOf(w);while(i>=0&&siteLetter(s[i-1]))i=s.indexOf(w,i+1);
+  SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){const sh=/^[a-z]{2,4}$/.test(w);const bad=i=>siteLetter(s[i-1])||(sh&&(s[i-1]==='-'||s[i-1]==='/'));let i=s.indexOf(w);while(i>=0&&bad(i))i=s.indexOf(w,i+1);
     if(i>=0&&(!best||i<best.i||(i===best.i&&w.length>best.l)))best={i,c:ci,l:w.length}}});return best}
 // Категория: по первым словам названия, иначе по группе в прайсе, иначе по любому слову названия
 // Ноутбук без слова «ноутбук»: мобильный процессор (i3-7020U, 7530U, …HX) или экран в дюймах вместе с процессором
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d/.test(nl)));
 function siteCat(nl,gl){const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
   if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
+  // Башенные кулеры без слова «кулер»: обороты, PWM, тепловые трубки, «120mm fan»
+  const CL=SITE_NAMES.indexOf('Охлаждение');
+  if((!a||a.c===0||a.c===CL||a.i>=14)&&/\brpm\b|\d\s?rpm|\bpwm\b|трубк|heat ?pipe|\d+\s?mm\s+(pwm\s+)?fan/.test(nl)&&!(a&&a.i<14&&a.c!==0&&a.c!==CL))return CL;
   if(a&&a.i<14)return a.c;const b=siteFind(gl);if(b)return b.c;return a?a.c:SITE_NAMES.length-1}
 function siteRows(){const M=new Map();
   for(const l of (S.pll||[])){const rows=S.plr[l.id]?.rows;const rate=calcRate(l);if(!rows||!(rate>0))continue;
