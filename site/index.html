@@ -157,6 +157,7 @@
   <div class="wrap">
     <span>© 2026 Bestcomp · ИП Кружнов С.В.</span>
     <span>Бишкек, ул. Сыдыкова 178 · Пн–Сб 10:00–20:00 · +996 707 198 806</span>
+    <span id="siteStats" class="stats" hidden></span>
   </div>
 </footer>
 
@@ -169,5 +170,6 @@ try{firebase.initializeApp(window.SK_CONFIG.firebase);
   firebase.firestore().doc('sitecat/meta').get().then(d=>{const n=d.exists&&d.data().n;
     if(n>0){const el=document.getElementById('heroN');el.textContent=new Intl.NumberFormat('ru-RU').format(n)}}).catch(()=>{})}catch(e){}
 </script>
+<script src="stats.js"></script>
 </body>
 </html>

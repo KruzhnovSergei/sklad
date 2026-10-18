@@ -47,6 +47,19 @@ service cloud.firestore {
     match /sitecat/{id} { allow read: if true; allow write: if isOwner(); }
     match /sitecfg/{id} { allow read, write: if isOwner(); }
 
+    // Счётчик посетителей сайта: любой может только прибавить 1
+    match /sitestats/{id} {
+      allow read: if true;
+      allow create: if id == 'main' && request.resource.data.keys().hasOnly(['visits']) && request.resource.data.visits == 1;
+      allow update: if id == 'main' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['visits'])
+                    && request.resource.data.visits == resource.data.visits + 1;
+    }
+    // «Сейчас на сайте»: отметка времени посетителя, без личных данных
+    match /siteonline/{id} {
+      allow read: if true;
+      allow create, update: if id.size() <= 40 && request.resource.data.keys().hasOnly(['t']) && request.resource.data.t == request.time;
+    }
+
     // Справочники и складские документы — видят все, меняют администраторы
     match /warehouses/{id} { allow read: if member(); allow write: if admin(); }
     match /products/{id}   { allow read: if member(); allow write: if admin(); }

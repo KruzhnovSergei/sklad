@@ -72,6 +72,9 @@ a.card{text-decoration:none;color:var(--ink);transition:border-color .15s}a.card
 
 .foot{background:#0D0E11;color:#A3A8B0;padding:28px 0;font-size:14px}
 .foot .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;width:100%;padding-top:12px;border-top:1px solid #23262C}
+.stats b{color:#F3F2EE}
+.dot-on i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#3DDC97;margin-right:7px;vertical-align:1px}
 
 .note{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:14px;background:#FFF6D6;border:1px solid #EED78A;color:#4A3B00;font-size:15px}
 
