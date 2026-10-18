@@ -2719,6 +2719,7 @@ const SITE_CATS=[
   ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','ибп','ups']],
   ['Сетевое оборудование',['роутер','маршрутизатор','router','коммутатор','switch','wi-fi','wifi','точка доступа','сетев']],
   ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
+  ['Компьютеры и моноблоки',['моноблок','all-in-one','системный блок','компьютер','неттоп','мини-пк','mini pc','minipc']],
   ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','крепление','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
 ];
 const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
@@ -2727,7 +2728,11 @@ function siteFind(s){let best=null;if(!s)return null;
   SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){let i=s.indexOf(w);while(i>=0&&siteLetter(s[i-1]))i=s.indexOf(w,i+1);
     if(i>=0&&(!best||i<best.i||(i===best.i&&w.length>best.l)))best={i,c:ci,l:w.length}}});return best}
 // Категория: по первым словам названия, иначе по группе в прайсе, иначе по любому слову названия
-function siteCat(nl,gl){const a=siteFind(nl);if(a&&a.i<14)return a.c;const b=siteFind(gl);if(b)return b.c;return a?a.c:SITE_NAMES.length-1}
+// Ноутбук без слова «ноутбук»: мобильный процессор (i3-7020U, 7530U, …HX) или экран в дюймах вместе с процессором
+const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d/.test(nl)));
+function siteCat(nl,gl){const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
+  if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
+  if(a&&a.i<14)return a.c;const b=siteFind(gl);if(b)return b.c;return a?a.c:SITE_NAMES.length-1}
 function siteRows(){const M=new Map();
   for(const l of (S.pll||[])){const rows=S.plr[l.id]?.rows;const rate=calcRate(l);if(!rows||!(rate>0))continue;
     for(const r of rows){const kgs=num(r.p)*rate;if(!(kgs>0)||!r.n)continue;const key=r.nl.replace(/\s+/g,' ').trim();const o=M.get(key);
