@@ -2707,7 +2707,7 @@ async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;i
 /* ---------- Каталог на сайте: розничные цены из прайсов ---------- */
 const SITE_CATS=[
   ['Процессоры',['процессор','cpu','core i','ryzen','xeon','celeron','pentium','athlon']],
-  ['Видеокарты',['видеокарт','video card','vga','geforce','radeon','rtx','gtx']],
+  ['Видеокарты',['видеокарт','видео карт','video card','graphics card','geforce','radeon','rtx','gtx','quadro']],
   ['Материнские платы',['материнск','матплат','мат. плат','motherboard','mainboard','m/b']],
   ['Оперативная память',['оперативн','озу','dimm','sodimm','ddr','memory']],
   ['Накопители',['ssd','hdd','жестк','накопител','nvme','флеш','flash','карта памяти','microsd','usb drive']],
@@ -2736,6 +2736,12 @@ function siteCat(nl,gl){const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноу
   const PS=SITE_NAMES.indexOf('Блоки питания');
   if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
   if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
+  const VG=SITE_NAMES.indexOf('Видеокарты'),MB=SITE_NAMES.indexOf('Материнские платы'),MN=SITE_NAMES.indexOf('Мониторы');
+  const weak=!a||a.i>=14||a.c===0||a.c===VG;
+  // Материнские платы: «MB …», слоты «2xDDR4», сокет вместе с форм-фактором mATX/ATX/ITX
+  if(weak&&(/^mb\b/.test(nl)||/\d\s?x\s?ddr\d/.test(nl)||(/lga\s?\d{3,4}|\bam[2345]\b|\bfm2/.test(nl)&&/\b(m-?atx|e-?atx|atx|mini-?itx|itx)\b/.test(nl))))return MB;
+  // Мониторы: диагональ от 17" и параметры экрана (cd/m2, Гц, мс, FHD, IPS, VA, LED)
+  if(weak&&!/моноблок|all-in-one|телевизор|\btv\b/.test(nl)&&/(^|[^\d.])(1[7-9]|[2-4]\d)(\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/cd\/m|\d\s?hz|\d\s?ms\b|fhd|qhd|uhd|\bips\b|\bva\b|\bled\b/.test(nl))return MN;
   // Башенные кулеры без слова «кулер»: обороты, PWM, тепловые трубки, «120mm fan»
   const CL=SITE_NAMES.indexOf('Охлаждение');
   if((!a||a.c===0||a.c===CL||a.i>=14)&&/\brpm\b|\d\s?rpm|\bpwm\b|трубк|heat ?pipe|\d+\s?mm\s+(pwm\s+)?fan/.test(nl)&&!(a&&a.i<14&&a.c!==0&&a.c!==CL))return CL;
