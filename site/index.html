@@ -59,6 +59,16 @@
   </div>
 </section>
 
+<section class="sec pcs-sec" id="pcs" hidden>
+  <div class="wrap">
+    <div class="sec-head">
+      <h2 class="h2">Готовые компьютеры в наличии</h2>
+      <p class="lead">Собраны и проверены у нас в мастерской — можно забрать сегодня.</p>
+    </div>
+    <div class="pcs-grid" id="pcsGrid"></div>
+  </div>
+</section>
+
 <section class="sec" id="catalog">
   <div class="wrap">
     <div class="sec-head">
@@ -165,10 +175,25 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="../config.js"></script>
 <script>
-// Число товаров в каталоге на первом экране
-try{firebase.initializeApp(window.SK_CONFIG.firebase);
-  firebase.firestore().doc('sitecat/meta').get().then(d=>{const n=d.exists&&d.data().n;
-    if(n>0){const el=document.getElementById('heroN');el.textContent=new Intl.NumberFormat('ru-RU').format(n)}}).catch(()=>{})}catch(e){}
+// Число товаров в каталоге на первом экране и готовые сборки
+try{firebase.initializeApp(window.SK_CONFIG.firebase);const db=firebase.firestore();const NF=new Intl.NumberFormat('ru-RU');
+  db.doc('sitecat/meta').get().then(d=>{const n=d.exists&&d.data().n;
+    if(n>0){const el=document.getElementById('heroN');el.textContent=NF.format(n)}}).catch(()=>{});
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  db.doc('sitecat/pcs').get().then(d=>{const L=d.exists?(d.data().rows||[]):[];if(!L.length)return;
+    const kind=x=>{const t=(x.n+' '+x.cfg+' '+x.parts.join(' ')).toLowerCase();return /rtx|gtx|radeon|rx\s?\d{4}|игров|gaming/.test(t)?'Игровой':/офис|office/.test(t)?'Офисный':'Компьютер'};
+    document.getElementById('pcsGrid').innerHTML=L.map(x=>{const msg='Здравствуйте! Хочу купить готовый компьютер с сайта: '+x.n+(x.cfg?' ('+x.cfg+')':'')+', S/N '+x.sn+', цена '+NF.format(x.p)+' сом. Он ещё в наличии?';
+      const top=x.parts.slice(0,6),rest=x.parts.slice(6);
+      return `<article class="pc">
+        <div class="pc-top"><span class="pc-kind">${kind(x)}</span><span class="pc-sn">${esc(x.sn)}</span></div>
+        <h3>${esc(x.n)}</h3>${x.cfg?`<p class="pc-cfg">${esc(x.cfg)}</p>`:''}
+        ${top.length?`<ul class="pc-parts">${top.map(p=>`<li>${esc(p)}</li>`).join('')}</ul>`:''}
+        ${rest.length?`<details class="pc-more"><summary>Ещё комплектующие: ${rest.length}</summary><ul class="pc-parts">${rest.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></details>`:''}
+        <div class="pc-foot"><span class="pc-price">${NF.format(x.p)} сом</span>
+        <a class="btn btn-accent" target="_blank" rel="noopener" href="https://wa.me/996707198806?text=${encodeURIComponent(msg)}">Купить в WhatsApp</a></div>
+      </article>`}).join('');
+    document.getElementById('pcs').hidden=false}).catch(()=>{});
+}catch(e){}
 </script>
 <script src="stats.js"></script>
 </body>

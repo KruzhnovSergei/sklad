@@ -84,3 +84,18 @@ a.card{text-decoration:none;color:var(--ink);transition:border-color .15s}a.card
   .nav{order:3;width:100%;overflow-x:auto;flex-wrap:nowrap;gap:18px}
   .nav a{white-space:nowrap}
 }
+
+/* готовые сборки */
+.pcs-sec{background:var(--paper2)}
+.pcs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.pc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px}
+.pc-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.pc-kind{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--ink);color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.pc-sn{font-size:12px;color:#6B717A}
+.pc h3{font-family:var(--f-display);font-size:20px;line-height:1.2}
+.pc-cfg{margin:0;font-weight:600;color:var(--ink2)}
+.pc-parts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.pc-more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:6px}
+.pc-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.pc-price{font-family:var(--f-display);font-weight:700;font-size:24px}
+.pc-foot .btn{min-height:44px;padding:0 16px;font-size:15px}
