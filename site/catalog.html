@@ -190,7 +190,7 @@
     'Накопители':[l=>has(l,/внешн|external|portable/)?'Внешние диски':'',l=>has(l,/флеш|flash|usb drive|карта памяти|micro\s?sd|sd card|sdxc|sdhc/)?'Флешки и карты памяти':'',l=>has(l,/nvme|m\.2|\bm2\b/)?'SSD M.2 NVMe':'',l=>has(l,/ssd/)?'SSD 2.5" SATA':'',l=>has(l,/hdd|жестк/)?'Жёсткие диски HDD':''],
     'Видеокарты':[l=>has(l,/geforce|rtx|gtx|nvidia|quadro/)?'NVIDIA GeForce':'',l=>has(l,/radeon|\brx\s?\d/)?'AMD Radeon':'',l=>has(l,/\barc\b/)?'Intel Arc':''],
     'Блоки питания':[l=>{const w=watt(l);return !w?'':w<=500?'до 500 Вт':w<=700?'550–700 Вт':w<=850?'750–850 Вт':'1000 Вт и выше'}],
-    'Мониторы':[l=>{const d=diag(l);return !d?'':d<=22?'до 22"':d<=25?'23–24"':d<=29?'27"':'32" и больше'}],
+    'Мониторы':[l=>/monitor arm|кронштейн|держател|подставк|\barm\b|mount|креплен/.test(l)&&!/^\.?(монитор|monitor\s(?!arm))/.test(l)?'Кронштейны и подставки':'',l=>{const d=diag(l);return !d?'':d<=22?'до 22"':d<=25?'23–24"':d<=29?'27"':'32" и больше'}],
     'Ноутбуки':[l=>{for(const b of ['asus','lenovo','hp','acer','dell','apple','msi','huawei','honor','xiaomi','gigabyte','samsung','infinix','tecno'])if(new RegExp('(^|[^a-z])'+b+'([^a-z]|$)').test(l))return b==='hp'?'HP':b==='msi'?'MSI':b[0].toUpperCase()+b.slice(1);if(/macbook/.test(l))return 'Apple';return ''}],
     'Охлаждение':[l=>has(l,/водян|liquid|\baio\b|жидкост|сво/)?'Водяное охлаждение':'',l=>has(l,/термопаст|thermal (paste|grease)|термоинтерфейс/)?'Термопаста':'',l=>has(l,/рамка|креплен|bracket/)?'Крепления и рамки':'',l=>has(l,/lga|am[45]|cpu|процессор|tdp|трубк|heat ?pipe|башен/)?'Кулеры для процессора':'',l=>has(l,/вентилятор|fan/)?'Вентиляторы':''],
     'Оргтехника':[l=>has(l,/картридж|тонер|cartridge|toner|чернил|\bink\b|драм|drum/)?'Картриджи и тонеры':'',l=>has(l,/принтер|мфу|printer|mfp/)?'Принтеры и МФУ':'',l=>has(l,/ибп|\bups\b/)?'ИБП':'',l=>has(l,/сканер|scanner/)?'Сканеры':'',l=>has(l,/проектор|projector/)?'Проекторы':''],
@@ -202,7 +202,7 @@
     const box=$('subs');if(cat<0||!SUB[CATS[cat]]){box.hidden=true;box.innerHTML='';return}
     const words=q.toLowerCase().split(/\s+/).filter(Boolean);const M=new Map();
     for(const x of ITEMS)if(x.c===cat&&words.every(w=>x.l.includes(w)))M.set(x.s,(M.get(x.s)||0)+1);
-    const ORD={'Блоки питания':['до 500 Вт','550–700 Вт','750–850 Вт','1000 Вт и выше'],'Мониторы':['до 22"','23–24"','27"','32" и больше'],'Оперативная память':['DDR5','DDR4','DDR3','Для ноутбука']}[CATS[cat]];
+    const ORD={'Блоки питания':['до 500 Вт','550–700 Вт','750–850 Вт','1000 Вт и выше'],'Мониторы':['до 22"','23–24"','27"','32" и больше','Кронштейны и подставки'],'Оперативная память':['DDR5','DDR4','DDR3','Для ноутбука']}[CATS[cat]];
     const rk=n=>ORD&&ORD.includes(n)?ORD.indexOf(n):99;
     const L=[...M.entries()].sort((a,b)=>(a[0]==='Другие')-(b[0]==='Другие')||rk(a[0])-rk(b[0])||a[0].localeCompare(b[0],'ru',{numeric:true}));
     if(L.length<2&&!sub){box.hidden=true;box.innerHTML='';return}
