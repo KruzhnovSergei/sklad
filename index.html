@@ -1144,11 +1144,39 @@ function vAsm(){
    <input id="asmF" data-in="asmf" class="search" placeholder="S/N компьютера или любой детали, модель" value="${esc(S.asmF)}">
    <div class="tbl">${pcs.length?`<table><thead><tr><th>S/N компьютера</th><th>Модель</th><th>Собран</th><th>Статус</th><th class="num">Цена</th><th class="num">Деталей</th></tr></thead><tbody>${pcs.slice(0,60).map(sn=>{const o=S.pca[sn];const st=pcStatus(sn);const op=S.asmOpen===sn;
     return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${S.lblSel&&pcIn(sn)?`<span data-act="lbl-pick" data-id="${esc(sn)}" role="checkbox" aria-checked="${S.lblSel.has(sn)}" style="display:inline-block;width:22px;font-size:20px;line-height:1;cursor:pointer;color:var(--accent)">${S.lblSel.has(sn)?'☑':'☐'}</span> `:''}${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div>`}</div></section></div>`}
+/* ---------- Фото и описание сборки для сайта (pcphotos/{sn}) ---------- */
+function imgShrink(src,max,q){return new Promise((res,rej)=>{const isFile=src instanceof Blob;const u=isFile?URL.createObjectURL(src):src;const im=new Image();
+  im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+    const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);if(isFile)URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',q))};
+  im.onerror=()=>{if(isFile)URL.revokeObjectURL(u);rej(new Error('Не удалось открыть фото'))};im.src=u})}
+async function pcWebOpen(sn){S.pcWeb={sn,imgs:[],desc:'',loading:true};pcWebRender();
+  try{const d=await S.db.doc('pcphotos/'+sn).get();if(d.exists){const x=d.data();S.pcWeb.imgs=x.imgs||[];S.pcWeb.desc=x.desc||''}}catch(e){}
+  S.pcWeb.loading=false;pcWebRender()}
+function pcWebKeep(){const e=$('#pcwDesc');if(e&&S.pcWeb)S.pcWeb.desc=e.value}
+function pcWebRender(){const w=S.pcWeb;if(!w)return;const kb=Math.round(w.imgs.reduce((a,x)=>a+x.length,0)/1024);
+  openModal(`<h2>Сборка ${esc(w.sn)} на сайте</h2>
+   <p class="muted small">До 3 фото — первое станет обложкой карточки. Фото автоматически уменьшаются. Описание покупатель увидит на странице компьютера; комплектующие и цена подставятся сами.</p>
+   ${w.loading?'<p class="muted">Загружаю…</p>':`<div class="row" style="gap:10px;flex-wrap:wrap;margin:8px 0">${w.imgs.map((src,i)=>`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><img src="${src}" alt="Фото ${i+1}" style="width:150px;height:112px;object-fit:cover;border-radius:8px;border:1px solid var(--line)">${i===0?'<span class="small muted">Обложка</span>':`<button class="btn link" data-act="pcw-first" data-i="${i}">Сделать обложкой</button>`}<button class="btn link bad" data-act="pcw-rm" data-i="${i}">Убрать</button></div>`).join('')}
+    ${w.imgs.length<3?`<label class="btn ghost" style="cursor:pointer;align-self:center">Добавить фото…<input type="file" accept="image/*" multiple data-ch="pcw-file" hidden></label>`:''}</div>
+   <label class="field"><span>Описание для сайта</span><textarea id="pcwDesc" rows="4" placeholder="Например: тихий игровой ПК для Full HD, тянет CS2, Dota 2, GTA V на высоких настройках">${esc(w.desc)}</textarea></label>
+   <p class="small muted">Размер фото: ${kb} КБ из 850 КБ</p>`}
+   <p class="err" id="pcwErr"></p>
+   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="pcw-save"${w.loading?' disabled':''}>Сохранить</button></div>`)}
+async function pcWebFiles(t){const fs=[...(t.files||[])];t.value='';const w=S.pcWeb;if(!w||!fs.length)return;pcWebKeep();
+  for(const f of fs){if(w.imgs.length>=3)break;try{w.imgs.push(await imgShrink(f,1100,0.72))}catch(e){toast(e.message)}}
+  let tot=w.imgs.reduce((a,x)=>a+x.length,0);
+  if(tot>850000){for(let i=0;i<w.imgs.length;i++)w.imgs[i]=await imgShrink(w.imgs[i],900,0.6);tot=w.imgs.reduce((a,x)=>a+x.length,0)}
+  if(tot>850000)toast('Фото слишком большие — уберите одно');pcWebRender()}
+async function pcWebSave(){const w=S.pcWeb;if(!w)return;pcWebKeep();const tot=w.imgs.reduce((a,x)=>a+x.length,0);
+  if(tot>850000){$('#pcwErr').textContent='Фото слишком большие — уберите одно';return}
+  let thumb='';try{if(w.imgs[0])thumb=await imgShrink(w.imgs[0],360,0.6)}catch(e){}
+  const ok=await guard(()=>S.db.doc('pcphotos/'+w.sn).set({imgs:w.imgs,thumb,desc:w.desc.trim().slice(0,2000),at:now(),by:S.uid||null}),'Сохранено. На сайте появится после «Обновить сайт»',pcNeed());
+  if(ok){S.pcWeb=null;closeModal(true)}}
 function pcPassport(sn){const o=S.pca[sn];const inSt=pcIn(sn);const ca=canPC(sn);const cd=ca&&can('assembly');
   return `<div class="tbl"><table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th></tr></thead><tbody>${pcCompRows(S.pcComp[sn]||[])||'<tr><td colspan="3" class="muted">Деталей нет</td></tr>'}</tbody></table></div>
   ${can('cost')?`<p class="small muted" style="margin-top:6px">Себестоимость: ${money(S.pcu[sn])}${num(S.opc[o.id]?.labor)?`, включая работу ${money(S.opc[o.id].labor)}`:''}${num(o.price)&&num(S.pcu[sn])?` · наценка ${NF.format(r2((num(o.price)-S.pcu[sn])/S.pcu[sn]*100))}%`:''}</p>`:''}
   ${inSt&&ca?`<div class="row" style="margin-top:8px;gap:8px"><label class="row" style="gap:6px">Цена продажи, сом <input class="sm" id="pcPrice" inputmode="decimal" value="${esc(o.price||'')}" placeholder="${esc(num(S.P[o.out.p]?.sellPrice)||'')}" style="width:120px"></label><button class="btn ghost" data-act="pc-price" data-id="${esc(sn)}">Сохранить цену</button><span class="muted small">${num(o.price)?'':'Сейчас действует цена модели'}</span></div>`:''}
-  <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="pc-pass" data-id="${esc(sn)}">Паспорт для печати</button>${inSt?`<button class="btn ghost" data-act="pc-lbl" data-id="${esc(sn)}">Этикетка на витрину</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pc-mod" data-id="${esc(sn)}">Заменить или снять детали</button>`:''}${inSt&&cd?(S.asmDis===sn?`<div class="confirm"><span>Разобрать ${esc(sn)}? Все детали вернутся на склад «${esc(wname(pcWh(sn)))}».</span><button class="btn danger" data-act="pc-dis-yes" data-id="${esc(sn)}">Разобрать</button><button class="btn ghost" data-act="pc-dis-no">Отмена</button></div>`:`<button class="btn link bad" data-act="pc-dis" data-id="${esc(sn)}">Разобрать</button>`):''}</div>
+  <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="pc-pass" data-id="${esc(sn)}">Паспорт для печати</button>${inSt?`<button class="btn ghost" data-act="pc-lbl" data-id="${esc(sn)}">Этикетка на витрину</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pcw-open" data-id="${esc(sn)}">Фото и описание для сайта</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pc-mod" data-id="${esc(sn)}">Заменить или снять детали</button>`:''}${inSt&&cd?(S.asmDis===sn?`<div class="confirm"><span>Разобрать ${esc(sn)}? Все детали вернутся на склад «${esc(wname(pcWh(sn)))}».</span><button class="btn danger" data-act="pc-dis-yes" data-id="${esc(sn)}">Разобрать</button><button class="btn ghost" data-act="pc-dis-no">Отмена</button></div>`:`<button class="btn link bad" data-act="pc-dis" data-id="${esc(sn)}">Разобрать</button>`):''}</div>
   ${inSt&&ca&&pcWh(sn)!==o.wh?`<p class="muted small" style="margin-top:6px">Компьютер сейчас на складе «${esc(wname(pcWh(sn)))}». Снятые детали вернутся на этот склад, новые берутся с него же.</p>`:''}${inSt&&!ca?`<p class="muted small" style="margin-top:6px">Компьютер на складе «${esc(wname(pcWh(sn)))}», у вас нет доступа к изменению на этом складе.</p>`:''}`}
 function modPickOpts(){const m=S.mod;const used=m.add.flatMap(x=>x.sn||[]);const list=S.prod.filter(p=>!p.archived&&!isPcProd(p)&&inGroup(p,m.g)&&qty(m.wh,p.id)>0);
   if(!list.length)return '<option value="">На складе нет деталей'+(m.g?' в этой группе':'')+'</option>';const by={};for(const p of list)(by[pgroup(p)]??=[]).push(p);
@@ -2837,7 +2865,10 @@ async function sitePublish(auto){if(!S.isOwner||!S.db)return false;
   const btn=$('[data-act=site-pub]');if(btn&&!auto){btn.disabled=true;btn.textContent='Обновляю…'}
   const ok=await guard(async()=>{if(!auto)await db.doc('sitecfg/main').set(cfg);
     for(let k=0;k<parts.length;k++)await db.doc('sitecat/c'+k).set({rows:parts[k]});
-    await db.doc('sitecat/pcs').set({at:now(),rows:sitePcs(cfg)});
+    const pcs=sitePcs(cfg);let budget=880000-JSON.stringify(pcs).length*2;
+    const ph=await Promise.all(pcs.map(x=>db.doc('pcphotos/'+x.sn).get().then(d=>d.exists?d.data():null).catch(()=>null)));
+    pcs.forEach((x,i)=>{const d=ph[i];if(!d)return;if(d.desc){x.desc=String(d.desc).slice(0,2000);budget-=x.desc.length*2}x.np=(d.imgs||[]).length;if(d.thumb&&budget-d.thumb.length>0){x.th=d.thumb;budget-=d.thumb.length}});
+    await db.doc('sitecat/pcs').set({at:now(),rows:pcs});
     await db.doc('sitecat/meta').set({at:now(),n:rows.length,chunks:parts.length,cats:SITE_NAMES,cnt});
     for(let k=parts.length;k<oldN;k++)await db.doc('sitecat/c'+k).delete()},`Каталог на сайте обновлён: ${NF.format(rows.length)} позиций`,'owner');
   if(ok&&!auto)S.siteCfg=cfg;if(btn&&!auto){btn.disabled=false;btn.textContent='Сохранить и обновить сайт'}return ok}
@@ -3280,7 +3311,8 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
   'pc-dis-yes':async t=>{const sn=t.dataset.id;const o=S.pca[sn];if(!o)return;if(!pcIn(sn)){toast('Компьютера нет на складе, разобрать его нельзя');return}
     const doc={type:'dis',at:now(),wh:pcWh(sn),pc:sn,asm:o.id,rem:(S.pcComp[sn]||[]).map(x=>({...x})),party:'',by:S.uid||null};const ref=S.db.collection('ops').doc();
     if(await guard(()=>ref.set(doc),'Компьютер разобран, детали вернулись на склад','assembly')){S.asmDis=null;if(!S.ops.some(x=>x.id===ref.id)){S.ops.push({id:ref.id,...doc});derive()}render()}},
-  'pc-price':t=>{const sn=t.dataset.id;const o=S.pca[sn];if(!o)return;const v=r2(num($('#pcPrice').value));(canPC(sn)?guard(()=>S.db.collection('ops').doc(o.id).update({price:v>0?v:0}),v>0?'Цена сохранена':'Будет действовать цена модели',pcNeed()):toast('Нет доступа'))},
+  'pcw-open':t=>pcWebOpen(t.dataset.id),'pcw-save':()=>pcWebSave(),'pcw-rm':t=>{pcWebKeep();S.pcWeb.imgs.splice(+t.dataset.i,1);pcWebRender()},'pcw-first':t=>{pcWebKeep();const i=+t.dataset.i;const x=S.pcWeb.imgs.splice(i,1)[0];S.pcWeb.imgs.unshift(x);pcWebRender()},
+'pc-price':t=>{const sn=t.dataset.id;const o=S.pca[sn];if(!o)return;const v=r2(num($('#pcPrice').value));(canPC(sn)?guard(()=>S.db.collection('ops').doc(o.id).update({price:v>0?v:0}),v>0?'Цена сохранена':'Будет действовать цена модели',pcNeed()):toast('Нет доступа'))},
   'pc-mod':t=>{const sn=t.dataset.id;const o=S.pca[sn];if(!o||!canPC(sn))return;S.mod={pc:sn,wh:pcWh(sn),rem:{},add:[],note:'',g:''};openModal(modHtml(),()=>{S.mod=null})},
   'mod-rem':t=>{const i=+t.dataset.i;const x=(S.pcComp[S.mod.pc]||[])[i];if(!x)return;const e=$('#mq'+i);S.mod.rem[i]=(x.sn||[]).length?1:Math.min(num(x.q),num(e?.value)||num(x.q));modRender()},
   'mod-keep':t=>{delete S.mod.rem[+t.dataset.i];modRender()},
@@ -3394,7 +3426,7 @@ opdlv:t=>{S.op.dlv=t.value;updOp()},
   snf:t=>{S.snF=t.value;const c=S.snCtx;const l=snLine();$('#snList').innerHTML=snListHtml(snWh(c),l.p)},
 };
 const CH={
-  'calc-file':t=>calcFile(t),calcown:t=>{calcState().own=t.checked;calcSave();render()},calckpp:t=>{calcState().kpp=t.checked;calcSave()},calckpwh:t=>{calcState().kpWh=t.value;calcSave()},calcownwh:t=>{const c=calcState();const A=calcAllowWh().map(w=>w.id);let cur=calcWhs().map(w=>w.id);cur=t.checked?[...new Set([...cur,t.value])]:cur.filter(x=>x!==t.value);if(!cur.length){t.checked=true;toast('Оставьте хотя бы один склад');return}c.ownWh=cur.length===A.length?[]:cur;calcSave();S.calcQ&&Object.keys(S.calcQ).forEach(i=>{const e=$('#calcr'+i);if(e&&typeof calcResHtml==='function')e.innerHTML=calcResHtml(+i)})},calcround:t=>{calcState().round=t.value;calcUpd()},
+  'calc-file':t=>calcFile(t),'pcw-file':t=>pcWebFiles(t),calcown:t=>{calcState().own=t.checked;calcSave();render()},calckpp:t=>{calcState().kpp=t.checked;calcSave()},calckpwh:t=>{calcState().kpWh=t.value;calcSave()},calcownwh:t=>{const c=calcState();const A=calcAllowWh().map(w=>w.id);let cur=calcWhs().map(w=>w.id);cur=t.checked?[...new Set([...cur,t.value])]:cur.filter(x=>x!==t.value);if(!cur.length){t.checked=true;toast('Оставьте хотя бы один склад');return}c.ownWh=cur.length===A.length?[]:cur;calcSave();S.calcQ&&Object.keys(S.calcQ).forEach(i=>{const e=$('#calcr'+i);if(e&&typeof calcResHtml==='function')e.innerHTML=calcResHtml(+i)})},calcround:t=>{calcState().round=t.value;calcUpd()},
   'cu-cur':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.cur=t.value;calcUpRender()},'cu-n':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.n=+t.value;calcUpRender()},'cu-p':t=>{S.cup.supp=$('#cuSupp').value;S.cup.rate=$('#cuRate')?.value||S.cup.rate;S.cup.C.p=+t.value;calcUpRender()},
   saleg:t=>{S.saleG=t.value;$('#saleGrid').innerHTML=saleTiles()},
   kitpl:t=>{S.kitEd.pl=t.checked},

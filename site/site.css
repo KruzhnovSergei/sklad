@@ -87,15 +87,34 @@ a.card{text-decoration:none;color:var(--ink);transition:border-color .15s}a.card
 
 /* готовые сборки */
 .pcs-sec{background:var(--paper2)}
-.pcs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
-.pc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:12px}
-.pc-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.pc-kind{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--ink);color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
-.pc-sn{font-size:12px;color:#6B717A}
-.pc h3{font-family:var(--f-display);font-size:20px;line-height:1.2}
-.pc-cfg{margin:0;font-weight:600;color:var(--ink2)}
-.pc-parts{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
-.pc-more summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:6px}
-.pc-foot{margin-top:auto;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
-.pc-price{font-family:var(--f-display);font-weight:700;font-size:24px}
-.pc-foot .btn{min-height:44px;padding:0 16px;font-size:15px}
+.pcs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.pc-card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:var(--ink);transition:border-color .15s,transform .15s}
+.pc-card:hover{border-color:var(--ink);color:var(--ink);transform:translateY(-2px)}
+.pc-img{position:relative;aspect-ratio:4/3;background:#EFEDE8;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pc-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-ph{color:#9AA0A8}
+.pc-kind{position:absolute;left:12px;top:12px;display:inline-block;padding:3px 10px;border-radius:999px;background:var(--ink);color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.pc-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.pc-body h3{font-family:var(--f-display);font-size:18px;line-height:1.25}
+.pc-cfg{margin:0;font-size:15px;font-weight:600;color:var(--ink2)}
+.pc-foot{margin-top:auto;padding-top:12px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.pc-price{font-family:var(--f-display);font-weight:700;font-size:22px}
+.pc-more-link{font-weight:700;font-size:15px}
+/* страница компьютера */
+.pcd{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
+.pcd-gal{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.pcd-main{aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#EFEDE8;display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+.pcd-main img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pcd-thumbs{display:flex;gap:10px;flex-wrap:wrap}
+.pcd-thumbs button{width:96px;height:72px;padding:0;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff}
+.pcd-thumbs button[aria-pressed="true"]{border-color:var(--ink)}
+.pcd-thumbs img{width:100%;height:100%;object-fit:cover}
+.pcd-info{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:16px}
+.pcd-info h1{font-family:var(--f-display);font-size:clamp(26px,3.4vw,38px);line-height:1.15}
+.pcd-price{font-family:var(--f-display);font-weight:700;font-size:34px}
+.pcd-desc{margin:0;font-size:17px;line-height:1.6;color:var(--ink2);white-space:pre-line}
+.pcd-parts{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.pcd-parts h2{font-size:18px;margin-bottom:10px}
+.pcd-parts ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;color:var(--ink2)}
+.back{display:inline-flex;align-items:center;gap:6px;font-weight:600;text-decoration:none;margin-bottom:20px}
+.instock{display:inline-block;padding:1px 8px;border-radius:999px;background:#DDF3E6;color:#14532D;font-size:12px;font-weight:700}
