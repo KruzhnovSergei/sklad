@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:59</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:02</span>
     </div>
   </aside>
   <div class="main">
@@ -979,7 +979,7 @@ function vMoney(){const {E,bal}=moneyEvents();const accs=accList();const rg=rang
   const exp={};for(const e of ev)if(e.label==='Расход')exp[e.cat]=(exp[e.cat]||0)-e.amt;const expT=Object.values(exp).reduce((a,b)=>a+b,0);
   const known=new Set(accs.map(a=>a.id));const other=Object.keys(bal).filter(k=>!known.has(k)&&Math.abs(bal[k])>0.004);
   return `<div class="stack">
-  <div class="kpis">${accs.map(a=>`<div class="kpi${a.id==='cash'?' main':''}"><span>${esc(a.name)}</span><b${(bal[a.id]||0)<0?' style="color:var(--bad)"':''}>${money(bal[a.id]||0)}</b><span>сегодня +${NF.format(r2(td[a.id]?.i||0))} / −${NF.format(r2(td[a.id]?.o||0))}</span></div>`).join('')}${other.map(k=>`<div class="kpi"><span>Удалённый счёт</span><b>${money(bal[k])}</b></div>`).join('')}<div class="kpi"><span>Всего денег</span><b>${money(Object.values(bal).reduce((a,b)=>a+b,0))}</b></div></div>
+  <div class="kpis">${accs.map(a=>`<div class="kpi${a.id==='cash'?' main':''}" data-act="macc-pick" data-v="${esc(a.id)}" role="button" tabindex="0" title="Показать движение только по этому счёту" style="cursor:pointer;${S.mAcc===a.id?'outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft);':''}"><span>${esc(a.name)}${S.mAcc===a.id?' · выбран':''}</span><b${(bal[a.id]||0)<0?' style="color:var(--bad)"':''}>${money(bal[a.id]||0)}</b><span>сегодня +${NF.format(r2(td[a.id]?.i||0))} / −${NF.format(r2(td[a.id]?.o||0))}</span></div>`).join('')}${other.map(k=>`<div class="kpi"><span>Удалённый счёт</span><b>${money(bal[k])}</b></div>`).join('')}<div class="kpi" data-act="macc-pick" data-v="all" role="button" tabindex="0" title="Показать все счета" style="cursor:pointer;${!S.mAcc||S.mAcc==='all'?'outline:2px solid var(--accent);outline-offset:-2px;':''}"><span>Всего денег</span><b>${money(Object.values(bal).reduce((a,b)=>a+b,0))}</b></div></div>
   <div class="row"><button class="btn" data-act="m-new" data-v="in">+ Приход денег</button><button class="btn" data-act="m-new" data-v="out">− Расход</button><button class="btn ghost" data-act="m-new" data-v="move">Перевод между счетами</button><button class="btn ghost" data-act="m-new" data-v="set">Пересчёт кассы / начальный остаток</button>${S.isOwner?'<button class="btn link" data-act="m-acc">Настроить счета</button>':''}</div>
   <section class="pane"><div class="pane-h"><h2>Движение денег</h2><select id="mAcc" data-ch="macc" style="width:auto" aria-label="Счёт"><option value="all">Все счета</option>${accs.map(a=>`<option value="${esc(a.id)}"${a.id===S.mAcc?' selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
    <div class="row between" style="margin-bottom:10px"><div class="row">${periodBar()}</div><span class="small">Поступило <b style="color:var(--good)">${money(inn)}</b> · выплачено <b style="color:var(--bad)">${money(out)}</b></span></div>
@@ -3077,6 +3077,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
   'cat-g':t=>{const C=S.catCol||(S.catCol=new Set());const g=t.dataset.g;if(C.has(g))C.delete(g);else C.add(g);ls.set('catCol',[...C]);render()},'cat-col':t=>{const C=S.catCol||(S.catCol=new Set());if(t.dataset.v==='none')C.clear();else S.prod.forEach(p=>C.add(pgroup(p)));ls.set('catCol',[...C]);render()},
   'noorder':async t=>{const id=t.dataset.id;if(await guard(()=>S.db.collection('products').doc(id).update({noOrder:true}),'Убрано из «Нужно заказать»','catalog')){const p=S.P[id];if(p)p.noOrder=true;render()}},
   'noorder-back':async t=>{const id=t.dataset.id;if(await guard(()=>S.db.collection('products').doc(id).update({noOrder:false}),'Возвращено в «Нужно заказать»','catalog')){const p=S.P[id];if(p)p.noOrder=false;render()}},'low-all':()=>{S.lowAll=!S.lowAll;render()},
+  'macc-pick':t=>{const v=t.dataset.v;S.mAcc=(v==='all'||S.mAcc===v)?'all':v;render()},
   'st-collapse':t=>{const C=S.stockCol||(S.stockCol=new Set());const gs=[...new Set(S.prod.filter(p=>!p.archived).map(pgroup))];if(t.dataset.v==='none')C.clear();else gs.forEach(g=>C.add(g));ls.set('stockCol',[...C]);render()},'exp-sales':expSales,
   'prod-new':()=>prodForm(),
   'prod-edit':t=>prodForm(S.P[t.dataset.id]),
