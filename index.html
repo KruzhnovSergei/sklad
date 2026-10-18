@@ -2716,7 +2716,7 @@ const SITE_CATS=[
   ['Охлаждение',['deepcool ak','deepcool ag','deepcool as','deepcool an','deepcool gammax','deepcool ls','id-cooling','pccooler','pc cooler','lovingcool','jungle leopard','arctic freezer','arctic liquid','noctua','dark rock','рамка сокета','рамка для сокета','cpu cooler','cpu fan','cpu кулер','процессорный кулер','кулер для процессор','система охлаждения','системы охлаждения','кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
   ['Ноутбуки',['ноутбук','notebook','laptop']],
   ['Мониторы',['монитор','monitor']],
-  ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','projector','optoma','dlp','ибп','ups']],
+  ['Оргтехника и расходники',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','чернил','ink','проектор','projector','optoma','dlp','ибп','ups']],
   ['Сетевое оборудование',['домофон','intercom','роутер','маршрутизатор','router','коммутатор','switch','wi-fi','wifi','точка доступа','сетев']],
   ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
   ['Компьютеры и моноблоки',['моноблок','all-in-one','системный блок','компьютер','неттоп','мини-пк','mini pc','minipc']],
@@ -2727,6 +2727,9 @@ const SITE_CATS=[
   ['Кабели и аксессуары',['шлейф','шнур','райзер','riser','кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
 ];
 const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
+// переименованные категории: наценка, сохранённая под старым именем, продолжает действовать
+const SITE_OLD={'Оргтехника и расходники':'Оргтехника'};
+const siteMk=(cfg,nm)=>cfg.cats?.[nm]??cfg.cats?.[SITE_OLD[nm]]??cfg.def??20;
 const siteLetter=ch=>!!ch&&/[a-zа-яё0-9]/i.test(ch);
 function siteFind(s){let best=null;if(!s)return null;
   SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){const sh=/^[a-z]{2,4}$/.test(w);const bad=i=>siteLetter(s[i-1])||(sh&&(s[i-1]==='-'||s[i-1]==='/'));const bad2=i=>bad(i)||(w==='монитор'&&s[i+7]==='и');let i=s.indexOf(w);while(i>=0&&bad2(i))i=s.indexOf(w,i+1);
@@ -2785,7 +2788,7 @@ function siteStale(){if(S.siteStaleDone||!S.isOwner||!S.siteCfg?.whs?.length||!S
 function siteHtml(){if(!S.isOwner)return '';siteLoad();const cfg=S.siteCfg||{};const def=cfg.def??20;const cnt=siteCounts();const meta=S.siteMeta;
   return `<section class="pane"><div class="pane-h"><h2>Каталог на сайте</h2><a class="btn ghost" href="site/catalog.html" target="_blank" rel="noopener">Открыть каталог</a></div>
    <p class="muted small" style="margin-bottom:8px">Все позиции из прайсов попадают в каталог сайта с наценкой по категории. Покупатели видят только название, категорию и розничную цену: поставщики и закупочные цены на сайт не уходят. После загрузки или удаления прайса каталог обновляется сам.</p>
-   <div class="tbl"><table><thead><tr><th>Категория</th><th class="num">Позиций</th><th class="num">Наценка, %</th></tr></thead><tbody>${SITE_NAMES.map((nm,i)=>`<tr><td>${esc(nm)}</td><td class="num">${NF.format(cnt[i]||0)}</td><td class="num"><input id="sitem${i}" inputmode="decimal" value="${esc(cfg.cats?.[nm]??'')}" placeholder="${esc(String(def))}" aria-label="Наценка, ${esc(nm)}" style="width:90px;text-align:right"></td></tr>`).join('')}</tbody></table></div>
+   <div class="tbl"><table><thead><tr><th>Категория</th><th class="num">Позиций</th><th class="num">Наценка, %</th></tr></thead><tbody>${SITE_NAMES.map((nm,i)=>`<tr><td>${esc(nm)}</td><td class="num">${NF.format(cnt[i]||0)}</td><td class="num"><input id="sitem${i}" inputmode="decimal" value="${esc(cfg.cats?.[nm]??cfg.cats?.[SITE_OLD[nm]]??'')}" placeholder="${esc(String(def))}" aria-label="Наценка, ${esc(nm)}" style="width:90px;text-align:right"></td></tr>`).join('')}</tbody></table></div>
    <div style="margin-top:12px"><b>Товары с наших складов</b><p class="muted small" style="margin:2px 0 6px">Отмеченные склады попадут на сайт с пометкой «В наличии». Цена = цена продажи из карточки товара + наценка его категории. Товары без цены продажи или с нулевым остатком на сайт не попадают.</p>
     <div class="row" style="gap:6px 18px">${saleWhs().map(w=>`<label class="check"><input type="checkbox" id="sitewh_${esc(w.id)}" data-wh="${esc(w.id)}"${(cfg.whs||[]).includes(w.id)?' checked':''}> ${esc(w.name)}</label>`).join('')}</div>
     ${(cfg.whs||[]).length?`<p class="muted small" style="margin-top:4px">Сейчас в наличии для сайта: ${NF.format(siteOwnCnt(cfg.whs))} позиций.</p>`:''}</div>
@@ -2801,12 +2804,12 @@ async function sitePublish(auto){if(!S.isOwner||!S.db)return false;
     cfg={def:dv===''?20:num(dv),round:num($('#siteRnd')?.value)||1,cats,whs,auto:true}}
   if((S.pll||[]).some(l=>!S.plr[l.id]?.rows)){if(!auto)toast('Прайсы ещё загружаются, попробуйте через минуту');return false}
   const rnd=Math.max(1,num(cfg.round)||1);
-  const rows=siteRows().map(x=>{const m=cfg.cats?.[SITE_NAMES[x.c]]??cfg.def??20;return{n:x.n,c:x.c,p:Math.ceil(r2(x.p*(1+num(m)/100))/rnd)*rnd}})
+  const rows=siteRows().map(x=>{const m=siteMk(cfg,SITE_NAMES[x.c]);return{n:x.n,c:x.c,p:Math.ceil(r2(x.p*(1+num(m)/100))/rnd)*rnd}})
     .filter(x=>x.p>0);
   const own=siteOwn(cfg.whs);if((cfg.whs||[]).length&&!siteStockReady()){if(!auto)toast('Остатки ещё загружаются, попробуйте через минуту');return false}
   if(own.length){const nk=x=>x.n.toLowerCase().replace(/\s+/g,' ').trim();const ON=new Set(own.map(nk));
     for(let i=rows.length-1;i>=0;i--)if(ON.has(nk(rows[i])))rows.splice(i,1);
-    for(const x of own){const m=cfg.cats?.[SITE_NAMES[x.c]]??cfg.def??20;rows.push({n:x.n,c:x.c,p:Math.ceil(r2(x.p*(1+num(m)/100))/rnd)*rnd,st:1})}}
+    for(const x of own){const m=siteMk(cfg,SITE_NAMES[x.c]);rows.push({n:x.n,c:x.c,p:Math.ceil(r2(x.p*(1+num(m)/100))/rnd)*rnd,st:1})}}
   rows.sort((a,b)=>a.c-b.c||a.n.localeCompare(b.n,'ru'));
   const parts=[];{let cur=[],sz=0;for(const x of rows){const b=JSON.stringify(x).length*2;if(cur.length&&sz+b>600000){parts.push(cur);cur=[];sz=0}cur.push(x);sz+=b}if(cur.length)parts.push(cur)}
   const cnt=SITE_NAMES.map(()=>0);for(const x of rows)cnt[x.c]++;const oldN=num(S.siteMeta?.chunks);const db=S.db;
