@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 10:40</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 11:21</span>
     </div>
   </aside>
   <div class="main">
@@ -306,7 +306,7 @@ const claimNo=c=>'ГР-'+(S.seqMap?.[c.id]||c.id.slice(-6).toUpperCase());
 const addM=(iso,m)=>{const d=new Date(iso);const day=d.getDate();d.setMonth(d.getMonth()+m);if(d.getDate()<day)d.setDate(0);return d};
 const DEF_TERMS='Гарантия действует при наличии этого талона и чека. Гарантия не распространяется на товар с механическими повреждениями, следами вскрытия, нарушенными пломбами и гарантийными наклейками, следами жидкости, повреждениями от скачков напряжения, а также при неправильной установке или эксплуатации. Расходные материалы гарантии не подлежат. Ремонт или замена выполняются в срок до 30 дней с момента приёма товара.';
 const DEMO_P=[['SSD 512 ГБ NVMe M.2','SSD-512N','Накопители SSD',3200,4290,3,10,true,36,'SSD24K'],['Оперативная память DDR4 16 ГБ 3200 МГц','RAM-D4-16','Оперативная память',2600,3490,4,12,true,36,'RAM24D'],['Блок питания 650 Вт 80+ Bronze','PSU-650B','Блоки питания',3900,5190,2,6,true,24,'PSU24B'],['Монитор 24" IPS Full HD','MON-24IPS','Мониторы',9800,12900,2,5,true,24,'MON24F'],['Принтер лазерный ч/б A4','PRN-LJA4','Принтеры и МФУ',10500,13900,1,4,true,12,'PRN24L'],['Картридж для лазерного принтера, совместимый','CRT-LJ-UNI','Картриджи',650,990,10,30,false,0,''],['Мышь беспроводная','MS-WL','Мыши и клавиатуры',380,590,10,40,false,6,''],['Кабель HDMI 2.0, 1,8 м','CBL-HDMI18','Кабели',180,320,15,50,false,0,'']];
-const tlabel=o=>o.init?'Ввод остатков':o.cret?'Возврат поставщику':o.inv?'Расходная накладная':o.type==='pay'&&o.out?'Выдача клиенту':o.type==='pay'&&o.adv?'Предоплата':o.type==='spay'&&o.back?'Возврат от поставщика':o.type==='spay'&&o.lend?'Выдача поставщику':TYPES[o.type].label;
+const tlabel=o=>o.init&&o.type==='pay'?'Начальный баланс':o.init?'Ввод остатков':o.cret?'Возврат поставщику':o.inv?'Расходная накладная':o.type==='pay'&&o.out?'Выдача клиенту':o.type==='pay'&&o.adv?'Предоплата':o.type==='spay'&&o.back?'Возврат от поставщика':o.type==='spay'&&o.lend?'Выдача поставщику':TYPES[o.type].label;
 const docPre=o=>o.init?'ВО':o.inv?'РН':o.type==='pay'&&o.out?'РК':o.cret?'ВП':TYPES[o.type]?.pre||'ДК';
 const seqKey=o=>o.type==='sale'?'sale':docPre(o);
 const docNo=o=>docPre(o)+'-'+(S.seqMap?.[o.id]||o.id.slice(-6).toUpperCase());
@@ -714,11 +714,22 @@ function vCustomers(){
   ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}${ckind(c)==='opt'?' <span class="chip t-move">опт</span>':''}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
    <td style="white-space:nowrap"><button class="btn link" data-act="pay-new" data-id="${esc(c.id)}"${ro('payments')}>${d>0.004?'Принять оплату':'Принять предоплату'}</button><button class="btn link" data-act="cust-edit" data-id="${esc(c.id)}"${canCust(ckind(c))?'':' disabled'}>Изменить</button>${canCust(ckind(c))&&!hist.has(c.id)?`<button class="btn link bad" data-act="cust-del" data-id="${esc(c.id)}">Удалить</button>`:''}</td></tr>
    ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${base.length?'Никого не найдено':VC.length?'В этой группе покупателей пока нет.':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
+function custInitForm(id){const c=S.C[id];if(!c)return;S.cinit={id,kind:'adv'};
+  openModal(`<h2>Начальный баланс · ${esc(c.name)}</h2><p class="muted small">Для переноса из старой базы. Меняется только баланс покупателя — деньги в кассах и выручка не меняются.</p>
+  <div class="seg" role="group" style="margin:6px 0 10px"><button data-act="cinit-k" data-v="adv" aria-pressed="true">У клиента на балансе деньги (предоплата)</button><button data-act="cinit-k" data-v="debt" aria-pressed="false">Клиент нам должен</button></div>
+  <div class="row"><label class="field"><span>Сумма, сом</span><input id="ci-sum" inputmode="decimal" placeholder="0"></label><label class="field"><span>На дату</span><input id="ci-date" type="date" value="${isoD(new Date())}"></label></div>
+  <label class="field" style="flex:none"><span>Комментарий</span><input id="ci-note" value="Перенос из старой базы"></label><div class="err" id="ci-err"></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="cinit-save">Внести</button></div>`);setTimeout(()=>$('#ci-sum')?.focus(),30)}
+async function custInitSave(){const f=S.cinit;const v=r2(num($('#ci-sum').value));if(!(v>0)){$('#ci-err').textContent='Укажите сумму';return}
+  const dv=$('#ci-date').value;const at=dv?new Date(dv+'T09:00:00').toISOString():now();const amt=f.kind==='adv'?v:-v;
+  const doc={type:'pay',init:true,at,cust:f.id,amount:amt,total:amt,pay:'none',party:($('#ci-note').value||'').trim(),...(f.kind==='adv'?{adv:true}:{}),by:S.uid||null};
+  const ref=S.db.collection('sales').doc();if(await guard(()=>ref.set(doc),f.kind==='adv'?`Внесена предоплата ${money(v)} на баланс «${cname(f.id)}»`:`Внесён долг ${money(v)} «${cname(f.id)}»`,'payments')){if(!S.sales.some(x=>x.id===ref.id)){S.sales.push({id:ref.id,...doc});derive()}S.cinit=null;closeModal(true);render()}}
 function custHist(c){
   const h=S.sales.filter(o=>o.cust===c.id).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
   const note=c.note?`<p class="small muted" style="margin-bottom:8px">${esc(c.note)}</p>`:'';
-  if(!h.length)return note+'<div class="muted small">Покупок пока не было</div>';
-  return `${note}<div class="tbl"><table><thead><tr><th>Дата</th><th>Документ</th><th class="num">Сумма</th><th class="num">Оплачено</th><th class="num">Долг ±</th></tr></thead><tbody>
+  const ib=can('payments')?`<div class="row" style="margin-bottom:8px"><button class="btn link" data-act="cust-init" data-id="${esc(c.id)}">+ Начальный баланс из старой базы</button></div>`:'';
+  if(!h.length)return note+ib+'<div class="muted small">Покупок пока не было</div>';
+  return `${note}${ib}<div class="tbl"><table><thead><tr><th>Дата</th><th>Документ</th><th class="num">Сумма</th><th class="num">Оплачено</th><th class="num">Долг ±</th></tr></thead><tbody>
   ${h.slice(0,30).map(o=>{const nf=o.type==='ret'||o.type==='wx';const paid=o.type==='pay'?num(o.amount):nf?0:num(o.paid??o.total);const ch=o.type==='pay'?-num(o.amount):nf?0:num(o.total)-paid;return `<tr><td>${dt(o.at)}</td><td><span class="chip t-${o.type}">${tlabel(o)}</span> <span class="mono">${docNo(o)}</span></td><td class="num">${o.type==='sale'?NF.format(o.total):o.type==='ret'?'−'+NF.format(o.total):'—'}</td><td class="num">${NF.format(paid)} <span class="muted">${PAYL[o.pay]||''}</span></td><td class="num ${ch>0.004?'debt':''}">${ch>0?'+':''}${NF.format(r2(ch))}</td></tr>`}).join('')}</tbody></table></div>`}
 function vParties(){if(!can('suppliers'))return vCustomers();
   return `<div class="stack"><div class="seg" role="group" aria-label="Контрагенты" style="align-self:flex-start">${[['cust','Покупатели'],['supp','Поставщики']].map(([k,v])=>`<button data-act="partytab" data-v="${k}" aria-pressed="${S.partyTab===k}">${v}</button>`).join('')}</div>${S.partyTab==='supp'?vSuppliers():vCustomers()}</div>`}
@@ -949,7 +960,7 @@ function accBox(pay,id,cur,label){if(pay==='cash')return '';const all=accList();
   return `<label class="field"><span>${label||'Банк / счёт'}</span><select id="${id}" data-ch="${id.toLowerCase()}">${list.map(a=>`<option value="${esc(a.id)}"${a.id===sel?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>${banks.length<2&&S.isOwner?'<span class="muted small">Чтобы выбирать между банками, добавьте их во вкладке «Деньги» → «Настроить счета».</span>':''}`}
 function moneyEvents(){const E=[];const push=(o,acc,amt,label,desc,x)=>E.push({at:o.at,acc,amt,label,desc,o,...(x||{})});
   for(const o of S.sales){if(o.type==='sale'){const p=num(o.paid??o.total);if(p)push(o,accFor(o),p,'Продажа',docNo(o)+(o.cust?' · '+cname(o.cust):''))}
-    else if(o.type==='pay')push(o,accFor(o),num(o.amount),o.out?'Выдача клиенту':o.adv?'Предоплата':'Оплата долга',cname(o.cust)+(o.out&&o.party?' · '+o.party:''));
+    else if(o.type==='pay'&&!o.init)push(o,accFor(o),num(o.amount),o.out?'Выдача клиенту':o.adv?'Предоплата':'Оплата долга',cname(o.cust)+(o.out&&o.party?' · '+o.party:''));
     else if(o.type==='ret'&&num(o.total))push(o,accFor(o),-num(o.total),'Возврат покупателю',docNo(o))}
   for(const o of S.spays)push(o,accFor(o),-num(o.amount),o.back?'Возврат от поставщика':o.lend?'Выдача поставщику':'Оплата поставщику',sname(o.supp)+(o.party?' · '+o.party:''));
   for(const o of S.ops){if(o.type!=='in')continue;const oc=S.opc[o.id];if(oc&&oc.ppay&&num(oc.paid)>0)push(o,oc.ppay,-num(oc.paid),'Оплата прихода',docNo(o)+(o.party?' · '+o.party:''));if(oc&&num(oc.dlv)>0&&oc.dlvAcc)push(o,oc.dlvAcc,-num(oc.dlv),'Доставка товара',docNo(o)+(o.party?' · '+o.party:''))}
@@ -1521,6 +1532,7 @@ function jDetail(o){
   if(o.type==='mod'||o.type==='dis')h=`<pre class="receipt">${esc(receiptText(o))}</pre>`;
   else if(o.type==='asm')h=`<p>Собран ${esc(pname(o.out?.p))} · S/N ${(o.out?.sn||[]).map(x=>`<span class="sn">${esc(x)}</span>`).join(' ')}${o.party?` · ${esc(o.party)}`:''}</p><div class="tbl"><table><thead><tr><th>Комплектующее</th><th>Серийные номера</th><th class="num">Кол-во</th></tr></thead><tbody>${pcCompRows(o)}</tbody></table></div>`;
   else if(o.type==='spay')h=`<p>Оплачено ${money(o.amount)} поставщику ${esc(sname(o.supp))}${o.party?` · ${esc(o.party)}`:''}</p>`;
+  else if(o.type==='pay'&&o.init)h=`<p>Начальный баланс «${esc(cname(o.cust))}»: ${num(o.amount)>=0?'предоплата '+money(o.amount):'долг '+money(-num(o.amount))}. Деньги в кассах не менялись.${o.party?` · ${esc(o.party)}`:''}</p>`;
   else if(o.type==='pay')h=`<p>Принято ${money(o.amount)} от ${esc(cname(o.cust))}${o.party?` · ${esc(o.party)}`:''}</p>`;
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
@@ -1548,7 +1560,7 @@ const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${St
 function niceMax(m){const p=Math.pow(10,Math.floor(Math.log10(m)));for(const f of [1,1.5,2,2.5,3,4,5,6,8,10])if(f*p>=m)return f*p;return 10*p}
 function vReports(){
   const sc=can('cost');const rg=range();const {from,to}=rg;const inW=o=>S.repWh==='all'||o.wh===S.repWh;
-  const ops=S.all.filter(o=>inR(o,rg)&&(o.type==='pay'||inW(o)));const sales=ops.filter(o=>o.type==='sale');const pays=ops.filter(o=>o.type==='pay');const rets=ops.filter(o=>o.type==='ret');const wxs=ops.filter(o=>o.type==='wx');
+  const ops=S.all.filter(o=>inR(o,rg)&&(o.type==='pay'||inW(o)));const sales=ops.filter(o=>o.type==='sale');const pays=ops.filter(o=>o.type==='pay'&&!o.init);const rets=ops.filter(o=>o.type==='ret');const wxs=ops.filter(o=>o.type==='wx');
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
   const gross=sales.reduce((s,o)=>s+num(o.total),0);const retSum=rets.reduce((s,o)=>s+num(o.total),0);const rev=gross-retSum;const wxCost=wxs.reduce((s,o)=>s+docCost(o),0);
   const cogs=sales.reduce((s,o)=>s+docCost(o),0)-rets.filter(o=>o.restock).reduce((s,o)=>s+docCost(o),0)+wxCost;
@@ -3032,7 +3044,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
   ckind:t=>{S.cKind=t.dataset.v;render()},
   'cf-kind':t=>{const g=$('#cf-kind');g.dataset.v=t.dataset.v;g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
   copen:t=>{if(window.getSelection()?.toString())return;S.cOpen=S.cOpen===t.dataset.id?null:t.dataset.id;render()},
-  'pay-new':t=>payForm(t.dataset.id),
+  'pay-new':t=>payForm(t.dataset.id),'cust-init':t=>custInitForm(t.dataset.id),'cinit-save':()=>custInitSave(),'cinit-k':t=>{S.cinit.kind=t.dataset.v;document.querySelectorAll('[data-act=cinit-k]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
   'pay-save':t=>savePay(t.dataset.id),
   jtype:t=>{S.jType=t.dataset.v;S.jLimit=100;render()},
   jopen:t=>{if(window.getSelection()?.toString())return;S.jOpen=S.jOpen===t.dataset.id?null:t.dataset.id;S.jDel=null;render()},
