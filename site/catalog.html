@@ -182,7 +182,10 @@
     return '';
   };
   const watt=l=>{let m,mx=0;const re=/(\d{3,4})\s?w(att)?\b/g;while((m=re.exec(l)))mx=Math.max(mx,+m[1]);return mx};
-  const diag=l=>{const m=l.match(/(\d{2}(?:[.,]\d)?)\s?("|”|''|inch|дюйм)/);return m?parseFloat(m[1].replace(',','.')):0};
+  const diag=l=>{const m=l.match(/(\d{2}(?:[.,]\d)?)\s?("|”|''|inch|дюйм)/);if(m)return parseFloat(m[1].replace(',','.'));
+    // без дюймов: по модели — M2453F, G24, X27, 27G50Z, LM32
+    const d=l.match(/(?:^|\s)(1[89]|[23]\d)[.,]\d(?=[\s,]|$)/);if(d)return parseFloat(d[0].trim().replace(',','.'));
+    const k=l.match(/(?:^|[\s(])[a-z]{1,3}-?(2[2-9]|3[24])[a-z0-9]*(?=[\s,)]|$)/)||l.match(/(?:^|[\s(])(2[2-9]|3[24])[a-z][a-z0-9]*(?=[\s,)]|$)/);return k?+k[1]:0};
   const SUB={
     'Процессоры':[l=>sock(l),l=>has(l,/intel|core|celeron|pentium|xeon/)?'Intel (другие)':'',l=>has(l,/amd|ryzen|athlon/)?'AMD (другие)':''],
     'Материнские платы':[l=>sock(l)],

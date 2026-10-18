@@ -2716,23 +2716,23 @@ const SITE_CATS=[
   ['Охлаждение',['deepcool ak','deepcool ag','deepcool as','deepcool an','deepcool gammax','deepcool ls','id-cooling','pccooler','pc cooler','lovingcool','jungle leopard','arctic freezer','arctic liquid','noctua','dark rock','рамка сокета','рамка для сокета','cpu cooler','cpu fan','cpu кулер','процессорный кулер','кулер для процессор','система охлаждения','системы охлаждения','кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
   ['Ноутбуки',['ноутбук','notebook','laptop']],
   ['Мониторы',['монитор','monitor']],
-  ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','ибп','ups']],
+  ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','projector','optoma','dlp','ибп','ups']],
   ['Сетевое оборудование',['домофон','intercom','роутер','маршрутизатор','router','коммутатор','switch','wi-fi','wifi','точка доступа','сетев']],
   ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
   ['Компьютеры и моноблоки',['моноблок','all-in-one','системный блок','компьютер','неттоп','мини-пк','mini pc','minipc']],
-  ['Видеонаблюдение и безопасность',['брелок','бесконтактн','замок','видеонаблюд','видеокамер','ip камер','ip-камер','видеорегистратор','ezviz','hikvision','dahua']],
+  ['Видеонаблюдение и безопасность',['ajax','умная розетка','умный датчик','брелок','бесконтактн','замок','видеонаблюд','видеокамер','ip камер','ip-камер','видеорегистратор','ezviz','hikvision','dahua']],
   ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
 ];
 const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
 const siteLetter=ch=>!!ch&&/[a-zа-яё0-9]/i.test(ch);
 function siteFind(s){let best=null;if(!s)return null;
-  SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){const sh=/^[a-z]{2,4}$/.test(w);const bad=i=>siteLetter(s[i-1])||(sh&&(s[i-1]==='-'||s[i-1]==='/'));let i=s.indexOf(w);while(i>=0&&bad(i))i=s.indexOf(w,i+1);
+  SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){const sh=/^[a-z]{2,4}$/.test(w);const bad=i=>siteLetter(s[i-1])||(sh&&(s[i-1]==='-'||s[i-1]==='/'));const bad2=i=>bad(i)||(w==='монитор'&&s[i+7]==='и');let i=s.indexOf(w);while(i>=0&&bad2(i))i=s.indexOf(w,i+1);
     if(i>=0&&(!best||i<best.i||(i===best.i&&w.length>best.l)))best={i,c:ci,l:w.length}}});return best}
 // Категория: по первым словам названия, иначе по группе в прайсе, иначе по любому слову названия
 // Ноутбук без слова «ноутбук»: мобильный процессор (i3-7020U, 7530U, …HX) или экран в дюймах вместе с процессором
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d|\d+\s?gb.*(ssd|hdd)|(ssd|hdd).*\d+\s?gb/.test(nl))
   ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
-function siteCat(nl,gl){if(/домофон|intercom/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
+function siteCat(nl,gl){if(/домофон|intercom/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');if(/(^|[^a-z])ajax([^a-z]|$)/.test(nl))return SITE_NAMES.indexOf('Видеонаблюдение и безопасность');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
   // Блоки питания без слов «блок питания»: 80 PLUS, ATX 3.0, разъёмы 24 (20+4)Pin, 12VHPWR, «модульный»
   const PS=SITE_NAMES.indexOf('Блоки питания');
   if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
