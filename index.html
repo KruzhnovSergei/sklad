@@ -2735,6 +2735,8 @@ function siteFind(s){let best=null;if(!s)return null;
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d|\d+\s?gb.*(ssd|hdd)|(ssd|hdd).*\d+\s?gb/.test(nl))
   ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
 function siteCat(nl,gl){
+  // корпуса: «w/o PSU», «без БП», габариты 400*176*410mm
+  if(/w\/o\s?psu|without psu|без бп|без блока питания|\d{3}\s?[*x×]\s?\d{3}\s?[*x×]\s?\d{3}\s?mm/.test(nl))return SITE_NAMES.indexOf('Корпуса');
   // платы, T-Con и подсветка для телевизоров (Mainboard for Hisense …)
   if(/(mainboard|main board|t-?con|подсветк|плата)[^,]*(^|[^a-zа-я])(for|для)([^a-zа-я])[^,]*(hisense|samsung|lg|tcl|xiaomi|artel|philips|sony|телевизор|tv)/.test(nl)||/для телевизор|(^|[^a-z])for tv/.test(nl))return SITE_NAMES.indexOf('Запчасти для телевизоров');if(/домофон|intercom|touch memory|ds-?1990|ibutton/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');if(/(^|[^a-z])ajax([^a-z]|$)/.test(nl))return SITE_NAMES.indexOf('Видеонаблюдение и безопасность');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
   // Блоки питания без слов «блок питания»: 80 PLUS, ATX 3.0, разъёмы 24 (20+4)Pin, 12VHPWR, «модульный»
