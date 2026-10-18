@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 11:47</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:35</span>
     </div>
   </aside>
   <div class="main">
@@ -1566,7 +1566,10 @@ function vReports(){
   const cogs=sales.reduce((s,o)=>s+docCost(o),0)-rets.filter(o=>o.restock).reduce((s,o)=>s+docCost(o),0)+wxCost;
   const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const prof=rev-cogs-offProp;const purch=ops.filter(o=>o.type==='in'&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
   const discG=sales.reduce((s,o)=>s+(o.items||[]).reduce((a,i)=>a+num(i.q)*num(i.price)-isum(i),0),0);
-  const debtG=sales.reduce((s,o)=>s+num(o.total)-num(o.paid??o.total),0),debtR=pays.reduce((s,o)=>s+num(o.amount),0);
+  let debtG=sales.filter(o=>!o.cust).reduce((s,o)=>s+num(o.total)-num(o.paid??o.total),0),debtR=0,advUsed=0;
+  {const CB={};const ch=S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+   for(const o of ch){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;
+     if(!inR(o,rg))continue;if(o.type==='sale'){if(!inW(o))continue;const inc=Math.max(0,b1)-Math.max(0,b0);debtG+=inc;advUsed+=Math.max(0,(b1-b0)-inc)}else if(!o.init)debtR+=Math.max(0,Math.max(0,b0)-Math.max(0,b1))}}
   const debtNow=S.cust.reduce((s,c)=>s+Math.max(0,debtOf(c.id)),0);
   const days=Math.round((sod(to)-from)/864e5)+1;const monthly=days>62;const B=[],idx={};
   if(monthly){let d=new Date(from.getFullYear(),from.getMonth(),1);while(d<=to){idx[d.getFullYear()+'-'+d.getMonth()]=B.length;B.push({l:d.toLocaleDateString('ru-RU',{month:'short',year:'2-digit'}),rev:0,prof:0});d=new Date(d.getFullYear(),d.getMonth()+1,1)}}
@@ -1598,7 +1601,7 @@ function vReports(){
    <div class="kpi"><span>Скидки</span><b>${money(discG)}</b></div>
    <div class="kpi"><span>Возвраты покупателям</span><b>${money(retSum)}</b></div>
    ${sc?`<div class="kpi"><span>Замены по гарантии, себестоимость</span><b>${money(wxCost)}</b></div>`:''}
-   <div class="kpi"><span>Продано в долг</span><b class="debt">${money(debtG)}</b><small>погашено ${money(debtR)}</small></div>
+   <div class="kpi"><span>Продано в долг</span><b class="debt">${money(debtG)}</b><small>погашено ${money(debtR)}${advUsed>0.004?` · оплачено из предоплаты ${money(advUsed)}`:''}</small></div>
    <div class="kpi"><span>Долг покупателей сейчас</span><b>${money(debtNow)}</b></div>
    ${sc?`<div class="kpi"><span>Наш долг поставщикам</span><b>${money(S.supp.reduce((a,x)=>a+Math.max(0,supDebtOf(x.id)),0))}</b></div>`:''}
    ${sc?`<div class="kpi"><span>Закуплено</span><b>${money(purch)}</b><small>списано ${money(offs)}${propIn?' · имущество куплено '+money(propIn):''}</small></div>`:''}</div>
