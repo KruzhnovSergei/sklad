@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:27</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:30</span>
     </div>
   </aside>
   <div class="main">
@@ -1623,6 +1623,15 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
    <div class="kpi"><span>Долг покупателей сейчас</span><b>${money(debtNow)}</b></div>
    ${sc?`<div class="kpi"><span>Наш долг поставщикам</span><b>${money(S.supp.reduce((a,x)=>a+Math.max(0,supDebtOf(x.id)),0))}</b></div>`:''}
    ${sc?`<div class="kpi"><span>Закуплено</span><b>${money(purch)}</b><small>списано ${money(offs)}${propIn?' · имущество куплено '+money(propIn):''}</small></div>`:''}</div>
+  ${S.repWh==='all'&&saleWhs().length>1?(()=>{const W={};const g=id=>W[id]??={rev:0,prof:0,n:0,gross:0};
+    for(const o of sales){const x=g(o.wh);x.n++;x.gross+=num(o.total);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev+=r;x.prof+=r-num(i.q)*icost(o,k)})}
+    for(const o of rets){const x=g(o.wh);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev-=r;x.prof-=r-(o.restock?num(i.q)*icost(o,k):0)})}
+    for(const o of wxs)g(o.wh).prof-=docCost(o);
+    const L=saleWhs().map(w=>({w,...(W[w.id]||{rev:0,prof:0,n:0,gross:0})}));const mx=Math.max(1,...L.map(x=>x.rev));const T=L.reduce((a,x)=>({rev:a.rev+x.rev,prof:a.prof+x.prof,n:a.n+x.n,gross:a.gross+x.gross}),{rev:0,prof:0,n:0,gross:0});
+    return `<section class="pane"><div class="pane-h"><h2>По складам</h2><span class="muted small">${ds(from)} — ${ds(to)}</span></div><div class="tbl"><table><thead><tr><th>Склад</th><th class="num">Выручка</th>${sc?'<th class="num">Прибыль</th><th class="num">Маржа</th>':''}<th class="num">Чеков</th><th class="num">Средний чек</th><th class="num">Доля выручки</th></tr></thead><tbody>
+     ${L.sort((a,b)=>b.rev-a.rev).map(x=>`<tr><td class="barcell" style="--w:${(Math.max(0,x.rev)/mx*100).toFixed(1)}%"><span>${esc(x.w.name)}</span></td><td class="num">${money(x.rev)}</td>${sc?`<td class="num" style="color:${x.prof<0?'var(--bad)':'var(--good)'}">${money(x.prof)}</td><td class="num">${x.rev?NF.format(r2(x.prof/x.rev*100))+'%':'—'}</td>`:''}<td class="num">${x.n}</td><td class="num">${x.n?money(x.gross/x.n):'—'}</td><td class="num">${T.rev?NF.format(r2(x.rev/T.rev*100))+'%':'—'}</td></tr>`).join('')}
+     <tr style="font-weight:700"><td>Итого</td><td class="num">${money(T.rev)}</td>${sc?`<td class="num">${money(T.prof)}</td><td class="num">${T.rev?NF.format(r2(T.prof/T.rev*100))+'%':'—'}</td>`:''}<td class="num">${T.n}</td><td class="num">${T.n?money(T.gross/T.n):'—'}</td><td class="num">100%</td></tr></tbody></table></div>
+     <p class="muted small" style="margin-top:6px">Прибыль — валовая: выручка минус себестоимость проданного (с учётом возвратов и замен по гарантии). Общие расходы по складам не делятся.</p></section>`})():''}
   <section class="pane"><div class="pane-h"><h2>Выручка${sc?' и прибыль':''} ${monthly?'по месяцам':'по дням'}</h2><div class="legend"><span><i style="background:var(--accent-soft)"></i>Выручка</span>${sc?'<span><i style="background:var(--accent)"></i>Прибыль</span>':''}</div></div>
    ${sales.length?chartSvg(B,sc):'<div class="empty">За выбранный период продаж нет</div>'}</section>
   ${gL.length?`<section class="pane"><div class="pane-h"><h2>Продажи по группам</h2></div><div class="tbl"><table><thead><tr><th>Группа</th><th class="num">Продано</th><th class="num">Выручка</th>${sc?'<th class="num">Прибыль</th><th class="num">Маржа</th>':''}</tr></thead><tbody>${gL.map(([g,t])=>`<tr><td class="barcell" style="--w:${(Math.max(0,t.rev)/gMax*100).toFixed(1)}%"><span>${esc(g)}</span></td><td class="num">${q3(t.q)}</td><td class="num">${NF.format(r2(t.rev))}</td>${sc?`<td class="num">${NF.format(r2(t.prof))}</td><td class="num muted">${t.rev?NF.format(r2(t.prof/t.rev*100))+'%':'—'}</td>`:''}</tr>`).join('')}</tbody></table></div></section>`:''}
