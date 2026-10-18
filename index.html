@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:02</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:08</span>
     </div>
   </aside>
   <div class="main">
@@ -1245,7 +1245,7 @@ function consFiltered(agg){const F=S.consF||'open';const q=(S.consQ||'').trim().
 function consListHtml(list,sel,sc){return list.length?`<table><thead><tr><th>Поставщик</th><th class="num">Позиций</th><th class="num">Остаток</th>${sc?'<th class="num">Остаток на сумму</th><th class="num">Продано на сумму</th><th class="num">Наш долг</th>':''}</tr></thead><tbody>${list.map(a=>`<tr class="jrow" tabindex="0" data-act="cons-sel" data-id="${esc(a.sid)}" aria-expanded="${sel===a.sid}"${sel===a.sid?' style="background:var(--accent-soft)"':''}><td><b>${esc(a.name)}</b></td><td class="num">${a.pos}</td><td class="num">${q3(a.rem)} шт</td>${sc?`<td class="num">${money(a.remv)}</td><td class="num">${money(a.sum)}</td><td class="num${a.d>0.004?' debt':''}">${money(a.d)}</td>`:''}</tr>`).join('')}</tbody></table>`:`<div class="empty">${S.consLots?.length?'Нет поставщиков с остатком':'Товара под реализацией пока нет'}</div>`}
 function consSuppHtml(sid,sc,F){const rs=consRows().filter(r=>r.supp===sid&&(F==='all'||r.rem>0.0005||true)).sort((a,b)=>(b.rem>0)-(a.rem>0)||pname(a.p).localeCompare(pname(b.p),'ru'));const d=supDebtOf(sid);
   return `<section class="pane" id="consSupp"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>${esc(sname(sid))}</h2><div class="row" style="gap:8px">${sc?`<span class="small">Наш долг: <b class="${d>0.004?'debt':''}">${money(d)}</b></span>`:''}${sc&&d>0.004?`<button class="btn ghost" style="padding:6px 12px" data-act="spay-new" data-id="${esc(sid)}"${ro('suppliers')}>Оплатить</button>`:''}
-   <span class="muted small">Остаток для поставщика:</span><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="pdf" data-id="${esc(sid)}">PDF</button><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="xlsx" data-id="${esc(sid)}">Excel</button><button class="btn link" data-act="cons-sel" data-id="${esc(sid)}">Свернуть</button></div></div>
+   <span class="muted small">Остаток для поставщика:</span><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="pdf" data-id="${esc(sid)}">PDF</button><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="xlsx" data-id="${esc(sid)}">Excel</button>${can('stock')&&consRows().some(r=>r.supp===sid&&r.rem>0.0005)?`<button class="btn ghost" style="padding:6px 12px" data-act="cretm" data-id="${esc(sid)}">Вернуть несколько</button>`:''}<button class="btn link" data-act="cons-sel" data-id="${esc(sid)}">Свернуть</button></div></div>
    <div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Взято</th><th class="num">Продано</th><th class="num">Возвращено</th><th class="num">Остаток</th>${sc?'<th class="num">Цена</th><th class="num">За проданное</th>':''}<th></th></tr></thead><tbody>
    ${rs.map(r=>`<tr${r.rem>0.0005?'':' class="muted"'}><td><span class="pname">${esc(pname(r.p))}</span><span class="psku">последний приход ${ds(r.last)}</span></td><td class="num">${q3(r.q)}</td><td class="num">${q3(r.sold)}</td><td class="num">${q3(r.ret)}</td><td class="num"><b>${q3(r.rem)}</b> ${esc(unit(r.p))}</td>${sc?`<td class="num">${NF.format(r2(r.q?r.val/r.q:0))}</td><td class="num">${money(r.sum)}</td>`:''}<td style="text-align:right">${r.rem>0.0005?`<button class="btn link" data-act="cret" data-s="${esc(r.supp)}" data-p="${esc(r.p)}"${ro('stock')}>Вернуть</button>`:''}</td></tr>`).join('')}</tbody></table></div></section>`}
 function cretForm(supp,p){const ls=(S.consLots||[]).filter(l=>l.supp===supp&&l.p===p);const rem=r3(ls.reduce((a,l)=>a+l.rem,0));const ser=ls.some(l=>l.serial);
@@ -1264,6 +1264,23 @@ async function saveCret(supp,p){const err=$('#cr-err');err.textContent='';const 
   if(q>rem+0.0005){err.textContent=`Не продано только ${q3(rem)}`;return}if(q>qty(wh,p)+0.0005){err.textContent=`На складе только ${q3(qty(wh,p))}`;return}
   const it={p,q};if(sn.length)it.sn=sn;const doc={type:'off',at:now(),wh,items:[it],party:'Возврат поставщику: '+sname(supp),cret:true,supp,by:S.uid||null};const ref=S.db.collection('ops').doc();
   if(await guard(()=>ref.set(doc),'Возврат оформлен','stock')){closeModal(true);derive();render();showReceipt({id:ref.id,...doc})}}
+
+function cretmRows(){const M=S.cretm;const by={};for(const l of (S.consLots||[]).filter(l=>l.supp===M.supp&&l.rem>0.0005)){const x=(by[l.p]??={p:l.p,rem:0,ser:false,sns:[]});x.rem=r3(x.rem+l.rem);if(l.serial){x.ser=true;x.sns.push(...[...l.left].filter(z=>S.snLoc[z]?.wh===M.wh))}}
+  return Object.values(by).map(x=>({...x,avail:x.ser?x.sns.length:Math.min(x.rem,qty(M.wh,x.p))})).filter(x=>x.avail>0.0005).sort((a,b)=>pname(a.p).localeCompare(pname(b.p),'ru'))}
+function cretmForm(supp){const whs=S.wh.filter(w=>(S.consLots||[]).some(l=>l.supp===supp&&l.rem>0.0005&&qty(w.id,l.p)>0));if(!whs.length){toast('Товара этого поставщика нет на складах');return}
+  S.cretm={supp,wh:S.cretm?.supp===supp&&whs.some(w=>w.id===S.cretm.wh)?S.cretm.wh:whs[0].id,sel:{},q:{},sn:{}};cretmRender()}
+function cretmRender(){const M=S.cretm;const whs=S.wh.filter(w=>(S.consLots||[]).some(l=>l.supp===M.supp&&l.rem>0.0005&&qty(w.id,l.p)>0));const R=cretmRows();
+  openModal(`<h2>Возврат поставщику · ${esc(sname(M.supp))}</h2><p class="muted small">Отметьте товары — получится один документ «Возврат поставщику» со всеми позициями.</p>
+  <div class="row" style="align-items:flex-end"><label class="field" style="flex:0 1 280px"><span>С какого склада</span><select data-ch="cretm-wh">${whs.map(w=>`<option value="${esc(w.id)}"${w.id===M.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label><button class="btn link" data-act="cretm-all">Отметить все</button><button class="btn link" data-act="cretm-none">Снять все</button></div>
+  <div class="tbl" style="max-height:420px;overflow:auto"><table><thead><tr><th></th><th>Товар</th><th class="num">Не продано</th><th class="num">Вернуть</th></tr></thead><tbody>${R.map(x=>{const on=!!M.sel[x.p];return `<tr><td><input type="checkbox" data-ch="cretm-sel" data-p="${esc(x.p)}"${on?' checked':''}></td><td><span class="pname">${esc(pname(x.p))}</span>${x.ser&&on?`<div class="row" style="gap:4px 12px;flex-wrap:wrap;margin-top:4px">${x.sns.map(z=>`<label class="check small"><input type="checkbox" data-ch="cretm-sn" data-p="${esc(x.p)}" value="${esc(z)}"${(M.sn[x.p]||x.sns).includes(z)?' checked':''}> <span class="mono">${esc(z)}</span></label>`).join('')}</div>`:''}</td><td class="num">${q3(x.rem)} ${esc(unit(x.p))}</td><td class="num">${x.ser?`<b>${on?(M.sn[x.p]||x.sns).length:0}</b>`:`<input class="xs" inputmode="decimal" data-in="cretm-q" data-p="${esc(x.p)}" value="${esc(M.q[x.p]??x.avail)}"${on?'':' disabled'}>`}</td></tr>`}).join('')||'<tr><td colspan="4" class="muted">На этом складе нет товара этого поставщика</td></tr>'}</tbody></table></div>
+  <div class="err" id="cretm-err"></div>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="cretm-save">Оформить возврат (${Object.keys(M.sel).filter(k=>M.sel[k]).length} поз.)</button></div>`);$('#mcard').classList.add('wide')}
+async function cretmSave(){const M=S.cretm;const err=$('#cretm-err');const R=cretmRows();const items=[];
+  for(const x of R){if(!M.sel[x.p])continue;if(x.ser){const sn=(M.sn[x.p]||x.sns).filter(z=>S.snLoc[z]?.wh===M.wh);if(!sn.length)continue;items.push({p:x.p,q:sn.length,sn})}
+    else{const q=r3(num(M.q[x.p]??x.avail));if(q<=0)continue;if(q>x.avail+0.0005){err.textContent=`«${pname(x.p)}»: можно вернуть не больше ${q3(x.avail)}`;return}items.push({p:x.p,q})}}
+  if(!items.length){err.textContent='Отметьте товары';return}
+  const doc={type:'off',at:now(),wh:M.wh,items,party:'Возврат поставщику: '+sname(M.supp),cret:true,supp:M.supp,by:S.uid||null};const ref=S.db.collection('ops').doc();
+  if(await guard(()=>ref.set(doc),`Возврат оформлен: ${items.length} поз.`,'stock')){S.cretm=null;closeModal(true);if(!S.ops.some(x=>x.id===ref.id))S.ops.push({id:ref.id,...doc});derive();render();showReceipt({id:ref.id,...doc})}}
 
 /* ---------- заказы поставщикам ---------- */
 const poNo=po=>'ЗК-'+(S.seqMap?.[po.id]||po.id.slice(-6).toUpperCase());
@@ -2977,7 +2994,8 @@ consf:t=>{S.consF=t.dataset.v;render()},
 'cons-sel':t=>{S.consSel=S.consSel===t.dataset.id?null:t.dataset.id;render();if(S.consSel)setTimeout(()=>$('#consSupp')?.scrollIntoView({behavior:'smooth',block:'start'}),30)},
 'cons-dl':t=>consDl(t.dataset.id,t.dataset.f),
 cret:t=>cretForm(t.dataset.s,t.dataset.p),
-'cret-save':t=>saveCret(t.dataset.s,t.dataset.p),
+'cret-save':t=>saveCret(t.dataset.s,t.dataset.p),'cretm':t=>cretmForm(t.dataset.id),'cretm-save':()=>cretmSave(),
+'cretm-all':()=>{cretmRows().forEach(x=>S.cretm.sel[x.p]=true);cretmRender()},'cretm-none':()=>{S.cretm.sel={};cretmRender()},
 'cons-go':()=>{S.tab='ops';S.opMode='cons';render()},
 'po-unlink':()=>{S.op.po=null;render()},
   'po-pay':t=>{const po=S.posL.find(x=>x.id===t.dataset.id);if(po)poPayForm(po)},
@@ -3181,6 +3199,7 @@ const IN={
   kitq:t=>{S.kitQ=t.value;$('#kitRes').innerHTML=kitResults()},kitf:t=>{S.kitEd[t.dataset.f]=t.value;if(t.dataset.f==='price'){const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=num(t.value);$('#kitPct').value=sep&&pr?r2((1-pr/sep)*100):'';$('#kitGain').textContent=sep&&pr&&sep>pr?money(sep-pr):'—'}},
   impsn:t=>{const I=S.imp;const x=I?.items[I.snEdit];const e=$('#impSnCnt');if(x&&e)e.textContent=`Введено: ${impSnParse(t.value).length} из ${q3(x.qty)}`},
   lbl:t=>{S.lbl[t.dataset.f]=t.value;lblKeep();lblPrev()},
+  'cretm-q':t=>{S.cretm.q[t.dataset.p]=t.value},
   kitl:t=>{S.kitEd.items[+t.dataset.i].q=t.value},kitpct:t=>{const sep=r2(S.kitEd.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));const pr=r2(sep*(1-num(t.value)/100));S.kitEd.price=pr;$('#kitPrice').value=pr;$('#kitGain').textContent=sep>pr?money(sep-pr):'—'},
   sncv:t=>{const n=snSplit(t.value).length;const e=$('#sncvN'+t.dataset.i);if(e){e.textContent=n;const q=S.snConv?.blocks[+t.dataset.i]?.q;e.style.color=n===q?'var(--good)':n>q?'var(--bad)':''}},
   saleq:t=>{S.saleQ=t.value;$('#saleGrid').innerHTML=saleTiles()},
@@ -3268,7 +3287,8 @@ opdebt:t=>{S.op.debtOn=t.checked;if(S.op.debtOn&&S.op.paidNow==='')S.op.paidNow=
   posupp:t=>{S.po.supp=t.value},powh:t=>{S.po.wh=t.value},poeta:t=>{S.po.eta=t.value},
   pog:t=>{S.po.g=t.value;$('#poPick').innerHTML=poPickOpts()},
   popick:t=>{const id=t.value;if(!id)return;if(!S.po.items.some(l=>l.p===id))S.po.items.push({p:id,q:1,price:num(S.costs[id]?.buyPrice)});render()},
-  macc:t=>{S.mAcc=t.value;render()},
+  macc:t=>{S.mAcc=t.value;render()},'cretm-wh':t=>{S.cretm.wh=t.value;S.cretm.sel={};S.cretm.q={};S.cretm.sn={};cretmRender()},'cretm-sel':t=>{S.cretm.sel[t.dataset.p]=t.checked;cretmRender()},
+  'cretm-sn':t=>{const M=S.cretm;const x=cretmRows().find(r=>r.p===t.dataset.p);let L=M.sn[t.dataset.p]||[...(x?.sns||[])];L=t.checked?[...new Set([...L,t.value])]:L.filter(z=>z!==t.value);M.sn[t.dataset.p]=L;cretmRender()},
   opppay:t=>{S.op.ppay=t.value},
 opdlvacc:t=>{S.op.dlvAcc=t.value},
   mfacc:t=>{const e=$('#mfCur');if(e){const {bal}=moneyEvents();e.textContent=`По учёту сейчас: ${money(bal[t.value]||0)}. Введите сумму, которая есть на самом деле. Разница запишется как корректировка.`}},
