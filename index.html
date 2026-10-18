@@ -2742,7 +2742,11 @@ function siteCat(nl,gl){
   if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
   if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
   const VG=SITE_NAMES.indexOf('Видеокарты'),MB=SITE_NAMES.indexOf('Материнские платы'),MN=SITE_NAMES.indexOf('Мониторы');
+  const RM=SITE_NAMES.indexOf('Оперативная память');
   const weak=!a||a.i>=14||a.c===0||a.c===VG;
+  // Материнская плата по чипсету + сокету (Б/У LGA 1200 Maxsun B760M … DDR5)
+  const chip=/(^|[^a-z0-9])([hbz][1-8]\d{2}|a[3-6]\d{2}|x[3-8]\d{2}|x99|x79)m?(-|[^a-z0-9]|$)/.test(nl);
+  if((weak||a.c===RM)&&chip&&/lga\s?\d{3,4}|(^|[^a-z])am[2-5]([^a-z0-9]|$)|материнск|motherboard|mainboard/.test(nl)&&!/core i|ryzen|процессор|cpu/.test(nl))return MB;
   // Материнские платы: «MB …», слоты «2xDDR4», сокет вместе с форм-фактором mATX/ATX/ITX
   if(weak&&(/^mb\b/.test(nl)||/\d\s?x\s?ddr\d/.test(nl)||(/lga\s?\d{3,4}|\bam[2345]\b|\bfm2/.test(nl)&&/\b(m-?atx|e-?atx|atx|mini-?itx|itx)\b/.test(nl))))return MB;
   // Мониторы: диагональ от 17" и параметры экрана (cd/m2, Гц, мс, FHD, IPS, VA, LED)
