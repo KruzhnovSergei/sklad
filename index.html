@@ -2736,7 +2736,7 @@ const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(
   ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
 function siteCat(nl,gl){
   // платы, T-Con и подсветка для телевизоров (Mainboard for Hisense …)
-  if(/(mainboard|main board|t-?con|подсветк|плата)[^,]*(^|[^a-zа-я])(for|для)([^a-zа-я])[^,]*(hisense|samsung|lg|tcl|xiaomi|artel|philips|sony|телевизор|tv)/.test(nl)||/для телевизор|(^|[^a-z])for tv/.test(nl))return SITE_NAMES.indexOf('Запчасти для телевизоров');if(/домофон|intercom/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');if(/(^|[^a-z])ajax([^a-z]|$)/.test(nl))return SITE_NAMES.indexOf('Видеонаблюдение и безопасность');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
+  if(/(mainboard|main board|t-?con|подсветк|плата)[^,]*(^|[^a-zа-я])(for|для)([^a-zа-я])[^,]*(hisense|samsung|lg|tcl|xiaomi|artel|philips|sony|телевизор|tv)/.test(nl)||/для телевизор|(^|[^a-z])for tv/.test(nl))return SITE_NAMES.indexOf('Запчасти для телевизоров');if(/домофон|intercom|touch memory|ds-?1990|ibutton/.test(nl))return SITE_NAMES.indexOf('Сетевое оборудование');if(/(^|[^a-z])ajax([^a-z]|$)/.test(nl))return SITE_NAMES.indexOf('Видеонаблюдение и безопасность');const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
   // Блоки питания без слов «блок питания»: 80 PLUS, ATX 3.0, разъёмы 24 (20+4)Pin, 12VHPWR, «модульный»
   const PS=SITE_NAMES.indexOf('Блоки питания');
   if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
@@ -2746,6 +2746,8 @@ function siteCat(nl,gl){
   const weak=!a||a.i>=14||a.c===0||a.c===VG;
   // Материнская плата по чипсету + сокету (Б/У LGA 1200 Maxsun B760M … DDR5)
   const chip=/(^|[^a-z0-9])([hbz][1-8]\d{2}|a[3-6]\d{2}|x[3-8]\d{2}|x99|x79)m?(-|[^a-z0-9]|$)/.test(nl);
+  // SSD с «Memory» в названии бренда (Union Memory … NVMe M.2)
+  if((weak||a.c===RM)&&/nvme|m\.2\s?22\d0|(^|[^a-z])ssd([^a-z]|$)|read\/write|pcie gen/.test(nl)&&!/ddr\d|dimm/.test(nl))return SITE_NAMES.indexOf('Накопители');
   if((weak||a.c===RM)&&chip&&/lga\s?\d{3,4}|(^|[^a-z])am[2-5]([^a-z0-9]|$)|материнск|motherboard|mainboard/.test(nl)&&!/core i|ryzen|процессор|cpu/.test(nl))return MB;
   // Материнские платы: «MB …», слоты «2xDDR4», сокет вместе с форм-фактором mATX/ATX/ITX
   if(weak&&(/^mb\b/.test(nl)||/\d\s?x\s?ddr\d/.test(nl)||(/lga\s?\d{3,4}|\bam[2345]\b|\bfm2/.test(nl)&&/\b(m-?atx|e-?atx|atx|mini-?itx|itx)\b/.test(nl))))return MB;

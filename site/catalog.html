@@ -189,7 +189,7 @@
   const SUB={
     'Процессоры':[l=>sock(l),l=>has(l,/intel|core|celeron|pentium|xeon/)?'Intel (другие)':'',l=>has(l,/amd|ryzen|athlon/)?'AMD (другие)':''],
     'Материнские платы':[l=>sock(l)],
-    'Оперативная память':[l=>has(l,/so-?dimm|ноутбук|notebook|laptop/)?'Для ноутбука':'',l=>has(l,/ddr5/)?'DDR5':'',l=>has(l,/ddr4/)?'DDR4':'',l=>has(l,/ddr3/)?'DDR3':''],
+    'Оперативная память':[l=>has(l,/so-?dimm|ноутбук|notebook|laptop/)?'Для ноутбука':'',l=>has(l,/ddr5/)?'DDR5':'',l=>has(l,/ddr4/)?'DDR4':'',l=>has(l,/ddr3/)?'DDR3':'',l=>{if(/pc5-/.test(l))return 'DDR5';if(/pc4-/.test(l))return 'DDR4';if(/pc3l?-/.test(l))return 'DDR3';const m=l.match(/(\d{4})\s?(mhz|mt\/s)/);if(!m)return '';const f=+m[1];return f>=4800?'DDR5':f>=2133?'DDR4':f>=800?'DDR3':''}],
     'Накопители':[l=>has(l,/внешн|external|portable/)?'Внешние диски':'',l=>has(l,/флеш|flash|usb drive|карта памяти|micro\s?sd|sd card|sdxc|sdhc/)?'Флешки и карты памяти':'',l=>has(l,/nvme|m\.2|\bm2\b/)?'SSD M.2 NVMe':'',l=>has(l,/ssd/)?'SSD 2.5" SATA':'',l=>has(l,/hdd|жестк/)?'Жёсткие диски HDD':''],
     'Видеокарты':[l=>has(l,/geforce|rtx|gtx|nvidia|quadro|(^|[^a-z])gt\s?\d{3,4}/)?'NVIDIA GeForce':'',l=>has(l,/radeon|\brx\s?\d/)?'AMD Radeon':'',l=>has(l,/\barc\b/)?'Intel Arc':''],
     'Блоки питания':[l=>{const w=watt(l);return !w?'':w<=500?'до 500 Вт':w<=700?'550–700 Вт':w<=850?'750–850 Вт':'1000 Вт и выше'}],
@@ -199,7 +199,7 @@
     'Оргтехника':[l=>has(l,/картридж|тонер|cartridge|toner|чернил|\bink\b|драм|drum/)?'Картриджи и тонеры':'',l=>has(l,/принтер|мфу|printer|mfp/)?'Принтеры и МФУ':'',l=>has(l,/ибп|\bups\b/)?'ИБП':'',l=>has(l,/сканер|scanner/)?'Сканеры':'',l=>has(l,/проектор|projector/)?'Проекторы':''],
     'Периферия':[l=>has(l,/комплект|\bset\b|combo/)?'Комплекты клавиатура + мышь':'',l=>has(l,/мыш|mouse/)?'Мыши':'',l=>has(l,/клавиатур|keyboard/)?'Клавиатуры':'',l=>has(l,/наушник|гарнитур|headset|headphone|earbuds/)?'Наушники и гарнитуры':'',l=>has(l,/колонк|speaker|акустик|саундбар|soundbar/)?'Колонки':'',l=>has(l,/веб|webcam/)?'Веб-камеры':'',l=>has(l,/микрофон|microphone/)?'Микрофоны':'',l=>has(l,/геймпад|джойстик|gamepad|руль/)?'Геймпады и рули':''],
     'Инструменты':[l=>has(l,/набор|kit|комплект/)?'Наборы инструментов':'',l=>has(l,/отвертк|отвёртк|отверток|отвёрток|screwdriver|бит[аы ]/)?'Отвёртки и биты':'',l=>has(l,/паяльн|soldering|припой|флюс|термофен/)?'Пайка':'',l=>has(l,/кримпер|обжимн|crimp|стриппер/)?'Обжим кабеля':'',l=>has(l,/мультиметр|multimeter|тестер|tester/)?'Измерительные приборы':'',l=>has(l,/пассатиж|плоскогубц|кусачк|бокорез|пинцет/)?'Плоскогубцы, кусачки, пинцеты':''],
-    'Сетевое оборудование':[l=>has(l,/домофон|intercom/)?'Домофоны':'',l=>has(l,/роутер|router|маршрутизатор/)?'Роутеры':'',l=>has(l,/коммутатор|switch/)?'Коммутаторы':'',l=>has(l,/точка доступа|access point/)?'Точки доступа':'',l=>has(l,/адаптер|adapter/)?'Сетевые адаптеры':'',l=>has(l,/кабель|патч|patch|utp|cable/)?'Кабели':'']
+    'Сетевое оборудование':[l=>has(l,/домофон|intercom|touch memory|ds-?1990|ibutton/)?'Домофоны':'',l=>has(l,/роутер|router|маршрутизатор/)?'Роутеры':'',l=>has(l,/коммутатор|switch/)?'Коммутаторы':'',l=>has(l,/точка доступа|access point/)?'Точки доступа':'',l=>has(l,/адаптер|adapter/)?'Сетевые адаптеры':'',l=>has(l,/кабель|патч|patch|utp|cable/)?'Кабели':'']
   };
   const subOf=(c,l)=>{const R=SUB[CATS[c]];if(!R)return '';for(const f of R){const v=f(l);if(v)return v}return 'Другие'};
   function renderSubs(){
