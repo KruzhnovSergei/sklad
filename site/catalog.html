@@ -108,9 +108,9 @@
       <input id="q" type="search" placeholder="Поиск: RTX 4060, Ryzen 5, SSD 1TB…" autocomplete="off">
       <label for="sort" style="position:absolute;left:-9999px">Сортировка</label>
       <select id="sort">
-        <option value="name">По названию</option>
-        <option value="asc">Сначала дешевле</option>
+        <option value="asc" selected>Сначала дешевле</option>
         <option value="desc">Сначала дороже</option>
+        <option value="name">По названию</option>
       </select>
     </div>
     <div class="count" id="count" aria-live="polite"></div>
@@ -157,7 +157,7 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>NF.format(v)+' сом';
-  let ITEMS=[],CATS=[],CNT=[],cat=-1,q='',sort='name',shown=PAGE,cart={};
+  let ITEMS=[],CATS=[],CNT=[],cat=-1,q='',sort='asc',shown=PAGE,cart={};
 
   // корзина хранится в браузере покупателя
   try{cart=JSON.parse(localStorage.getItem('bc_cart')||'{}')||{}}catch(e){cart={}}
