@@ -2713,7 +2713,7 @@ const SITE_CATS=[
   ['Накопители',['ssd','hdd','жестк','накопител','nvme','флеш','flash','карта памяти','microsd','usb drive']],
   ['Блоки питания',['блок питания','блоки питания','power supply','psu','бп']],
   ['Корпуса',['корпус','case','chassis']],
-  ['Охлаждение',['рамка сокета','рамка для сокета','cpu cooler','cpu fan','cpu кулер','процессорный кулер','кулер для процессор','система охлаждения','системы охлаждения','кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
+  ['Охлаждение',['deepcool ak','deepcool ag','deepcool as','deepcool an','deepcool gammax','deepcool ls','id-cooling','pccooler','pc cooler','lovingcool','jungle leopard','arctic freezer','arctic liquid','noctua','dark rock','рамка сокета','рамка для сокета','cpu cooler','cpu fan','cpu кулер','процессорный кулер','кулер для процессор','система охлаждения','системы охлаждения','кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
   ['Ноутбуки',['ноутбук','notebook','laptop']],
   ['Мониторы',['монитор','monitor']],
   ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','ибп','ups']],
@@ -2721,7 +2721,7 @@ const SITE_CATS=[
   ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
   ['Компьютеры и моноблоки',['моноблок','all-in-one','системный блок','компьютер','неттоп','мини-пк','mini pc','minipc']],
   ['Видеонаблюдение и безопасность',['брелок','бесконтактн','замок','видеонаблюд','видеокамер','ip камер','ip-камер','видеорегистратор','домофон','ezviz','hikvision','dahua']],
-  ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','крепление','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
+  ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
 ];
 const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
 const siteLetter=ch=>!!ch&&/[a-zа-яё0-9]/i.test(ch);
@@ -2732,6 +2732,9 @@ function siteFind(s){let best=null;if(!s)return null;
 // Ноутбук без слова «ноутбук»: мобильный процессор (i3-7020U, 7530U, …HX) или экран в дюймах вместе с процессором
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d/.test(nl)));
 function siteCat(nl,gl){const a=siteFind(nl);const NB=SITE_NAMES.indexOf('Ноутбуки');
+  // Блоки питания без слов «блок питания»: 80 PLUS, ATX 3.0, разъёмы 24 (20+4)Pin, 12VHPWR, «модульный»
+  const PS=SITE_NAMES.indexOf('Блоки питания');
+  if((!a||a.c===0||a.c===PS||a.i>=14)&&/80\s?plus|12vhpwr|power connector|20\s?\+\s?4\)?\s?pin|модульн/.test(nl))return PS;
   if(siteLaptop(nl)&&(!a||a.i>=14||a.c===0||a.c===NB))return NB;
   // Башенные кулеры без слова «кулер»: обороты, PWM, тепловые трубки, «120mm fan»
   const CL=SITE_NAMES.indexOf('Охлаждение');
