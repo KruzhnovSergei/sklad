@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 11:21</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 11:25</span>
     </div>
   </aside>
   <div class="main">
@@ -730,7 +730,7 @@ function custHist(c){
   const ib=can('payments')?`<div class="row" style="margin-bottom:8px"><button class="btn link" data-act="cust-init" data-id="${esc(c.id)}">+ Начальный баланс из старой базы</button></div>`:'';
   if(!h.length)return note+ib+'<div class="muted small">Покупок пока не было</div>';
   return `${note}${ib}<div class="tbl"><table><thead><tr><th>Дата</th><th>Документ</th><th class="num">Сумма</th><th class="num">Оплачено</th><th class="num">Долг ±</th></tr></thead><tbody>
-  ${h.slice(0,30).map(o=>{const nf=o.type==='ret'||o.type==='wx';const paid=o.type==='pay'?num(o.amount):nf?0:num(o.paid??o.total);const ch=o.type==='pay'?-num(o.amount):nf?0:num(o.total)-paid;return `<tr><td>${dt(o.at)}</td><td><span class="chip t-${o.type}">${tlabel(o)}</span> <span class="mono">${docNo(o)}</span></td><td class="num">${o.type==='sale'?NF.format(o.total):o.type==='ret'?'−'+NF.format(o.total):'—'}</td><td class="num">${NF.format(paid)} <span class="muted">${PAYL[o.pay]||''}</span></td><td class="num ${ch>0.004?'debt':''}">${ch>0?'+':''}${NF.format(r2(ch))}</td></tr>`}).join('')}</tbody></table></div>`}
+  ${h.slice(0,30).map(o=>{const nf=o.type==='ret'||o.type==='wx';const paid=o.type==='pay'?num(o.amount):nf?0:num(o.paid??o.total);const ch=o.type==='pay'?-num(o.amount):nf?0:num(o.total)-paid;return `<tr><td>${dt(o.at)}</td><td><span class="chip t-${o.type}">${tlabel(o)}</span> <span class="mono">${docNo(o)}</span>${o.init&&o.type==='pay'&&(can('delete')||can('payments'))?` <button class="btn link bad" style="padding:0 0 0 6px" data-act="cinit-del" data-id="${esc(o.id)}">удалить</button>`:''}</td><td class="num">${o.type==='sale'?NF.format(o.total):o.type==='ret'?'−'+NF.format(o.total):'—'}</td><td class="num">${NF.format(paid)} <span class="muted">${PAYL[o.pay]||''}</span></td><td class="num ${ch>0.004?'debt':''}">${ch>0?'+':''}${NF.format(r2(ch))}</td></tr>`}).join('')}</tbody></table></div>`}
 function vParties(){if(!can('suppliers'))return vCustomers();
   return `<div class="stack"><div class="seg" role="group" aria-label="Контрагенты" style="align-self:flex-start">${[['cust','Покупатели'],['supp','Поставщики']].map(([k,v])=>`<button data-act="partytab" data-v="${k}" aria-pressed="${S.partyTab===k}">${v}</button>`).join('')}</div>${S.partyTab==='supp'?vSuppliers():vCustomers()}</div>`}
 function vSuppliers(){
@@ -3044,7 +3044,8 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
   ckind:t=>{S.cKind=t.dataset.v;render()},
   'cf-kind':t=>{const g=$('#cf-kind');g.dataset.v=t.dataset.v;g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
   copen:t=>{if(window.getSelection()?.toString())return;S.cOpen=S.cOpen===t.dataset.id?null:t.dataset.id;render()},
-  'pay-new':t=>payForm(t.dataset.id),'cust-init':t=>custInitForm(t.dataset.id),'cinit-save':()=>custInitSave(),'cinit-k':t=>{S.cinit.kind=t.dataset.v;document.querySelectorAll('[data-act=cinit-k]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
+  'pay-new':t=>payForm(t.dataset.id),'cust-init':t=>custInitForm(t.dataset.id),'cinit-save':()=>custInitSave(),'cinit-del':t=>{const o=S.sales.find(x=>x.id===t.dataset.id);if(!o)return;openModal(`<h2>Удалить начальный баланс?</h2><p>${esc(cname(o.cust))}: ${num(o.amount)>=0?'предоплата '+money(o.amount):'долг '+money(-num(o.amount))} от ${ds(o.at)}.</p><p class="muted small">Баланс покупателя пересчитается. После этого внесите начальный баланс нужному клиенту.</p><div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn danger" data-act="cinit-del-yes" data-id="${esc(o.id)}">Удалить</button></div>`)},
+  'cinit-del-yes':async t=>{const id=t.dataset.id;if(await guard(()=>S.db.collection('sales').doc(id).delete(),'Начальный баланс удалён','payments')){S.sales=S.sales.filter(x=>x.id!==id);derive();closeModal(true);render()}},'cinit-k':t=>{S.cinit.kind=t.dataset.v;document.querySelectorAll('[data-act=cinit-k]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
   'pay-save':t=>savePay(t.dataset.id),
   jtype:t=>{S.jType=t.dataset.v;S.jLimit=100;render()},
   jopen:t=>{if(window.getSelection()?.toString())return;S.jOpen=S.jOpen===t.dataset.id?null:t.dataset.id;S.jDel=null;render()},
