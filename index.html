@@ -2658,7 +2658,7 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
     <div class="field" style="flex:1 1 260px"><span>Цена в рассрочку</span><b style="padding:4px 0;font-size:22px;font-family:var(--f-display)" id="calcBank">${T.bprice?money(T.bprice):'—'}</b><span class="small muted" id="calcBankD">${T.bprice?`+${money(T.bprice-T.price)} к цене клиенту`:'процент зависит от банка и срока — впишите вручную'}</span></div></div></section>
   <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${S.isOwner?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
    <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.${S.isOwner?' Загружать и удалять прайсы может только владелец, сотрудники с доступом к расчёту ими только пользуются.':''}</p>
-   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${S.isOwner?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section></div>`}
+   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${S.isOwner?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section>${siteHtml()}</div>`}
 function calcResHtml(i){const q=(S.calcQ?.[i]||'').trim();if(q.length<2)return '';const R=calcSearch(q);S.calcHits=S.calcHits||{};S.calcHits[i]=R;
   return `<div class="results">${R.length?R.map((r,k)=>`<button data-act="calc-pick" data-i="${i}" data-k="${k}"><span>${esc(r.n)}<span class="psku">${esc(r.supp)}${r.cur&&r.cur!=='KGS'?` · ${NF.format(r.op)} ${CUR[r.cur]||r.cur}`:''}</span></span><b style="white-space:nowrap">${money(r.p)}</b></button>`).join(''):'<div class="empty" style="padding:12px">Ничего не найдено</div>'}</div>`}
 function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>{const e=$('#calcs'+i);if(e)e.textContent=l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'});
@@ -2702,8 +2702,71 @@ async function calcUpSave(){const U=S.cup;const supp=$('#cuSupp').value.trim()||
   const ok=await guard(async()=>{for(let k=0;k<chunks;k++)await db.doc('plrows/'+id+'_'+k).set({list:id,rows:parts[k]});
     for(let k=chunks;k<num(old?.chunks);k++)await db.doc('plrows/'+id+'_'+k).delete();
     await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'owner');
-  if(ok){S.cup=null;closeModal(true);render()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
-async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','owner')){delete S.plr[id];render()}}
+  if(ok){S.cup=null;closeModal(true);render();siteAuto()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
+async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','owner')){delete S.plr[id];render();siteAuto()}}
+/* ---------- Каталог на сайте: розничные цены из прайсов ---------- */
+const SITE_CATS=[
+  ['Процессоры',['процессор','cpu','core i','ryzen','xeon','celeron','pentium','athlon']],
+  ['Видеокарты',['видеокарт','video card','vga','geforce','radeon','rtx','gtx']],
+  ['Материнские платы',['материнск','матплат','мат. плат','motherboard','mainboard','m/b']],
+  ['Оперативная память',['оперативн','озу','dimm','sodimm','ddr','memory']],
+  ['Накопители',['ssd','hdd','жестк','накопител','nvme','флеш','flash','карта памяти','microsd','usb drive']],
+  ['Блоки питания',['блок питания','блоки питания','power supply','psu','бп']],
+  ['Корпуса',['корпус','case','chassis']],
+  ['Охлаждение',['кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
+  ['Ноутбуки',['ноутбук','notebook','laptop']],
+  ['Мониторы',['монитор','monitor']],
+  ['Оргтехника',['принтер','мфу','printer','сканер','scanner','картридж','тонер','cartridge','toner','проектор','ибп','ups']],
+  ['Сетевое оборудование',['роутер','маршрутизатор','router','коммутатор','switch','wi-fi','wifi','точка доступа','сетев']],
+  ['Периферия',['мыш','mouse','клавиатур','keyboard','наушник','гарнитур','headset','headphone','колонк','speaker','акустик','веб-камер','webcam','геймпад','джойстик','микрофон']],
+  ['Кабели и аксессуары',['кабель','cable','переходник','адаптер','adapter','удлинитель','хаб','hub','кронштейн','сумк','рюкзак','чехол','коврик','подставк','bag','backpack']]
+];
+const SITE_NAMES=[...SITE_CATS.map(c=>c[0]),'Прочее'];
+const siteLetter=ch=>!!ch&&/[a-zа-яё0-9]/i.test(ch);
+function siteFind(s){let best=null;if(!s)return null;
+  SITE_CATS.forEach(([,kw],ci)=>{for(const w of kw){let i=s.indexOf(w);while(i>=0&&siteLetter(s[i-1]))i=s.indexOf(w,i+1);
+    if(i>=0&&(!best||i<best.i||(i===best.i&&w.length>best.l)))best={i,c:ci,l:w.length}}});return best}
+// Категория: по первым словам названия, иначе по группе в прайсе, иначе по любому слову названия
+function siteCat(nl,gl){const a=siteFind(nl);if(a&&a.i<14)return a.c;const b=siteFind(gl);if(b)return b.c;return a?a.c:SITE_NAMES.length-1}
+function siteRows(){const M=new Map();
+  for(const l of (S.pll||[])){const rows=S.plr[l.id]?.rows;const rate=calcRate(l);if(!rows||!(rate>0))continue;
+    for(const r of rows){const kgs=num(r.p)*rate;if(!(kgs>0)||!r.n)continue;const key=r.nl.replace(/\s+/g,' ').trim();const o=M.get(key);
+      if(!o||kgs<o.p)M.set(key,{n:r.n.slice(0,300),p:kgs,c:o?o.c:siteCat(r.nl,r.gl)})}}
+  return [...M.values()]}
+function siteCounts(){const key=(S.pll||[]).map(l=>l.id+':'+(S.plr[l.id]?.v||'')+':'+(S.plr[l.id]?.rows?1:0)).join('|');
+  if(S.siteCnt?.key===key)return S.siteCnt.c;const c=SITE_NAMES.map(()=>0);for(const x of siteRows())c[x.c]++;S.siteCnt={key,c};return c}
+function siteLoad(){if(S.siteSub||!S.db||!S.isOwner)return;S.siteSub=true;
+  S.db.doc('sitecfg/main').onSnapshot(d=>{S.siteCfg=d.exists?d.data():null},()=>{});
+  S.db.doc('sitecat/meta').onSnapshot(d=>{S.siteMeta=d.exists?d.data():null;if(S.tab==='calc'&&$('#modal').hidden&&!typing())render()},()=>{})}
+function siteHtml(){if(!S.isOwner)return '';siteLoad();const cfg=S.siteCfg||{};const def=cfg.def??20;const cnt=siteCounts();const meta=S.siteMeta;
+  return `<section class="pane"><div class="pane-h"><h2>Каталог на сайте</h2><a class="btn ghost" href="site/catalog.html" target="_blank" rel="noopener">Открыть каталог</a></div>
+   <p class="muted small" style="margin-bottom:8px">Все позиции из прайсов попадают в каталог сайта с наценкой по категории. Покупатели видят только название, категорию и розничную цену: поставщики и закупочные цены на сайт не уходят. После загрузки или удаления прайса каталог обновляется сам.</p>
+   <div class="tbl"><table><thead><tr><th>Категория</th><th class="num">Позиций</th><th class="num">Наценка, %</th></tr></thead><tbody>${SITE_NAMES.map((nm,i)=>`<tr><td>${esc(nm)}</td><td class="num">${NF.format(cnt[i]||0)}</td><td class="num"><input id="sitem${i}" inputmode="decimal" value="${esc(cfg.cats?.[nm]??'')}" placeholder="${esc(String(def))}" aria-label="Наценка, ${esc(nm)}" style="width:90px;text-align:right"></td></tr>`).join('')}</tbody></table></div>
+   <div class="row" style="align-items:flex-end;gap:14px;margin-top:10px">
+    <label class="field" style="flex:0 1 210px"><span>Наценка по умолчанию, %</span><input id="siteDef" inputmode="decimal" value="${esc(String(def))}"></label>
+    <label class="field" style="flex:0 1 200px"><span>Округлять цену до</span><select id="siteRnd">${[1,10,50,100].map(v=>`<option value="${v}"${num(cfg.round??10)===v?' selected':''}>${v===1?'не округлять':v+' сом'}</option>`).join('')}</select></label>
+    <button class="btn" data-act="site-pub">Сохранить и обновить сайт</button></div>
+   <p class="muted small" style="margin-top:8px">${meta?.at?`Сейчас на сайте ${NF.format(num(meta.n))} позиций, обновлено ${dt(meta.at)}.`:'Каталог на сайт ещё не выгружался.'} Пустая наценка у категории означает наценку по умолчанию.</p></section>`}
+async function sitePublish(auto){if(!S.isOwner||!S.db)return false;
+  let cfg=S.siteCfg||{def:20,round:10,cats:{}};
+  if(!auto){const dv=($('#siteDef')?.value||'').trim();const cats={};SITE_NAMES.forEach((nm,i)=>{const v=($('#sitem'+i)?.value||'').trim();if(v!=='')cats[nm]=num(v)});
+    cfg={def:dv===''?20:num(dv),round:num($('#siteRnd')?.value)||1,cats,auto:true}}
+  if((S.pll||[]).some(l=>!S.plr[l.id]?.rows)){if(!auto)toast('Прайсы ещё загружаются, попробуйте через минуту');return false}
+  const rnd=Math.max(1,num(cfg.round)||1);
+  const rows=siteRows().map(x=>{const m=cfg.cats?.[SITE_NAMES[x.c]]??cfg.def??20;return{n:x.n,c:x.c,p:Math.ceil(r2(x.p*(1+num(m)/100))/rnd)*rnd}})
+    .filter(x=>x.p>0).sort((a,b)=>a.c-b.c||a.n.localeCompare(b.n,'ru'));
+  const parts=[];{let cur=[],sz=0;for(const x of rows){const b=JSON.stringify(x).length*2;if(cur.length&&sz+b>600000){parts.push(cur);cur=[];sz=0}cur.push(x);sz+=b}if(cur.length)parts.push(cur)}
+  const cnt=SITE_NAMES.map(()=>0);for(const x of rows)cnt[x.c]++;const oldN=num(S.siteMeta?.chunks);const db=S.db;
+  const btn=$('[data-act=site-pub]');if(btn&&!auto){btn.disabled=true;btn.textContent='Обновляю…'}
+  const ok=await guard(async()=>{if(!auto)await db.doc('sitecfg/main').set(cfg);
+    for(let k=0;k<parts.length;k++)await db.doc('sitecat/c'+k).set({rows:parts[k]});
+    await db.doc('sitecat/meta').set({at:now(),n:rows.length,chunks:parts.length,cats:SITE_NAMES,cnt});
+    for(let k=parts.length;k<oldN;k++)await db.doc('sitecat/c'+k).delete()},`Каталог на сайте обновлён: ${NF.format(rows.length)} позиций`,'owner');
+  if(ok&&!auto)S.siteCfg=cfg;if(btn&&!auto){btn.disabled=false;btn.textContent='Сохранить и обновить сайт'}return ok}
+// После загрузки или удаления прайса: ждём, пока строки прайсов дочитаются, и обновляем сайт
+function siteAuto(){if(!S.isOwner||!S.siteCfg)return;clearTimeout(S.siteT);let tries=0;
+  const go=()=>{if((S.pll||[]).some(l=>!S.plr[l.id]?.rows||S.plr[l.id].v!==l.at)||S.busy){if(++tries<60)S.siteT=setTimeout(go,1500);return}sitePublish(true)};
+  S.siteT=setTimeout(go,2500)}
 /* КП клиенту */
 function calcItemPrices(){const c=calcState();const T=calcTot();const L=c.lines.filter(l=>l.pick);const work=num(c.work);const base=Math.max(0,T.price-work);const comp=T.comp;
   const R=L.map(l=>{const q=Math.max(1,num(l.q)||1);const u=comp>0?Math.round(num(l.pick.p)*base/comp):0;return{l,q,u,sum:u*q}});
@@ -2974,7 +3037,7 @@ const ACT={
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
   'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
-  'calc-ldel':t=>calcDel(t.dataset.id),'cu-save':()=>calcUpSave(),
+  'calc-ldel':t=>calcDel(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},

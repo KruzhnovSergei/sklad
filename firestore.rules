@@ -42,6 +42,11 @@ service cloud.firestore {
     match /pricelists/{id} { allow read: if member(); allow write: if isOwner(); }
     match /plrows/{id}     { allow read: if member(); allow write: if isOwner(); }
 
+    // Витрина сайта: только название, категория и розничная цена — открыта всем, выгружает владелец.
+    // Наценки по категориям видит и меняет только владелец.
+    match /sitecat/{id} { allow read: if true; allow write: if isOwner(); }
+    match /sitecfg/{id} { allow read, write: if isOwner(); }
+
     // Справочники и складские документы — видят все, меняют администраторы
     match /warehouses/{id} { allow read: if member(); allow write: if admin(); }
     match /products/{id}   { allow read: if member(); allow write: if admin(); }
