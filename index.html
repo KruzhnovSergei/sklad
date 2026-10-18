@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:08</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:27</span>
     </div>
   </aside>
   <div class="main">
@@ -1576,7 +1576,7 @@ function range(){const n=new Date();let f;
 const inR=(o,r)=>{const t=new Date(o.at);return t>=r.from&&t<=r.to};
 const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function niceMax(m){const p=Math.pow(10,Math.floor(Math.log10(m)));for(const f of [1,1.5,2,2.5,3,4,5,6,8,10])if(f*p>=m)return f*p;return 10*p}
-function vReports(){
+function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].office))S.repWh='all';
   const sc=can('cost');const rg=range();const {from,to}=rg;const inW=o=>S.repWh==='all'||o.wh===S.repWh;
   const ops=S.all.filter(o=>inR(o,rg)&&(o.type==='pay'||inW(o)));const sales=ops.filter(o=>o.type==='sale');const pays=ops.filter(o=>o.type==='pay'&&!o.init);const rets=ops.filter(o=>o.type==='ret');const wxs=ops.filter(o=>o.type==='wx');
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
@@ -1610,7 +1610,7 @@ function vReports(){
   return `<div class="stack">
   <div class="row between"><div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
    ${S.period==='custom'?`<div class="row" style="gap:8px"><label class="row" style="gap:6px">с <input type="date" id="rFrom" data-ch="rfrom" value="${isoD(from)}" style="width:auto"></label><label class="row" style="gap:6px">по <input type="date" id="rTo" data-ch="rto" value="${isoD(to)}" style="width:auto"></label></div>`:`<span class="muted small">${ds(from)} — ${ds(to)}</span>`}
-   <div class="row"><select id="repWh" data-ch="repwh" style="width:auto" aria-label="Склад"><option value="all">Все склады</option>${S.wh.map(w=>`<option value="${esc(w.id)}"${w.id===S.repWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select><button class="btn ghost" data-act="exp-sales">Продажи в CSV</button></div></div>
+   <div class="row"><select id="repWh" data-ch="repwh" style="width:auto" aria-label="Склад"><option value="all">Все склады</option>${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===S.repWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select><button class="btn ghost" data-act="exp-sales">Продажи в CSV</button></div></div>
   <div class="kpis">
    <div class="kpi main"><span>Выручка</span><b>${money(rev)}</b></div>
    ${sc?`<div class="kpi"><span>Валовая прибыль</span><b style="color:${prof<0?'var(--bad)':'var(--good)'}">${money(prof)}</b><small>маржа ${rev?NF.format(r2(prof/rev*100)):0}%${offProp?' · списано имущества '+money(offProp):''}</small></div>`:''}
