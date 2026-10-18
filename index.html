@@ -2791,11 +2791,10 @@ function siteOwn(whIds){const W=saleWhs().filter(w=>(whIds||[]).includes(w.id));
     out.push({n:String(p.name).slice(0,300),p:sp,c:siteCat(String(p.name).toLowerCase(),pgroup(p).toLowerCase()),st:1})}return out}
 // Готовые сборки для главной страницы сайта: собранные ПК, которые сейчас на торговых складах
 function sitePcs(cfg){const out=[];if(!S.pca||!siteStockReady())return out;const SW=new Set(saleWhs().map(w=>w.id));
-  const m=siteMk(cfg,'Компьютеры и моноблоки');const rnd=Math.max(1,num(cfg.round)||1);
   for(const sn in S.pca){const o=S.pca[sn];if(!pcIn(sn)||!SW.has(pcWh(sn)))continue;if(/^Тестовая сборка/i.test(o.party||''))continue;
     const pr=pcPrice(sn);if(!(pr>0))continue;
     const parts=(S.pcComp?.[sn]||[]).map(i=>String(pname(i.p)).slice(0,140)+(num(i.q)>1?' ×'+q3(i.q):'')).slice(0,14);
-    out.push({sn,n:String(pname(o.out.p)||'Компьютер').slice(0,120),cfg:String(o.party||'').slice(0,300),parts,p:Math.ceil(r2(pr*(1+num(m)/100))/rnd)*rnd,at:o.at||''})}
+    out.push({sn,n:String(pname(o.out.p)||'Компьютер').slice(0,120),cfg:String(o.party||'').slice(0,300),parts,p:r2(pr),at:o.at||''})}
   return out.sort((a,b)=>b.at.localeCompare(a.at)).slice(0,40)}
 function siteCounts(){const key=(S.pll||[]).map(l=>l.id+':'+(S.plr[l.id]?.v||'')+':'+(S.plr[l.id]?.rows?1:0)).join('|');
   if(S.siteCnt?.key===key)return S.siteCnt.c;const c=SITE_NAMES.map(()=>0);for(const x of siteRows())c[x.c]++;S.siteCnt={key,c};return c}
@@ -2813,7 +2812,7 @@ function siteHtml(){if(!S.isOwner)return '';siteLoad();const cfg=S.siteCfg||{};c
    <div style="margin-top:12px"><b>Товары с наших складов</b><p class="muted small" style="margin:2px 0 6px">Отмеченные склады попадут на сайт с пометкой «В наличии». Цена = цена продажи из карточки товара + наценка его категории. Товары без цены продажи или с нулевым остатком на сайт не попадают.</p>
     <div class="row" style="gap:6px 18px">${saleWhs().map(w=>`<label class="check"><input type="checkbox" id="sitewh_${esc(w.id)}" data-wh="${esc(w.id)}"${(cfg.whs||[]).includes(w.id)?' checked':''}> ${esc(w.name)}</label>`).join('')}</div>
     ${(cfg.whs||[]).length?`<p class="muted small" style="margin-top:4px">Сейчас в наличии для сайта: ${NF.format(siteOwnCnt(cfg.whs))} позиций.</p>`:''}</div>
-   <p class="muted small" style="margin-top:10px"><b>Готовые сборки на главной сайта:</b> ${NF.format(sitePcs(cfg).length)} собранных компьютеров на складах. Цена = цена продажи сборки + наценка категории «Компьютеры и моноблоки». Тестовые сборки не показываются, проданные исчезают при следующем обновлении.</p>
+   <p class="muted small" style="margin-top:10px"><b>Готовые сборки на главной сайта:</b> ${NF.format(sitePcs(cfg).length)} собранных компьютеров на складах. Цена — та, что указана при сборке (без наценки сайта). Тестовые сборки не показываются, проданные исчезают при следующем обновлении.</p>
    <div class="row" style="align-items:flex-end;gap:14px;margin-top:10px">
     <label class="field" style="flex:0 1 210px"><span>Наценка по умолчанию, %</span><input id="siteDef" inputmode="decimal" value="${esc(String(def))}"></label>
     <label class="field" style="flex:0 1 200px"><span>Округлять цену до</span><select id="siteRnd">${[1,10,50,100].map(v=>`<option value="${v}"${num(cfg.round??10)===v?' selected':''}>${v===1?'не округлять':v+' сом'}</option>`).join('')}</select></label>
