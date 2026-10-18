@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:35</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:54</span>
     </div>
   </aside>
   <div class="main">
@@ -400,6 +400,7 @@ function derive(){
       if(o.type==='asm'&&o.out?.sn?.[0])for(const r of (it.rsn||[]))cin[r]=o.out.sn[0]})
     if(o.type==='asm'&&o.out){const op=o.out.p;const n=(o.out.sn||[]).length||1;const cs=(o.items||[]).reduce((a,it,j)=>a+num(it.q)*num(ic[o.id+':'+j]),0)+num(S.opc[o.id]?.labor);const unitC=cs/n;ic[o.id+':out']=cs;
       add(o.wh,op,n);inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items)}}}
+  {const CB={},SA={};for(const o of S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''))){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;if(o.type==='sale'){const cov=r2((b1-b0)-(Math.max(0,b1)-Math.max(0,b0)));if(cov>0.004)SA[o.id]=cov}}S.saleAdv=SA}
   S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
   consDerive();const sd={},sl={};for(const l of S.consLots)if(l.supp)sd[l.supp]=(sd[l.supp]||0)+l.sold*l.price;for(const o of S.ops){if(o.type!=='in'||!o.supp)continue;const oc=S.opc[o.id];if(oc&&!o.cons)sd[o.supp]=(sd[o.supp]||0)+num(oc.total)-num(oc.paid??oc.total);if(!sl[o.supp]||o.at>sl[o.supp])sl[o.supp]=o.at}
   for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);S.supDebt=sd;S.supLast=sl;
@@ -569,10 +570,10 @@ function updCart(){
   const set=(id,t)=>{const e=$(id);if(e)e.textContent=t};
   set('#cSub',money(c.sub));set('#cCd',c.cd?'−'+money(c.cd):'');set('#cartTotal',money(c.total));
   set('#cEff',c.eff>0.005?`скидка ${money(c.list-c.total)} (${NF.format(r2(c.eff))}%)`:'');
-  let info='';if(S.custSel){const d=debtOf(S.custSel),lim=num(S.C[S.custSel]?.limit);info=`Долг сейчас: ${money(d)}${lim?` · лимит ${money(lim)}`:''}`;
+  let info='';if(S.custSel){const d=debtOf(S.custSel),lim=num(S.C[S.custSel]?.limit);info=d<-0.004?'':`Долг сейчас: ${money(d)}${lim?` · лимит ${money(lim)}`:''}`;
     if(S.debtOn){const nd=r2(c.total-Math.min(c.total,num(S.paidNow)));info+=` · по этому чеку в долг ${money(nd)}, станет ${money(d+nd)}`}}
   else if(S.debtOn)info='Для продажи в долг выберите покупателя';
-  {const d=S.custSel?debtOf(S.custSel):0;if(d<-0.004&&c.total>0){info+=` · предоплата на балансе ${money(-d)}`;if(!S.debtOn||num(S.paidNow)>Math.max(0,c.total+d)+0.004)info+=' <button class="btn link" data-act="useadv">Списать из предоплаты</button>'}}
+  {const d=S.custSel?debtOf(S.custSel):0;if(d<-0.004&&c.total>0){const use=Math.min(-d,c.total);if(!S.debtOn)info+=`${info?' · ':''}<b>на балансе клиента ${money(-d)}: спишется ${money(use)}, к оплате ${money(r2(c.total-use))}</b>`;else{info+=` · на балансе ${money(-d)}`;if(num(S.paidNow)>Math.max(0,c.total+d)+0.004)info+=' <button class="btn link" data-act="useadv">Списать с баланса</button>'}}}
   const ci=$('#custInfo');if(ci)ci.innerHTML=info;else set('#custInfo',info)}
 async function postSale(){
   const err=$('#saleErr');err.textContent='';const c=calcCart();
@@ -583,7 +584,7 @@ async function postSale(){
   for(const p in need)if(r3(need[p])>qty(S.curWh,p)){err.textContent=`Недостаточно «${pname(p)}»: на складе ${q3(qty(S.curWh,p))}`;return}
   for(const l of S.cart)for(const sn of (l.sn||[]))if(S.snLoc[sn]?.wh!==S.curWh){err.textContent=`Номер ${sn} уже не числится на этом складе`;return}
   if(myMaxDisc()!=null){const mx=myMaxDisc()+0.01;if(c.eff>mx||S.cart.some((l,i)=>c.L[i].lp&&(1-c.L[i].s/(c.L[i].q*c.L[i].lp))*100>mx)){err.textContent=`Скидка больше разрешённой (${NF.format(myMaxDisc())}%). Обратитесь к владельцу.`;return}}
-  let paid=c.total;
+  let paid=c.total;if(!S.debtOn&&S.custSel){const A=Math.max(0,-debtOf(S.custSel));if(A>0.004)paid=r2(Math.max(0,c.total-A))}
   if(S.debtOn&&!can('debt')&&!(S.custSel&&debtOf(S.custSel)+c.total-r2(num(S.paidNow))<=0.004)){err.textContent='Продажа в долг вам недоступна';return}
   if(S.debtOn){if(!S.custSel){err.textContent='Для продажи в долг выберите покупателя';return}
     paid=r2(num(S.paidNow));if(paid<0||paid>c.total){err.textContent='Оплаченная сумма должна быть от 0 до суммы чека';return}
@@ -621,7 +622,7 @@ function receiptText(o,debtAfter){
   L.push(line);
   if(o.type==='sale'){if(num(o.disc)>0){L.push(`Подытог: ${money(o.sub)}`);L.push(`Скидка на чек: −${money(o.disc)}`)}
     L.push(`ИТОГО: ${money(o.total)}`);const paid=num(o.paid??o.total);L.push(`Оплачено: ${money(paid)} (${PAYL[o.pay]||''}${o.acc&&o.pay!=='cash'&&accList().length>2?', '+accName(o.acc):''})`);
-    if(o.total-paid>0.004)L.push(`В долг: ${money(o.total-paid)}`);if(debtAfter!=null)L.push(debtAfter<-0.004?`Остаток предоплаты: ${money(-debtAfter)}`:`Общий долг покупателя: ${money(debtAfter)}`)}
+    {const cov=Math.min(r2(o.total-paid),S.saleAdv?.[o.id]??(debtAfter!=null?Math.max(0,Math.min(r2(o.total-paid),r2((o.total-paid)-Math.max(0,debtAfter)))):0));if(cov>0.004)L.push(`С баланса клиента: ${money(cov)}`);if(o.total-paid-cov>0.004)L.push(`В долг: ${money(o.total-paid-cov)}`)}if(debtAfter!=null)L.push(debtAfter<-0.004?`Остаток предоплаты: ${money(-debtAfter)}`:`Общий долг покупателя: ${money(debtAfter)}`)}
   else if(o.type==='ret'){L.push(`Возвращено покупателю: ${money(o.total)} (${PAYL[o.pay]||''})`);L.push(o.restock?'Товар возвращён на склад':'Товар на склад не возвращён')}
   else if(showP&&o.type!=='wx'){const oc=o.type==='in'?S.opc[o.id]:null;if(oc&&num(oc.dlv)>0){L.push(`Товар: ${money(oc.total)}`);L.push(`Доставка: ${money(oc.dlv)} (распределена ${oc.dlvBy==='qty'?'по количеству':'по сумме'}, оплачена: ${accName(oc.dlvAcc)})`)}L.push(`ИТОГО${oc&&num(oc.dlv)>0?' с доставкой':''}: ${money(docTotal(o))}`);if(o.init)L.push('Без оплаты: перенос остатков из старой базы');else if(oc&&!o.po&&!o.cons&&num(oc.total)-num(oc.paid??oc.total)>0.004){L.push(`Оплачено поставщику: ${money(oc.paid)}`);L.push(`В долг поставщику: ${money(num(oc.total)-num(oc.paid))}`)}}
   return L.join('\n')}
@@ -1524,7 +1525,7 @@ function vJournal(){
   ${snBox}
   <div class="tbl">${shown.length?`<table><thead><tr><th>Дата</th><th>Документ</th><th>Склад</th><th>Контрагент</th><th class="num">Сумма</th><th>Кто провёл</th></tr></thead><tbody>
   ${shown.map(o=>{const open=S.jOpen===o.id;const hideSum=(o.type==='mod'||o.type==='dis')||!sc&&(o.type==='asm'||o.type==='in'||o.type==='move'||o.type==='off'||o.type==='wx');const dbt=o.type==='sale'?num(o.total)-num(o.paid??o.total):0;
-  return `<tr class="jrow" tabindex="0" data-act="jopen" data-id="${esc(o.id)}" aria-expanded="${open}"><td class="num" style="text-align:left">${dt(o.at)}</td><td><span class="chip t-${o.type}">${tlabel(o)}</span> <span class="mono">${docNo(o)}</span></td><td>${o.type==='move'?`${esc(wname(o.wh))} → ${esc(wname(o.toWh))}`:o.type==='pay'||o.type==='spay'?'—':esc(wname(o.wh))}</td><td>${o.cust?esc(cname(o.cust)):o.supp&&S.SP[o.supp]?esc(sname(o.supp)):o.pc?`ПК ${esc(o.pc)}`:esc(o.party||'')}${o.pay?` <span class="muted">· ${PAYL[o.pay]||''}${o.acc&&o.pay!=='cash'&&accList().length>2?' · '+esc(accName(o.acc)):''}</span>`:''}${dbt>0.004?` <span class="chip low">долг ${NF.format(r2(dbt))}</span>`:''}</td><td class="num">${hideSum?'—':(o.type==='ret'?'−':'')+money(docTotal(o))}</td><td class="muted"><span data-uid="${esc(o.by||'')}">${o.by?'…':'—'}</span></td></tr>
+  return `<tr class="jrow" tabindex="0" data-act="jopen" data-id="${esc(o.id)}" aria-expanded="${open}"><td class="num" style="text-align:left">${dt(o.at)}</td><td><span class="chip t-${o.type}">${tlabel(o)}</span> <span class="mono">${docNo(o)}</span></td><td>${o.type==='move'?`${esc(wname(o.wh))} → ${esc(wname(o.toWh))}`:o.type==='pay'||o.type==='spay'?'—':esc(wname(o.wh))}</td><td>${o.cust?esc(cname(o.cust)):o.supp&&S.SP[o.supp]?esc(sname(o.supp)):o.pc?`ПК ${esc(o.pc)}`:esc(o.party||'')}${o.pay?` <span class="muted">· ${PAYL[o.pay]||''}${o.acc&&o.pay!=='cash'&&accList().length>2?' · '+esc(accName(o.acc)):''}</span>`:''}${(S.saleAdv?.[o.id]||0)>0.004?` <span class="chip ok">с баланса ${NF.format(r2(S.saleAdv[o.id]))}</span>`:''}${dbt-(S.saleAdv?.[o.id]||0)>0.004?` <span class="chip low">долг ${NF.format(r2(dbt-(S.saleAdv?.[o.id]||0)))}</span>`:''}</td><td class="num">${hideSum?'—':(o.type==='ret'?'−':'')+money(docTotal(o))}</td><td class="muted"><span data-uid="${esc(o.by||'')}">${o.by?'…':'—'}</span></td></tr>
   ${open?`<tr class="jdet"><td colspan="6">${jDetail(o)}</td></tr>`:''}`}).join('')}</tbody></table>`:'<div class="empty">Документов не найдено.</div>'}</div>
   ${list.length>S.jLimit?`<div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost" data-act="jmore">Показать ещё</button></div>`:''}</section>`}
 function jDetail(o){
@@ -1536,7 +1537,7 @@ function jDetail(o){
   else if(o.type==='pay')h=`<p>Принято ${money(o.amount)} от ${esc(cname(o.cust))}${o.party?` · ${esc(o.party)}`:''}</p>`;
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
-    ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${num(o.total)-num(o.paid??o.total)>0.004?` · в долг ${money(num(o.total)-num(o.paid))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
+    ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${(S.saleAdv?.[o.id]||0)>0.004?` · с баланса клиента ${money(S.saleAdv[o.id])}`:''}${num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0)>0.004?` · в долг ${money(num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
   h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}
    ${can('delete')?(S.jDel===o.id?`<div class="confirm"><span>Удалить ${docNo(o)}? Остатки и долги пересчитаются автоматически.</span><button class="btn danger" data-act="jdel-yes" data-id="${esc(o.id)}">Удалить</button><button class="btn ghost" data-act="jdel-no">Отмена</button></div>`:`<button class="btn link bad" data-act="jdel" data-id="${esc(o.id)}">Удалить документ</button>`):''}</div>`;
   return h}
@@ -2324,7 +2325,7 @@ function vInvEdit(){const v=S.inv;const sc=can('cost');const o=v.doc;const lock=
   <div class="row" style="gap:10px"><p class="small muted" id="invInfo" style="margin:0"></p>${!ro_&&v.cust&&debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0)<-0.004?'<button class="btn link" data-act="inv-adv">Списать из предоплаты</button>':''}</div></section>`}
 function updInv(){const v=S.inv;if(!v)return;let t=0,c=0;v.items.forEach((l,i)=>{const s=invSum(l);t+=s;const lc=invLineCost(l);c+=lc;const e=$('#is'+i);if(e)e.textContent=NF.format(r2(s));const f=$('#ic'+i);if(f)f.textContent=NF.format(r2(lc))});
   const e=$('#invTot');if(e)e.textContent=money(t);const p=$('#invProf');if(p)p.textContent=v.items.length?`Себестоимость ${money(c)} · прибыль ${money(t-c)}`:'';
-  const inf=$('#invInfo');if(inf){let s='';if(v.cust){const d=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);const nd=v.full?0:Math.max(0,t-num(v.paid));s=d<-0.004?`Предоплата клиента: ${money(-d)}${nd>0?` · по накладной без оплаты ${money(nd)}, ${d+nd<=0.004?'спишется из предоплаты, останется '+money(-(d+nd)):'из предоплаты '+money(-d)+', в долг '+money(d+nd)}`:''}`:`Долг покупателя без этого документа: ${money(d)}${nd>0?` · по накладной в долг ${money(nd)}, станет ${money(d+nd)}`:''}`}else if(!v.full)s='Для продажи в долг выберите покупателя';inf.textContent=s}}
+  const inf=$('#invInfo');if(inf){let s='';if(v.cust){const d=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);const nd=v.full?0:Math.max(0,t-num(v.paid));s=d<-0.004&&v.full?`На балансе клиента ${money(-d)}: спишется ${money(Math.min(-d,t))}, к оплате ${money(Math.max(0,t+d))}`:d<-0.004?`Предоплата клиента: ${money(-d)}${nd>0?` · по накладной без оплаты ${money(nd)}, ${d+nd<=0.004?'спишется из предоплаты, останется '+money(-(d+nd)):'из предоплаты '+money(-d)+', в долг '+money(d+nd)}`:''}`:`Долг покупателя без этого документа: ${money(d)}${nd>0?` · по накладной в долг ${money(nd)}, станет ${money(d+nd)}`:''}`}else if(!v.full)s='Для продажи в долг выберите покупателя';inf.textContent=s}}
 async function saveInv(){const v=S.inv,err=$('#invErr');err.textContent='';
   if(!v.items.length)return;if(v.id&&(!canEditSale()||invLocked(v.id)))return;
   if(!allowedWh().some(w=>w.id===v.wh)){err.textContent='Вам нельзя продавать с этого склада';return}
@@ -2334,7 +2335,7 @@ async function saveInv(){const v=S.inv,err=$('#invErr');err.textContent='';
   const items=v.items.map(l=>{const q=r3(invQty(l));const it={p:l.p,q,price:r2(num(l.price)),disc:r2(Math.min(100,Math.max(0,num(l.disc)))),sum:invSum(l)};
     if(l.keep&&(l.keep.wm!=null||l.keep.wd!=null)){if(num(l.keep.wm)>0)it.wm=num(l.keep.wm);if(num(l.keep.wd)>0)it.wd=num(l.keep.wd)}else wSet(it,l.p);if(l.keep?.until)it.until=l.keep.until;if((l.sn||[]).length)it.sn=[...l.sn];
     if(it.sn&&it.sn.length===1&&(S.pca[it.sn[0]]||l.keep?.parts)){it.parts=l.keep?.parts&&l.orig?.sn===it.sn[0]?l.keep.parts:snapParts(it.sn[0])}return it});
-  const total=r2(items.reduce((a,i)=>a+i.sum,0));let paid=total;
+  const total=r2(items.reduce((a,i)=>a+i.sum,0));let paid=total;if(v.full&&v.cust){const base=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);if(base<-0.004)paid=r2(Math.max(0,total+base))}
   if(!v.full){if(!v.cust){err.textContent='Для продажи в долг выберите покупателя';return}paid=r2(num(v.paid));const base=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);if(!can('debt')&&base+total-paid>0.004){err.textContent='Продажа в долг вам недоступна';return}if(paid<0||paid>total){err.textContent='Оплаченная сумма должна быть от 0 до суммы накладной';return}}
   const acc=v.pay==='cash'?accOf('cash'):($('#invAcc')?.value||v.acc||accOf(v.pay));
   const today=dayKey(now());let at;if(v.id){at=v.date===dayKey(v.doc.at)?v.doc.at:new Date(v.date+'T12:00:00').toISOString()}else at=v.date===today?now():new Date(v.date+'T12:00:00').toISOString();
