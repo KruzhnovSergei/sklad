@@ -40,6 +40,9 @@
 .more-btn{align-self:center}
 .chips{display:none}
 .subs{display:flex;flex-wrap:wrap;gap:8px}
+.stock-tg{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--card);font:600 15px var(--f-body);cursor:pointer;white-space:nowrap}
+.stock-tg input{width:18px;height:18px;accent-color:#1F7A4D}
+.instock{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#DDF3E6;color:#14532D;font-size:12px;font-weight:700;vertical-align:1px}
 .subs button{min-height:40px;padding:0 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--card);font:600 14px var(--f-body);color:var(--ink);cursor:pointer;white-space:nowrap}
 .subs button span{color:#6B717A;font-weight:500;margin-left:4px}
 .subs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent)}
@@ -105,7 +108,7 @@
   <main class="main">
     <div class="note">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <span>Заказанный товар привезём в наш магазин на Сыдыкова 178 в течение 3–4 часов после оформления заказа. Цены могут меняться — точную стоимость подтвердим при заказе.</span>
+      <span>Товары с пометкой «В наличии» есть у нас на складе. Остальное привезём в наш магазин на Сыдыкова 178 в течение 3–4 часов после оформления заказа. Цены могут меняться — точную стоимость подтвердим при заказе.</span>
     </div>
     <div class="chips" id="chips" aria-label="Категории"></div>
     <div class="subs" id="subs" aria-label="Подгруппы" hidden></div>
@@ -113,6 +116,7 @@
       <label for="q" style="position:absolute;left:-9999px">Поиск</label>
       <input id="q" type="search" placeholder="Поиск: RTX 4060, Ryzen 5, SSD 1TB…" autocomplete="off">
       <label for="sort" style="position:absolute;left:-9999px">Сортировка</label>
+      <label class="stock-tg" id="stockTg" hidden><input type="checkbox" id="onlyStock"> Только в наличии</label>
       <select id="sort">
         <option value="asc" selected>Сначала дешевле</option>
         <option value="desc">Сначала дороже</option>
@@ -164,7 +168,7 @@
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>NF.format(v)+' сом';
-  let ITEMS=[],CATS=[],CNT=[],cat=-1,sub='',q='',sort='asc',shown=PAGE,cart={};
+  let ITEMS=[],CATS=[],CNT=[],cat=-1,sub='',onlyStock=false,q='',sort='asc',shown=PAGE,cart={};
 
   // ---------- подгруппы: определяются по названию товара ----------
   const has=(l,re)=>re.test(l);
@@ -223,7 +227,7 @@
   }
   function filtered(){
     const words=q.toLowerCase().split(/\s+/).filter(Boolean);
-    let L=ITEMS.filter(x=>(cat<0||x.c===cat)&&(!sub||x.s===sub)&&words.every(w=>x.l.includes(w)));
+    let L=ITEMS.filter(x=>(cat<0||x.c===cat)&&(!sub||x.s===sub)&&(!onlyStock||x.st)&&words.every(w=>x.l.includes(w)));
     if(sort==='asc')L=L.slice().sort((a,b)=>a.p-b.p);else if(sort==='desc')L=L.slice().sort((a,b)=>b.p-a.p);
     return L;
   }
@@ -231,7 +235,7 @@
     renderSubs();const L=filtered();
     $('count').textContent=L.length?`Найдено: ${NF.format(L.length)}`:'';
     if(!L.length){$('list').innerHTML=`<div class="empty">${ITEMS.length?'Ничего не нашлось. Попробуйте другой запрос или напишите нам в WhatsApp — подберём.':'Каталог пока пуст.'}</div>`;$('more').hidden=true;return}
-    $('list').innerHTML=L.slice(0,shown).map(x=>{const inC=cart[x.id];return `<div class="item"><div class="nm"><b>${esc(x.n)}</b><small>${esc(CATS[x.c]||'')}</small></div><span class="pr">${money(x.p)}</span><button class="btn ${inC?'btn-line in-cart':'btn-dark'}" data-add="${x.id}">${inC?'В корзине · '+inC.q:'В корзину'}</button></div>`}).join('');
+    $('list').innerHTML=L.slice(0,shown).map(x=>{const inC=cart[x.id];return `<div class="item"><div class="nm"><b>${esc(x.n)}</b><small>${esc(CATS[x.c]||'')}</small>${x.st?'<span class="instock">В наличии</span>':''}</div><span class="pr">${money(x.p)}</span><button class="btn ${inC?'btn-line in-cart':'btn-dark'}" data-add="${x.id}">${inC?'В корзине · '+inC.q:'В корзину'}</button></div>`}).join('');
     $('more').hidden=L.length<=shown;
     if(L.length>shown)$('more').textContent=`Показать ещё (осталось ${NF.format(L.length-shown)})`;
   }
@@ -254,6 +258,7 @@
   });
   $('more').onclick=()=>{shown+=PAGE;renderList()};
   let qt;$('q').addEventListener('input',e=>{clearTimeout(qt);qt=setTimeout(()=>{q=e.target.value.trim();shown=PAGE;renderList()},150)});
+  $('onlyStock').onchange=e=>{onlyStock=e.target.checked;shown=PAGE;renderList()};
   $('sort').onchange=e=>{sort=e.target.value;shown=PAGE;renderList()};
   $('fab').onclick=()=>{$('drawer').hidden=false;$('close').focus()};
   $('close').onclick=()=>{$('drawer').hidden=true};
@@ -277,11 +282,12 @@
       const meta=m.data();CATS=meta.cats||[];CNT=meta.cnt||[];
       const parts=await Promise.all(Array.from({length:meta.chunks||0},(_,k)=>db.doc('sitecat/c'+k).get()));
       let id=0;ITEMS=[];
-      for(const d of parts)if(d.exists)for(const r of (d.data().rows||[])){const l=String(r.n).toLowerCase();ITEMS.push({id:'i'+(id++),n:r.n,c:r.c,p:r.p,l,s:subOf(r.c,l)})}
+      for(const d of parts)if(d.exists)for(const r of (d.data().rows||[])){const l=String(r.n).toLowerCase();ITEMS.push({id:'i'+(id++),n:r.n,c:r.c,p:r.p,l,s:subOf(r.c,l),st:r.st?1:0})}
       // если цены обновились, держим корзину в актуальном виде
       const byName=new Map(ITEMS.map(x=>[x.n,x]));const nc={};
       for(const x of Object.values(cart)){const f=byName.get(x.n);if(f)nc[f.id]={id:f.id,n:f.n,p:f.p,q:x.q}}cart=nc;saveCart();
       CNT=CATS.map((_,i)=>ITEMS.filter(x=>x.c===i).length);
+      $('stockTg').hidden=!ITEMS.some(x=>x.st);
       const hc=hashCat();cat=hc?CATS.indexOf(hc):-1;sub=cat>=0?hashSub():'';
       $('upd').textContent=`${NF.format(ITEMS.length)} товаров · цены обновлены ${new Date(meta.at).toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}`;
       renderCats();rerender();
