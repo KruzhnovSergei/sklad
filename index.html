@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:54</span>
+      <span class="muted" style="font-size:11px">Версия от 18.10.2026 12:59</span>
     </div>
   </aside>
   <div class="main">
@@ -1588,7 +1588,7 @@ function vReports(){
   const topL=Object.entries(top).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10);const topMax=topL[0]?.[1].rev||1;
   const gL=Object.entries(Object.entries(top).reduce((m,[p,t])=>{const g=pgroup(p);const x=(m[g]??={q:0,rev:0,prof:0});x.q+=t.q;x.rev+=t.rev;x.prof+=t.prof;return m},{})).sort((a,b)=>b[1].rev-a[1].rev);const gMax=Math.max(1,gL[0]?.[1].rev||1);
   const recv=Object.values(payIn).reduce((a,b)=>a+b,0);
-  const low=S.prod.filter(p=>!p.archived&&!ownOnly(p.id)).map(p=>({p,q:S.repWh==='all'?qtyAll(p.id):qty(S.repWh,p.id)})).filter(r=>r.q<=0||(num(r.p.minStock)>0&&r.q<=num(r.p.minStock))).sort((a,b)=>a.q-b.q);
+  const lowHid=S.prod.filter(p=>!p.archived&&p.noOrder);const low=S.prod.filter(p=>!p.archived&&!p.noOrder&&!ownOnly(p.id)).map(p=>({p,q:S.repWh==='all'?qtyAll(p.id):qty(S.repWh,p.id)})).filter(r=>r.q<=0||(num(r.p.minStock)>0&&r.q<=num(r.p.minStock))).sort((a,b)=>a.q-b.q);
   const per=[['today','Сегодня'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['all','Всё время'],['custom','Выбрать даты']];
   return `<div class="stack">
   <div class="row between"><div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
@@ -1613,7 +1613,8 @@ function vReports(){
    <section class="pane"><div class="pane-h"><h2>Лидеры продаж</h2></div>${topL.length?`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Продано</th><th class="num">Выручка</th>${sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${topL.map(([p,t])=>`<tr><td class="barcell" style="--w:${(t.rev/topMax*100).toFixed(1)}%"><span>${esc(pname(p))}</span></td><td class="num">${q3(t.q)}</td><td class="num">${NF.format(r2(t.rev))}</td>${sc?`<td class="num">${NF.format(r2(t.prof))}</td>`:''}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">Нет данных</div>'}</section>
    <div class="stack">
     <section class="pane"><div class="pane-h"><h2>Поступило денег</h2><span class="muted">${money(recv)}</span></div>${recv||debtG?`<table><tbody>${Object.entries(PAYL).filter(([k])=>k!=='card'||payIn.card).map(([k,v])=>`<tr><td>${v}</td><td class="num">${money(payIn[k]||0)}</td><td class="num muted">${recv?NF.format(r2((payIn[k]||0)/recv*100)):0}%</td></tr>`).join('')}<tr><td>Не оплачено (в долг)</td><td class="num debt">${money(debtG)}</td><td></td></tr></tbody></table><p class="muted small" style="margin-top:6px">С учётом погашения долгов и за вычетом возвратов.</p>`:'<div class="empty">Нет продаж</div>'}</section>
-    <section class="pane"><div class="pane-h"><h2>Нужно заказать</h2><span class="muted">${low.length}</span></div>${low.length?`<table><tbody>${low.slice(0,12).map(r=>{const st=status(r.q,num(r.p.minStock));return `<tr><td>${esc(r.p.name)}</td><td class="num">${q3(r.q)} / ${q3(r.p.minStock||0)}</td><td><span class="chip ${st[0]}">${st[1]}</span></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Все остатки выше минимума</div>'}</section>
+    <section class="pane"><div class="pane-h"><h2>Нужно заказать</h2><span class="muted">${low.length}</span></div>${low.length?`<table><tbody>${low.slice(0,S.lowAll?500:12).map(r=>{const st=status(r.q,num(r.p.minStock));return `<tr><td>${esc(r.p.name)}</td><td class="num">${q3(r.q)} / ${q3(r.p.minStock||0)}</td><td><span class="chip ${st[0]}">${st[1]}</span></td><td style="text-align:right;white-space:nowrap">${can('catalog')?`<button class="btn link bad" style="padding:0" data-act="noorder" data-id="${esc(r.p.id)}" title="Убрать из списка: больше не заказываю">Не заказывать</button>`:''}</td></tr>`}).join('')}</tbody></table>${low.length>12?`<button class="btn link" data-act="low-all">${S.lowAll?'Свернуть':'Показать все '+low.length}</button>`:''}`:'<div class="empty">Все остатки выше минимума</div>'}
+     ${lowHid.length?`<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Не заказываю (${lowHid.length})</summary><table><tbody>${lowHid.map(p=>`<tr><td class="small">${esc(p.name)}</td><td style="text-align:right">${can('catalog')?`<button class="btn link" style="padding:0" data-act="noorder-back" data-id="${esc(p.id)}">Вернуть в список</button>`:''}</td></tr>`).join('')}</tbody></table></details>`:''}</section>
    </div></div></div>`}
 function chartSvg(B,sc){
   const W=Math.round(Math.max(320,Math.min(1300,($('#view')?.clientWidth||760)-38))),H=Math.round(Math.min(300,Math.max(210,W*.3))),pl=58,pr=10,pt=12,pb=34,iw=W-pl-pr,ih=H-pt-pb;
@@ -3074,6 +3075,8 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
 'cat-fold':t=>{const CF=S.catFold||(S.catFold={});CF[t.dataset.v]=!CF[t.dataset.v];ls.set('catFold',CF);render()},'cat-go':t=>{const e=document.getElementById(t.dataset.v);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},
   'cat-g':t=>{const C=S.catCol||(S.catCol=new Set());const g=t.dataset.g;if(C.has(g))C.delete(g);else C.add(g);ls.set('catCol',[...C]);render()},'cat-col':t=>{const C=S.catCol||(S.catCol=new Set());if(t.dataset.v==='none')C.clear();else S.prod.forEach(p=>C.add(pgroup(p)));ls.set('catCol',[...C]);render()},
+  'noorder':async t=>{const id=t.dataset.id;if(await guard(()=>S.db.collection('products').doc(id).update({noOrder:true}),'Убрано из «Нужно заказать»','catalog')){const p=S.P[id];if(p)p.noOrder=true;render()}},
+  'noorder-back':async t=>{const id=t.dataset.id;if(await guard(()=>S.db.collection('products').doc(id).update({noOrder:false}),'Возвращено в «Нужно заказать»','catalog')){const p=S.P[id];if(p)p.noOrder=false;render()}},'low-all':()=>{S.lowAll=!S.lowAll;render()},
   'st-collapse':t=>{const C=S.stockCol||(S.stockCol=new Set());const gs=[...new Set(S.prod.filter(p=>!p.archived).map(pgroup))];if(t.dataset.v==='none')C.clear();else gs.forEach(g=>C.add(g));ls.set('stockCol',[...C]);render()},'exp-sales':expSales,
   'prod-new':()=>prodForm(),
   'prod-edit':t=>prodForm(S.P[t.dataset.id]),
