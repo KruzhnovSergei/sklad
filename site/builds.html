@@ -31,6 +31,15 @@
     </a>
   </div>
 </header>
+<script>
+// Отступ под закреплённую шапку: при переходе по #разделу заголовок не прячется под ней
+(function(){const h=document.querySelector('.top');if(!h)return;
+  const set=()=>document.documentElement.style.setProperty('--hh',(h.offsetHeight+16)+'px');set();addEventListener('resize',set);
+  // когда блоки догрузились (готовые сборки), докрутить до раздела из адреса ещё раз
+  window.bcFixHash=()=>{const id=decodeURIComponent(location.hash.slice(1));if(!id||id.includes('='))return;const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'auto'})};
+  addEventListener('load',()=>setTimeout(bcFixHash,50));})();
+</script>
+
 
 <section class="cat-head" style="background:var(--dark);color:var(--paper);padding:40px 0 32px">
   <div class="wrap">

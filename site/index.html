@@ -34,6 +34,15 @@
     </a>
   </div>
 </header>
+<script>
+// Отступ под закреплённую шапку: при переходе по #разделу заголовок не прячется под ней
+(function(){const h=document.querySelector('.top');if(!h)return;
+  const set=()=>document.documentElement.style.setProperty('--hh',(h.offsetHeight+16)+'px');set();addEventListener('resize',set);
+  // когда блоки догрузились (готовые сборки), докрутить до раздела из адреса ещё раз
+  window.bcFixHash=()=>{const id=decodeURIComponent(location.hash.slice(1));if(!id||id.includes('='))return;const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:'auto'})};
+  addEventListener('load',()=>setTimeout(bcFixHash,50));})();
+</script>
+
 
 <section class="hero">
   <div class="wrap">
@@ -185,7 +194,7 @@ try{firebase.initializeApp(window.SK_CONFIG.firebase);const db=firebase.firestor
   BCPC.load().then(L=>{if(!L.length)return;const MAX=8;
     document.getElementById('pcsGrid').innerHTML=L.slice(0,MAX).map(BCPC.card).join('');
     if(L.length>MAX){const a=document.getElementById('pcsAll');a.textContent='Все готовые компьютеры ('+L.length+') →';a.hidden=false}
-    document.getElementById('pcs').hidden=false}).catch(()=>{});
+    document.getElementById('pcs').hidden=false;if(window.bcFixHash)requestAnimationFrame(bcFixHash)}).catch(()=>{});
 }catch(e){}
 </script>
 <script src="stats.js"></script>
