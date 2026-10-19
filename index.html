@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 19.10.2026 18:52</span>
+      <span class="muted" style="font-size:11px">Версия от 19.10.2026 19:00</span>
     </div>
   </aside>
   <div class="main">
@@ -2735,7 +2735,7 @@ function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.
     <div class="field" style="flex:1 1 260px"><span>Цена в рассрочку</span><b style="padding:4px 0;font-size:22px;font-family:var(--f-display)" id="calcBank">${T.bprice?money(T.bprice):'—'}</b><span class="small muted" id="calcBankD">${T.bprice?`+${money(T.bprice-T.price)} к цене клиенту`:'процент зависит от банка и срока — впишите вручную'}</span></div></div></section>
   <section class="pane"><div class="pane-h"><h2>Прайсы поставщиков</h2>${S.isOwner?`<label class="btn" style="cursor:pointer">Загрузить прайс…<input type="file" accept=".xls,.xlsx,.csv,.html,.htm" data-ch="calc-file" hidden></label>`:''}</div>
    <p class="muted small" style="margin-bottom:8px">Excel (.xls, .xlsx) или CSV от поставщика. Программа сама найдёт колонки с названием и ценой; если ошибётся — их можно выбрать вручную. Загрузка нового прайса того же поставщика заменяет старый.${S.isOwner?' Загружать и удалять прайсы может только владелец, сотрудники с доступом к расчёту ими только пользуются.':''}</p>
-   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td>${S.isOwner?`<button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section>${siteHtml()}</div>`}
+   ${lists.length?`<div class="tbl"><table><thead><tr><th>Поставщик</th><th>Файл</th><th class="num">Позиций</th><th>Валюта</th><th>Загружен</th><th></th></tr></thead><tbody>${lists.map(l=>`<tr><td><b>${esc(l.supp||'—')}</b></td><td class="muted small">${esc(l.file||'')}</td><td class="num">${NF.format(num(l.n))}${S.plr[l.id]?.rows?'':' <span class="muted small">…</span>'}</td><td>${l.cur&&l.cur!=='KGS'?`${esc(l.cur)} по курсу ${NF.format(num(l.rate))}`:'сом'}</td><td class="muted">${l.at?dt(l.at):''}</td><td style="white-space:nowrap;text-align:right">${S.isOwner?`<button class="btn link" data-act="calc-lren" data-id="${esc(l.id)}">Переименовать</button><button class="btn link bad" data-act="calc-ldel" data-id="${esc(l.id)}">Удалить</button>`:''}</td></tr>`).join('')}</tbody></table></div><p class="muted small" style="margin-top:6px">Всего в поиске: ${NF.format(nRows)} позиций${loading?' (загружаю…)':''}.</p>`:`<div class="empty">Прайсы ещё не загружены</div>`}</section>${siteHtml()}</div>`}
 function calcResHtml(i){const q=(S.calcQ?.[i]||'').trim();if(q.length<2)return '';const R=calcSearch(q);S.calcHits=S.calcHits||{};S.calcHits[i]=R;
   return `<div class="results">${R.length?R.map((r,k)=>`<button data-act="calc-pick" data-i="${i}" data-k="${k}"><span>${esc(r.n)}<span class="psku">${esc(r.supp)}${r.cur&&r.cur!=='KGS'?` · ${NF.format(r.op)} ${CUR[r.cur]||r.cur}`:''}</span></span><b style="white-space:nowrap">${money(r.p)}</b></button>`).join(''):'<div class="empty" style="padding:12px">Ничего не найдено</div>'}</div>`}
 function calcUpd(){const T=calcTot();const c=calcState();c.lines.forEach((l,i)=>{const e=$('#calcs'+i);if(e)e.textContent=l.pick?NF.format(r2(num(l.pick.p)*Math.max(1,num(l.q)||1))):'—'});
@@ -2780,6 +2780,14 @@ async function calcUpSave(){const U=S.cup;const supp=$('#cuSupp').value.trim()||
     for(let k=chunks;k<num(old?.chunks);k++)await db.doc('plrows/'+id+'_'+k).delete();
     await db.doc('pricelists/'+id).set({supp,file:U.file,cur,rate,n:items.length,chunks,at:now(),by:S.uid||null})},`Прайс «${supp}» загружен: ${items.length} позиций`,'owner');
   if(ok){S.cup=null;closeModal(true);render();siteAuto()}else if(btn){btn.disabled=false;btn.textContent='Повторить'}}
+function calcRenForm(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;
+  openModal(`<h2>Название прайса</h2><p class="muted small">Файл «${esc(l.file||'')}». Название видно в «Расчёте ПК» под каждой найденной позицией и в КП — по нему понятно, у кого брать деталь. Позиции заново загружать не нужно.</p>
+   <label class="field"><span>Поставщик</span><input id="plRen" value="${esc(l.supp||'')}" placeholder="Например: Протон" maxlength="80"></label><p class="err" id="plRenErr"></p>
+   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="calc-lren-save" data-id="${esc(id)}">Сохранить</button></div>`);setTimeout(()=>{const e=$('#plRen');e?.focus();e?.select()},30)}
+async function calcRenSave(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;const v=($('#plRen')?.value||'').trim().replace(/\s+/g,' ');const err=$('#plRenErr');
+  if(!v){err.textContent='Введите название';return}if((S.pll||[]).some(x=>x.id!==id&&(x.supp||'').trim().toLowerCase()===v.toLowerCase())){err.textContent='Прайс с таким названием уже есть — выберите другое или удалите старый';return}
+  if(v===l.supp){closeModal(true);return}
+  if(await guard(()=>S.db.doc('pricelists/'+id).update({supp:v}),'Название изменено','owner')){const old=(l.supp||l.file||'');l.supp=v;try{let ch=0;for(const x of calcState().lines||[]){const k=x.pick;if(k&&k.src==='pl'&&old&&(k.supp===old||(k.supp||'').startsWith(old+' · '))){k.supp=v+k.supp.slice(old.length);ch++}}if(ch)calcSave()}catch(e){}closeModal(true);render()}}
 async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','owner')){delete S.plr[id];render();siteAuto()}}
 /* ---------- Каталог на сайте: розничные цены из прайсов ---------- */
 const SITE_CATS=[
@@ -3195,7 +3203,7 @@ const ACT={
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
   'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
-  'calc-ldel':t=>calcDel(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
+  'calc-ldel':t=>calcDel(t.dataset.id),'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
@@ -3552,7 +3560,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
     const l=filterProds(q);const ex=l.find(p=>(p.sku||'').toLowerCase()===q.toLowerCase());const pick=ex||(l.length===1?l[0]:null);
     if(pick){if(!pick.serial)clearSaleQ();cartAdd(pick.id)}}
   if(id==='pf-gname'){e.preventDefault();ACT['pf-gadd']();return}
-  if(e.target.closest?.('#mcard')&&e.target.tagName==='INPUT'){const b=$('#mcard [data-act="prod-save"],#mcard [data-act="wh-save"],#mcard [data-act="cust-save"],#mcard [data-act="pay-save"],#mcard [data-act="cl-save"],#mcard [data-act="grp-save"],#mcard [data-act="supp-save"],#mcard [data-act="spay-save"],#mcard [data-act="m-save"],#mcard [data-act="po-pay-save"]');if(b){e.preventDefault();b.click()}}});
+  if(e.target.closest?.('#mcard')&&e.target.tagName==='INPUT'){const b=$('#mcard [data-act="prod-save"],#mcard [data-act="wh-save"],#mcard [data-act="cust-save"],#mcard [data-act="pay-save"],#mcard [data-act="cl-save"],#mcard [data-act="grp-save"],#mcard [data-act="supp-save"],#mcard [data-act="spay-save"],#mcard [data-act="m-save"],#mcard [data-act="po-pay-save"],#mcard [data-act="calc-lren-save"]');if(b){e.preventDefault();b.click()}}});
 
 /* ---------- запуск ---------- */
 (async()=>{
