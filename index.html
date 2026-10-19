@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.10.2026 13:30</span>
+      <span class="muted" style="font-size:11px">Версия от 19.10.2026 11:00</span>
     </div>
   </aside>
   <div class="main">
@@ -1131,7 +1131,8 @@ function vAsm(){
     <div class="field"><span>Серийный номер компьютера</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="asmSn" data-in="asmsn" value="${esc(a.sn)}" placeholder="PC-…"><button class="btn ghost" data-act="asm-gen" style="padding:8px 10px">Создать</button></div></div>
    </div>
    <div class="row" style="align-items:flex-end"><label class="field" style="flex:0 1 220px"><span>Группа</span><select id="asmG" data-ch="asmg">${groupOpts(S.asmG)}</select></label>
-    <label class="field" style="flex:2 1 320px"><span>Добавить деталь</span><select id="asmPick" data-ch="asmpick">${asmPickOpts()}</select></label></div>
+    <div class="field picker" style="flex:2 1 320px"><span>Найти деталь</span><input id="asmQ" data-in="asmq" value="${esc(S.asmQ)}" placeholder="Название, артикул или S/N (Enter — добавить)" autocomplete="off"><div id="asmRes">${asmResults()}</div></div>
+    <label class="field" style="flex:1 1 240px"><span>или выбрать из списка</span><select id="asmPick" data-ch="asmpick">${asmPickOpts()}</select></label></div>
    <div class="tbl">${a.items.length?`<table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th>${sc?'<th class="num">Себест.</th><th class="num">Сумма</th>':''}<th class="num">На складе</th><th></th></tr></thead><tbody>${a.items.map((it,i)=>{const ser=!!S.P[it.p]?.serial;return `<tr><td><span class="pname">${esc(pname(it.p))}</span><span class="psku">${esc(pgroup(it.p))}</span></td>
      <td style="min-width:220px">${ser?`${snChips(it.sn)}<button class="btn link" data-act="sn-pick" data-t="asm" data-i="${i}">${(it.sn||[]).length?'Изменить':'Выбрать со склада'}</button>`:`<input id="ar${i}" data-in="asmrsn" data-i="${i}" value="${esc(it.rsn||'')}" placeholder="S/N с детали, через запятую">`}</td>
      <td class="num">${ser?`<b>${(it.sn||[]).length}</b>`:`<input class="sm" inputmode="decimal" id="aq${i}" data-in="asmqty" data-i="${i}" value="${esc(it.q)}">`}</td>${sc?`<td class="num">${NF.format(r2(cost(it.p)))}</td><td class="num" id="asum${i}"></td>`:''}<td class="num muted">${q3(qty(a.wh,it.p))}</td><td><button class="x" data-act="asm-rm" data-i="${i}" aria-label="Убрать">×</button></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Добавьте процессор, материнскую плату, память, накопитель, видеокарту, блок питания, корпус</div>'}</div>
@@ -1208,8 +1209,16 @@ function asmPickOpts(){const wh=S.asm.asmWh||S.asm.wh;const list=S.prod.filter(p
   if(!list.length)return '<option value="">На складе нет деталей'+(S.asmG?' в этой группе':'')+'</option>';
   const by={};for(const p of list){const g=pgroup(p);(by[g]??=[]).push(p)}
   return '<option value="">Выберите деталь…</option>'+Object.keys(by).sort((a,b)=>a.localeCompare(b,'ru')).map(g=>`<optgroup label="${esc(g)}">${by[g].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} — ${q3(qty(S.asm.wh,p.id))} ${esc(p.unit||'шт')}${p.serial?' · S/N':''}</option>`).join('')}</optgroup>`).join('')}
-function asmResults(){const q=S.asmQ.trim();if(!q)return '';const list=filterProds(q).filter(p=>!isPcProd(p)&&p.id!==S.asm.out).slice(0,8);
-  return `<div class="results">${list.length?list.map(p=>`<button data-act="asm-add" data-id="${esc(p.id)}"><span>${esc(p.name)} <span class="psku" style="display:inline">${p.serial?'S/N ':''}${esc(p.sku||'')}</span></span><span class="muted">${q3(qty(S.asm.wh,p.id))} ${esc(p.unit||'шт')}</span></button>`).join(''):'<div class="empty" style="padding:14px">Не найдено</div>'}</div>`}
+function asmHits(){const q=S.asmQ.trim();if(!q)return null;const wh=S.asm.wh;const used=new Set(S.asm.items.flatMap(x=>x.sn||[]));
+  const k=S.snLoc[q]?q:S.snLoc[q.toUpperCase()]?q.toUpperCase():'';const z=k&&S.snLoc[k];const sn=z&&z.wh===wh&&!used.has(k)&&S.P[z.p]&&!isPcProd(S.P[z.p])&&z.p!==S.asm.out?k:'';
+  const ws=q.toLowerCase().split(/\s+/).filter(Boolean);
+  const list=S.prod.filter(p=>!p.archived&&!isPcProd(p)&&p.id!==S.asm.out&&inGroup(p,S.asmG)&&qty(wh,p.id)>0&&(()=>{const h=((p.name||'')+' '+(p.sku||'')+' '+(p.cat||'')+' '+pgroup(p)).toLowerCase();return ws.every(w=>h.includes(w))})())
+   .sort((a,b)=>{const an=(a.name||'').toLowerCase(),bn=(b.name||'').toLowerCase();const as=an.startsWith(ws[0])?0:1,bs=bn.startsWith(ws[0])?0:1;return as-bs||an.localeCompare(bn,'ru')});
+  return {sn,snP:sn?S.snLoc[sn].p:'',list:list.slice(0,40),more:list.length>40}}
+function asmResults(){const h=asmHits();if(!h)return '';const wh=S.asm.wh;
+  const row=(p,sn)=>`<button data-act="asm-add" data-id="${esc(p.id)}"${sn?` data-sn="${esc(sn)}"`:''}><span>${esc(p.name)} <span class="psku" style="display:inline">${sn?'S/N '+esc(sn):(p.serial?'S/N ':'')+esc(p.sku||'')} · ${esc(pgroup(p))}</span></span><span class="muted" style="white-space:nowrap">${q3(qty(wh,p.id))} ${esc(p.unit||'шт')}</span></button>`;
+  const items=(h.sn&&S.P[h.snP]?row(S.P[h.snP],h.sn):'')+h.list.map(p=>row(p)).join('');
+  return `<div class="results">${items||`<div class="empty" style="padding:14px">На складе «${esc(wname(wh))}» не найдено${S.asmG?' в этой группе':''}</div>`}${h.more?'<div class="muted small" style="padding:8px 12px">Показаны первые 40 — уточните запрос</div>':''}</div>`}
 function updAsm(){const box=$('#asmSum');const a=S.asm;let parts=0,n=0;a.items.forEach((it,i)=>{const q=S.P[it.p]?.serial?(it.sn||[]).length:num(it.q);const v=q*cost(it.p);parts+=v;n+=q;const e=$('#asum'+i);if(e)e.textContent=NF.format(r2(v))});
   if(!box)return;const lab=num(a.labor),tot=parts+lab,pr=num(a.price)||num(S.P[a.out]?.sellPrice),pf=pr-tot;
   box.innerHTML=`<div class="kpi"><span>Детали, ${q3(n)} шт</span><b>${money(parts)}</b></div><div class="kpi"><span>Работа по сборке</span><b>${money(lab)}</b></div><div class="kpi main"><span>Себестоимость компьютера</span><b>${money(tot)}</b></div>${pr?`<div class="kpi"><span>${num(a.price)?'При цене':'При цене модели'} ${money(pr)}</span><b style="color:${pf<0?'var(--bad)':'var(--good)'}">${pf<0?'убыток':'прибыль'} ${money(Math.abs(pf))}${tot?` · ${NF.format(r2(pf/tot*100))}%`:''}</b></div>`:''}`}
@@ -3298,7 +3307,8 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
   'wh-del':t=>guard(()=>S.db.collection('warehouses').doc(t.dataset.id).delete(),'Склад удалён','catalog'),
   'demo-seed':seedDemo,'demo-clear':clearDemo,
   'asm-add':t=>{const pr=S.P[t.dataset.id];if(!pr)return;if(pr.serial&&!snAt(S.asm.wh,pr.id).length){toast('На этом складе нет номеров этой детали');return}
-    let i=S.asm.items.findIndex(x=>x.p===pr.id);let isNew=false;if(i<0){S.asm.items.push({p:pr.id,q:pr.serial?0:1,sn:[],rsn:''});i=S.asm.items.length-1;isNew=true}
+    const sn=t.dataset.sn||'';let i=S.asm.items.findIndex(x=>x.p===pr.id);let isNew=false;if(i<0){S.asm.items.push({p:pr.id,q:pr.serial?0:1,sn:[],rsn:''});i=S.asm.items.length-1;isNew=true}
+    if(sn){const it=S.asm.items[i];if(!it.sn.includes(sn))it.sn.push(sn);it.q=it.sn.length;S.asmQ='';render();setTimeout(()=>$('#asmQ')?.focus(),0);return}
     S.asmQ='';render();if(pr.serial)snOpen('asm',i,isNew);else setTimeout(()=>{const e=$('#ar'+i);e?.focus()},0)},
   'asm-rm':t=>{S.asm.items.splice(+t.dataset.i,1);render()},
   'asm-gen':()=>{S.asm.sn=nextPcSn();const e=$('#asmSn');if(e)e.value=S.asm.sn},
@@ -3484,6 +3494,9 @@ sfwh:t=>{if(t.checked)S.sf.whs.add(t.value);else S.sf.whs.delete(t.value)},
   pfgroup:t=>{const g=S.G[t.value];if(!g)return;const isNew=!$('#mcard [data-act="prod-save"]')?.dataset.id;if(!isNew)return;const sc=$('#pf-serial');if(sc&&!sc.disabled)sc.checked=!!g.serial},
   snchk:t=>{if(t.checked)S.snSel.add(t.value);else S.snSel.delete(t.value);const e=$('#snCnt');if(e)e.textContent='Выбрано: '+S.snSel.size},
 };
+document.addEventListener('click',e=>{const r=$('#asmRes');if(r&&r.innerHTML&&!e.target.closest('.picker'))r.innerHTML='';},true);
+document.addEventListener('focusin',e=>{if(e.target.id==='asmQ'&&S.asmQ.trim())$('#asmRes').innerHTML=asmResults()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&e.target.id==='asmQ'){S.asmQ='';e.target.value='';$('#asmRes').innerHTML=''}});
 document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t||t.disabled)return;const f=ACT[t.dataset.act];if(f){e.preventDefault();f(t,e)}});
 document.addEventListener('input',e=>{if(e.target.id==='snTxt')return snCount();const f=IN[e.target.dataset?.in];if(f)f(e.target)});
 document.addEventListener('change',e=>{const f=CH[e.target.dataset?.ch];if(f)f(e.target)});
