@@ -49,7 +49,7 @@
 </section>
 <main class="wrap" style="padding-top:32px;padding-bottom:96px;display:flex;flex-direction:column;gap:18px">
   <div class="row" id="filters" hidden>
-    <button class="btn btn-dark" data-k="">Все</button><button class="btn btn-line" data-k="Игровой">Игровые</button><button class="btn btn-line" data-k="Офисный">Офисные</button>
+    <button class="btn btn-dark" data-k="">Все</button><button class="btn btn-line" data-k="Игровой">Игровые</button><button class="btn btn-line" data-k="Офисный">Офисные</button><button class="btn btn-line" data-k="Рабочая станция" hidden id="kWs">Рабочие станции</button>
     <label for="sort" style="position:absolute;left:-9999px">Сортировка</label>
     <select id="sort" style="min-height:48px;padding:0 14px;border:1.5px solid var(--line);border-radius:12px;font:500 16px var(--f-body);background:var(--card)">
       <option value="new">Сначала новые</option><option value="asc">Сначала дешевле</option><option value="desc">Сначала дороже</option>
@@ -74,7 +74,7 @@
   const sub=document.getElementById('sub'),grid=document.getElementById('grid');
   if(!L.length){sub.textContent='Сейчас готовых сборок нет — соберём под ваш бюджет.';grid.innerHTML='<div class="empty" style="grid-column:1/-1;padding:40px;text-align:center;color:var(--muted)">Напишите нам в <a href="https://wa.me/996707198806">WhatsApp</a>, подберём конфигурацию.</div>';return}
   sub.textContent='В наличии: '+L.length+'. Нажмите на компьютер, чтобы посмотреть фото и полный состав.';
-  document.getElementById('filters').hidden=false;let k='',sort='new';
+  document.getElementById('filters').hidden=false;if(L.some(x=>BCPC.kind(x)==='Рабочая станция'))document.getElementById('kWs').hidden=false;let k='',sort='new';
   const draw=()=>{let X=L.filter(x=>!k||BCPC.kind(x)===k);if(sort==='asc')X=X.slice().sort((a,b)=>a.p-b.p);if(sort==='desc')X=X.slice().sort((a,b)=>b.p-a.p);
     grid.innerHTML=X.length?X.map(BCPC.card).join(''):'<div style="grid-column:1/-1;color:var(--muted)">Таких сборок сейчас нет</div>';
     document.querySelectorAll('#filters [data-k]').forEach(b=>{const on=b.dataset.k===k;b.className='btn '+(on?'btn-dark':'btn-line');b.setAttribute('aria-pressed',on)})};

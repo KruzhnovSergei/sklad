@@ -4,8 +4,12 @@ window.BCPC=(function(){
   const NF=new Intl.NumberFormat('ru-RU');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money=v=>NF.format(v)+' сом';
-  const kind=x=>{const t=(x.n+' '+(x.cfg||'')+' '+(x.parts||[]).join(' ')).toLowerCase();
-    return /rtx|gtx|radeon|rx\s?\d{4}|arc a|arc b|игров|gaming/.test(t)?'Игровой':/офис|office/.test(t)?'Офисный':'Компьютер'};
+  // Тип берётся из модели, выбранной при сборке («Офисный ПК», «Игровой ПК», «Рабочая станция»…);
+  // только если в названии модели тип не указан — угадываем по комплектующим
+  const kind=x=>{const n=String(x.n||'').toLowerCase();
+    if(/офис|office/.test(n))return 'Офисный';if(/игров|gaming|gamer/.test(n))return 'Игровой';if(/рабоч|workstation|станци/.test(n))return 'Рабочая станция';
+    const t=(n+' '+(x.cfg||'')+' '+(x.parts||[]).join(' ')).toLowerCase();
+    return /rtx|gtx\s?1[0-6]|rx\s?[5-9]\d{3}|arc a|arc b|игров|gaming/.test(t)?'Игровой':/офис|office/.test(t)?'Офисный':'Компьютер'};
   const buy=x=>'https://wa.me/996707198806?text='+encodeURIComponent('Здравствуйте! Хочу купить готовый компьютер с сайта: '+x.n+(x.cfg?' ('+x.cfg+')':'')+', S/N '+x.sn+', цена '+money(x.p)+'. Он ещё в наличии?');
   const ph='<div class="pc-ph" aria-hidden="true"><svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><circle cx="12" cy="16" r="2.5"/><path d="M9 6h6M9 9h6"/></svg></div>';
   function card(x){
