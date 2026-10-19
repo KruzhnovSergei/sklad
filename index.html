@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 19.10.2026 13:24</span>
+      <span class="muted" style="font-size:11px">Версия от 19.10.2026 14:58</span>
     </div>
   </aside>
   <div class="main">
@@ -682,7 +682,7 @@ function vStock(){
   const nLow=allRows.filter(r=>r.st[0]==='low').length,nOut=allRows.filter(r=>r.st[0]==='out').length;
   return `<div class="stack">
   <div class="kpis"><div class="kpi"><span>Позиций в наличии</span><b>${allRows.filter(r=>r.q>0).length}</b></div>${sc?`<div class="kpi"><span>Сумма по себестоимости</span><b>${money(vc)}</b></div>`:''}<div class="kpi"><span>Сумма в ценах продажи</span><b>${money(vr)}</b></div><div class="kpi"><span>Заканчиваются / нет</span><b><span style="color:var(--warn)">${nLow}</span> / <span style="color:var(--bad)">${nOut}</span></b></div></div>
-  <section class="pane"><div class="pane-h"><h2>Остатки</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="exp-stock">Скачать CSV</button></div></div>
+  <section class="pane"><div class="pane-h"><h2>Остатки</h2><div class="row" style="gap:8px"><button class="btn" data-act="stock-xlsx">Скачать Excel</button><button class="btn ghost" data-act="exp-stock">CSV</button></div></div>
   <div class="row" style="margin-bottom:12px">
    <select id="stWh" data-ch="stwh" style="flex:0 1 220px" aria-label="Склад">${VW.length>1?`<option value="all">${lim?'Все мои склады':'Все склады'}</option>`:''}${VW.map(w=>`<option value="${esc(w.id)}"${w.id===S.stockWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select>
    <select id="stG" data-ch="stg" style="flex:0 1 200px" aria-label="Группа">${groupOpts(S.stockG)}</select>
@@ -694,6 +694,23 @@ function vStock(){
      for(const r of srt){const g=pgroup(r.p);if(byG&&g!==cur){cur=g;const gr=srt.filter(x=>pgroup(x.p)===g);const gq=gr.reduce((a,x)=>a+Math.max(0,x.q),0);const gs=gr.reduce((a,x)=>a+Math.max(0,x.q)*cost(x.p.id),0);const cl=C.has(g)&&!f;
        out+=`<tr class="grp" data-act="stgrp" data-v="${esc(g)}" tabindex="0" aria-expanded="${!cl}"><td colspan="${ncol}"><span class="caret">${cl?'▸':'▾'}</span> ${esc(g)} <span class="gmeta">· ${gr.length} поз. · ${q3(gq)} шт${sc?' · '+money(gs):''}</span></td></tr>`}
        if(byG&&C.has(g)&&!f)continue;out+=rowH(r)}return out})()}</tbody></table>`:`<div class="empty">${allRows.length&&!S.stockZero&&!f?'На этом складе нет товаров в наличии. Включите «Показывать товары с нулевым остатком», чтобы увидеть весь список.':'Нет товаров по этим условиям'}</div>`}</div></section></div>`}
+function stockSpec(){const VW=viewWh();const all=S.stockWh==='all';const whs=all?VW:[S.W[S.stockWh]].filter(Boolean);const cols=all&&VW.length>1&&VW.length<=5;const sc=can('cost');
+  const f=S.stockQ.trim().toLowerCase();
+  const rows=S.prod.filter(p=>!p.archived&&!ownOnly(p.id)).map(p=>{const q=all?qtyIn(VW,p.id):qty(S.stockWh,p.id);return{p,q,st:status(q,num(p.minStock))}})
+   .filter(r=>(!f||(r.p.name||'').toLowerCase().includes(f)||(r.p.sku||'').toLowerCase().includes(f)||(r.p.cat||'').toLowerCase().includes(f))&&(!S.stockLow||r.st[0]!=='ok')&&(S.stockZero||S.stockLow||f||r.q!==0)&&inGroup(r.p,S.stockG))
+   .sort((a,b)=>pgroup(a.p).localeCompare(pgroup(b.p),'ru')||(a.p.name||'').localeCompare(b.p.name||'','ru'));
+  const C=[['№',.05,'q'],['Наименование',sc?.34:.46],['Ед.',.05],...(cols?whs.map(w=>[w.name,.08,'q']):[]),[all&&cols?'Всего':'Остаток',.08,'q'],['Мин.',.06,'q'],...(sc?[['Себест.',.09,'m'],['Сумма себест.',.11,'m']]:[]),['Цена продажи',.09,'m'],['Сумма продажи',.11,'m']];
+  const tw=C.reduce((a,c)=>a+c[1],0);C.forEach(c=>c[1]=c[1]/tw*(cols?1+whs.length*.06:1));
+  let n=0,cur=null,tq=0,tc=0,ts=0;const out=[];const blank=()=>C.slice(2).map(()=>'');
+  for(const r of rows){const g=pgroup(r.p);if(g!==cur){cur=g;const gr=rows.filter(x=>pgroup(x.p)===g);out.push({bold:true,cells:['',`${g} — ${gr.length} поз.`,...blank()]})}
+    const q=r.q,c=cost(r.p.id),sp=num(r.p.sellPrice),qp=Math.max(0,q);tq+=qp;tc+=qp*c;ts+=qp*sp;const sn=r.p.serial?whs.flatMap(w=>snAt(w.id,r.p.id)):[];
+    out.push({cells:[++n,r.p.name,r.p.unit||'шт',...(cols?whs.map(w=>qty(w.id,r.p.id)):[]),q,num(r.p.minStock)||'',...(sc?[r2(c),r2(qp*c)]:[]),sp?r2(sp):'',sp?r2(qp*sp):''],note:[r.p.sku?'Арт. '+r.p.sku:'',sn.length?'S/N: '+sn.join(', '):''].filter(Boolean).join(' · ')})}
+  const s=S.set;const gName=S.stockG?(S.groups.find(x=>x.id===S.stockG)?.name||''):'';
+  return{title:'ОСТАТКИ ТОВАРОВ',sheet:'Остатки',shop:[s.shopName||'Магазин',s.shopAddr||'',s.shopPhone?'Тел.: '+s.shopPhone:''].filter(Boolean),
+   sub:[(all?(VW.length>1?'Все склады: ':'Склад: ')+whs.map(w=>w.name).join(', '):'Склад: '+(whs[0]?.name||''))+(gName?' · группа: '+gName:'')+(f?' · поиск: «'+S.stockQ.trim()+'»':'')+(S.stockLow?' · только заканчивающиеся':''),'по состоянию на '+ds(now())+' '+new Date().toTimeString().slice(0,5)],
+   cols:C,rows:out,total:n,after:[[`Наименований: ${n}, единиц: ${q3(tq)}`,false],...(sc?[[`Сумма по себестоимости: ${money(tc)}`,true]]:[]),[`Сумма в ценах продажи: ${money(ts)}`,true]]}}
+async function stockXlsx(){try{const d=stockSpec();if(!d.total){toast('Нет товаров по этим условиям');return}const w=S.stockWh==='all'?'все склады':(S.W[S.stockWh]?.name||'');
+  await saveFile(`Остатки ${w} ${ds(now()).replace(/\./g,'-')}.xlsx`.replace(/[\\/:*?"<>|]/g,' '),repXlsx(d))}catch(e){console.error(e);toast('Не удалось подготовить файл')}}
 function snListModal(pid){const p=S.P[pid];const whs=S.stockWh==='all'?viewWh():[S.W[S.stockWh]].filter(Boolean);
   openModal(`<h2>${esc(p.name)}: серийные номера</h2>${whs.map(w=>{const a=snAt(w.id,pid);return `<div><h3 style="font-size:14px;margin-bottom:6px">${esc(w.name)} · ${a.length} шт</h3>${a.length?snChips(a):'<span class="muted small">Нет в наличии</span>'}</div>`}).join('')}
   <p class="muted small">Историю любого номера можно найти через поиск в «Журнале».</p><div class="row end"><button class="btn" data-act="modal-close">Закрыть</button></div>`)}
@@ -3279,7 +3296,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
-  'exp-stock':expStock,
+  'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
 'cat-fold':t=>{const CF=S.catFold||(S.catFold={});CF[t.dataset.v]=!CF[t.dataset.v];ls.set('catFold',CF);render()},'cat-go':t=>{const e=document.getElementById(t.dataset.v);if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},
   'cat-g':t=>{const C=S.catCol||(S.catCol=new Set());const g=t.dataset.g;if(C.has(g))C.delete(g);else C.add(g);ls.set('catCol',[...C]);render()},'cat-col':t=>{const C=S.catCol||(S.catCol=new Set());if(t.dataset.v==='none')C.clear();else S.prod.forEach(p=>C.add(pgroup(p)));ls.set('catCol',[...C]);render()},
