@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 01:32</span>
+      <span class="muted" style="font-size:11px">Версия от 20.10.2026 01:46</span>
     </div>
   </aside>
   <div class="main">
@@ -3042,6 +3042,10 @@ async function lblDl(){const d=S.lbl;if(!d)return;const {spec,...keep}=d;lblSave
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
 const plCanSave=()=>S.isOwner||can('catalog');
+let plT=null;function plAuto(){if(!plCanSave())return;clearTimeout(plT);const e=$('#plSaved');if(e)e.textContent='сохраняю…';
+  plT=setTimeout(async()=>{const c=JSON.parse(JSON.stringify(plCfg()));try{const r=S.db.doc('settings/main');try{await r.update({priceList:c})}catch(err){await r.set({priceList:c},{merge:true})}S.set.priceList=c;const e2=$('#plSaved');if(e2)e2.textContent='Изменения сохранены'}catch(err){console.error(err);const e2=$('#plSaved');if(e2)e2.textContent='';toast('Не удалось сохранить прайс: '+(err?.code==='permission-denied'?'нет прав':'нет связи'))}},1200)}
+async function plSetPrice(t){const id=t.dataset.id;const p=S.P[id];if(!p)return;const v=r2(num(t.value));if(!(v>0)){t.value=num(p.sellPrice)||'';toast('Цена должна быть больше нуля');return}if(v===num(p.sellPrice))return;const old=num(p.sellPrice);
+  if(await guard(()=>S.db.collection('products').doc(id).update({sellPrice:v}),`Цена продажи «${p.name}»: ${NF.format(old)} → ${NF.format(v)} сом`,'catalog')){p.sellPrice=v;const o=document.querySelector(`input[data-in="plov"][data-id="${CSS.escape(id)}"]`);if(o)o.placeholder=NF.format(plBase(plCfg(),p))}else t.value=old||''}
 function plWhs(c){const VW=viewWh();return c.wh==='all'||!VW.some(w=>w.id===c.wh)?VW:[S.W[c.wh]]}
 function plBase(c,p){let v=num(p.sellPrice);if(c.mode==='pct'&&num(c.pct))v=v*(1+num(c.pct)/100);const r=num(c.round)||1;return r>1?Math.round(v/r)*r:r2(v)}
 const plPrice=(c,p)=>c.ov[p.id]!=null&&c.ov[p.id]!==''?num(c.ov[p.id]):plBase(c,p);
@@ -3050,10 +3054,10 @@ function plRows(c,all){const ws=plWhs(c);return S.prod.filter(p=>!p.archived&&!o
 function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const rows=plRows(c,true);const gs=[...new Set(S.prod.filter(p=>!p.archived).map(pgroup))].sort((a,b)=>a.localeCompare(b,'ru'));const inc=rows.filter(r=>!c.ex.includes(r.p.id));
   let cur=null,body='';for(const r of rows){if(r.g!==cur){cur=r.g;const n=rows.filter(x=>x.g===cur);body+=`<tr class="grp plg"><td colspan="8">${esc(cur)} <span class="gmeta">· ${n.filter(x=>!c.ex.includes(x.p.id)).length} из ${n.length}</span></td></tr>`}
     const p=r.p,ex=c.ex.includes(p.id),ov=c.ov[p.id]!=null&&c.ov[p.id]!=='';
-    body+=`<tr${ex?' style="opacity:.45"':''}><td><input type="checkbox" data-ch="plinc" value="${esc(p.id)}"${ex?'':' checked'} aria-label="Включить в прайс"></td><td><span class="pname">${esc(p.name)}${plIsNew(c,fi,p.id)?' <span class="chip ok">новинка</span>':''}</span></td><td><input data-in="plnote" data-id="${esc(p.id)}" value="${esc(c.notes[p.id]||'')}" placeholder="—" style="min-width:150px;padding:6px 8px;font-size:13px"></td><td class="num muted">${pWTxt(p)||'—'}</td><td class="num"><span style="font-weight:600;color:${r.q<=0?'var(--muted)':r.q<5?'var(--warn)':'var(--good)'}">${plStock(r.q)}</span></td><td class="num muted">${NF.format(num(p.sellPrice))}</td>
+    body+=`<tr${ex?' style="opacity:.45"':''}><td><input type="checkbox" data-ch="plinc" value="${esc(p.id)}"${ex?'':' checked'} aria-label="Включить в прайс"></td><td><span class="pname">${esc(p.name)}${plIsNew(c,fi,p.id)?' <span class="chip ok">новинка</span>':''}</span></td><td><input data-in="plnote" data-id="${esc(p.id)}" value="${esc(c.notes[p.id]||'')}" placeholder="—" style="min-width:150px;padding:6px 8px;font-size:13px"></td><td class="num muted">${pWTxt(p)||'—'}</td><td class="num"><span style="font-weight:600;color:${r.q<=0?'var(--muted)':r.q<5?'var(--warn)':'var(--good)'}">${plStock(r.q)}</span></td><td class="num">${can('catalog')?`<input class="sm" inputmode="decimal" data-ch="plsp" data-id="${esc(p.id)}" value="${esc(num(p.sellPrice)||'')}" placeholder="0" title="Цена продажи товара — меняется везде: в кассе, накладных, на сайте" style="width:100px">`:`<span class="muted">${NF.format(num(p.sellPrice))}</span>`}</td>
      <td class="num"><input class="sm" inputmode="decimal" data-in="plov" data-id="${esc(p.id)}" value="${ov?esc(c.ov[p.id]):''}" placeholder="${esc(NF.format(plBase(c,p)))}" style="width:110px${ov?';font-weight:700;border-color:var(--accent)':''}"></td><td>${ov?`<button class="x" data-act="plov-rm" data-id="${esc(p.id)}" title="Вернуть расчётную цену">×</button>`:''}</td></tr>`}
   const dis=plCanSave()?'':' disabled';
-  return `<div class="stack"><section class="pane stack"><div class="pane-h" style="margin:0"><h2>Прайс-лист</h2><div class="row" style="gap:8px"><button class="btn" data-act="pl-dl" data-f="pdf">Скачать PDF</button><button class="btn" data-act="pl-dl" data-f="xlsx">Скачать Excel</button>${plCanSave()?'<button class="btn ghost" data-act="pl-save">Сохранить настройки</button>':''}</div></div>
+  return `<div class="stack"><section class="pane stack"><div class="pane-h" style="margin:0"><h2>Прайс-лист</h2><div class="row" style="gap:8px"><button class="btn" data-act="pl-dl" data-f="pdf">Скачать PDF</button><button class="btn" data-act="pl-dl" data-f="xlsx">Скачать Excel</button>${plCanSave()?'<span class="muted small" id="plSaved"></span><button class="btn ghost" data-act="pl-save">Сохранить настройки</button>':''}</div></div>
    <div class="row"><label class="field" style="flex:2 1 260px"><span>Заголовок</span><input data-in="plf" data-f="title" value="${esc(c.title)}"></label><label class="field" style="flex:2 1 260px"><span>Примечание под заголовком</span><input data-in="plf" data-f="note" value="${esc(c.note)}" placeholder="Например: цены для дилеров, действительны до 31.10"></label></div>
    <div class="row" style="align-items:flex-end">
     <label class="field" style="flex:0 1 200px"><span>Наличие по складу</span><select data-ch="plsel" data-f="wh">${VW.length>1?`<option value="all"${c.wh==='all'?' selected':''}>Все склады</option>`:''}${VW.map(w=>`<option value="${esc(w.id)}"${w.id===c.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label>
@@ -3067,8 +3071,8 @@ function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const r
    ${plCanSave()?'':'<p class="muted small">Вы можете настроить и скачать прайс, но сохранить настройки может только владелец или сотрудник с правом «Товары».</p>'}</section>
   ${kitsPane()}
   <section class="pane"><div class="pane-h"><h2>Товары в прайсе</h2><span class="muted">${inc.length} поз.${Object.keys(c.ov).length?` · <button class="btn link" data-act="plov-clear">сбросить ручные цены (${Object.keys(c.ov).length})</button>`:''}</span></div>
-   <p class="muted small" style="margin-bottom:8px">Снимите галочку, чтобы убрать товар из прайса. В «Примечание» можно написать, например, «б/у» или «царапина на корпусе» — колонка появится в прайсе, если есть хоть одно примечание. В колонке «В прайсе» можно вписать свою цену — она попадёт только в прайс-лист, цена в кассе не изменится. Товар, впервые поступивший за последние дни, помечается как новинка.</p>
-   <div class="tbl">${rows.length?`<table><thead><tr><th></th><th>Товар</th><th>Примечание</th><th class="num">Гарантия</th><th class="num">Наличие</th><th class="num">Розница</th><th class="num">В прайсе</th><th></th></tr></thead><tbody>${body}</tbody></table>`:'<div class="empty">Нет товаров по этим условиям</div>'}</div></section></div>`}
+   <p class="muted small" style="margin-bottom:8px">Снимите галочку, чтобы убрать товар из прайса. В «Примечание» можно написать, например, «б/у» или «царапина на корпусе» — колонка появится в прайсе, если есть хоть одно примечание. В колонке «Цена продажи» можно сразу поменять цену товара — она изменится везде: в кассе, накладных, на сайте. В колонке «В прайсе» можно вписать особую цену только для этого прайс-листа — цена в кассе при этом не меняется. Примечания, галочки и цены «в прайсе» сохраняются сами. Товар, впервые поступивший за последние дни, помечается как новинка.</p>
+   <div class="tbl">${rows.length?`<table><thead><tr><th></th><th>Товар</th><th>Примечание</th><th class="num">Гарантия</th><th class="num">Наличие</th><th class="num">Цена продажи</th><th class="num">В прайсе</th><th></th></tr></thead><tbody>${body}</tbody></table>`:'<div class="empty">Нет товаров по этим условиям</div>'}</div></section></div>`}
 function plSpec(){const c=plCfg();const s=S.set;const rows=plRows(c,false);const st=c.cols.stock;
   const cols=[['№',.05,'q'],...(c.cols.sku?[['Артикул',.13]]:[]),['Наименование',.5],...(c.cols.war?[['Гарантия',.1]]:[]),...(st!=='none'?[[st==='qty'?'Остаток':'Наличие',.1,st==='qty'?'q':undefined]]:[]),['Цена, сом',.12,'m']];
   const tot=cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]=x[1]/tot);
@@ -3544,6 +3548,9 @@ sfwh:t=>{if(t.checked)S.sf.whs.add(t.value);else S.sf.whs.delete(t.value)},
   pfgroup:t=>{const g=S.G[t.value];if(!g)return;const isNew=!$('#mcard [data-act="prod-save"]')?.dataset.id;if(!isNew)return;const sc=$('#pf-serial');if(sc&&!sc.disabled)sc.checked=!!g.serial},
   snchk:t=>{if(t.checked)S.snSel.add(t.value);else S.snSel.delete(t.value);const e=$('#snCnt');if(e)e.textContent='Выбрано: '+S.snSel.size},
 };
+CH.plsp=t=>plSetPrice(t);
+for(const T of [IN,CH])for(const k of Object.keys(T))if(/^pl(?!sp$|y$)/.test(k)){const f=T[k];T[k]=t=>{const r=f(t);plAuto();return r}}
+for(const k of ['plmode','plov-rm','plov-clear']){const f=ACT[k];if(f)ACT[k]=(t,e)=>{const r=f(t,e);plAuto();return r}}
 document.addEventListener('click',e=>{const r=$('#asmRes');if(r&&r.innerHTML&&!e.target.closest('.picker'))r.innerHTML='';},true);
 document.addEventListener('focusin',e=>{if(e.target.id==='asmQ'&&S.asmQ.trim())$('#asmRes').innerHTML=asmResults()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&e.target.id==='asmQ'){S.asmQ='';e.target.value='';$('#asmRes').innerHTML=''}});
