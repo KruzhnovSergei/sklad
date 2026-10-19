@@ -260,7 +260,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 01:46</span>
+      <span class="muted" style="font-size:11px">Версия от 20.10.2026 01:59</span>
     </div>
   </aside>
   <div class="main">
@@ -3050,7 +3050,7 @@ function plWhs(c){const VW=viewWh();return c.wh==='all'||!VW.some(w=>w.id===c.wh
 function plBase(c,p){let v=num(p.sellPrice);if(c.mode==='pct'&&num(c.pct))v=v*(1+num(c.pct)/100);const r=num(c.round)||1;return r>1?Math.round(v/r)*r:r2(v)}
 const plPrice=(c,p)=>c.ov[p.id]!=null&&c.ov[p.id]!==''?num(c.ov[p.id]):plBase(c,p);
 function plRows(c,all){const ws=plWhs(c);return S.prod.filter(p=>!p.archived&&!ownOnly(p.id)).map(p=>({p,q:qtyIn(ws,p.id),g:pgroup(p)})).filter(r=>(!c.groups.length||c.groups.includes(r.g))&&(!c.onlyStock||r.q>0)&&(all||!c.ex.includes(r.p.id)))
-  .sort((a,b)=>a.g.localeCompare(b.g,'ru')||(a.p.name||'').localeCompare(b.p.name||'','ru'))}
+  .sort((a,b)=>a.g.localeCompare(b.g,'ru')||(c.sort==='name'?0:c.sort==='desc'?plPrice(c,b.p)-plPrice(c,a.p):plPrice(c,a.p)-plPrice(c,b.p))||(a.p.name||'').localeCompare(b.p.name||'','ru'))}
 function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const rows=plRows(c,true);const gs=[...new Set(S.prod.filter(p=>!p.archived).map(pgroup))].sort((a,b)=>a.localeCompare(b,'ru'));const inc=rows.filter(r=>!c.ex.includes(r.p.id));
   let cur=null,body='';for(const r of rows){if(r.g!==cur){cur=r.g;const n=rows.filter(x=>x.g===cur);body+=`<tr class="grp plg"><td colspan="8">${esc(cur)} <span class="gmeta">· ${n.filter(x=>!c.ex.includes(x.p.id)).length} из ${n.length}</span></td></tr>`}
     const p=r.p,ex=c.ex.includes(p.id),ov=c.ov[p.id]!=null&&c.ov[p.id]!=='';
@@ -3066,6 +3066,7 @@ function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const r
     ${c.mode==='pct'?`<label class="field" style="flex:0 1 120px"><span>Изменить на, %</span><input data-in="plf" data-f="pct" data-re="1" inputmode="decimal" value="${esc(c.pct)}" placeholder="-10"></label>`:''}
     <label class="field" style="flex:0 1 150px"><span>Округлять до</span><select data-ch="plsel" data-f="round">${[['1','копейки'],['10','10 сом'],['50','50 сом'],['100','100 сом']].map(([k,v])=>`<option value="${k}"${String(c.round)===k?' selected':''}>${v}</option>`).join('')}</select></label></div>
    <div class="row" style="gap:16px"><span class="muted small">Колонки:</span><label class="check"><input type="checkbox" data-ch="plcol" data-f="war"${c.cols.war?' checked':''}> Гарантия</label><label class="check"><input type="checkbox" data-ch="plchk" data-f="kits"${c.kits!==false?' checked':''}> Блок «Комплекты»</label><label class="row" style="gap:6px">Выделять новинки за <input class="sm" data-in="plf" data-f="newDays" inputmode="numeric" value="${esc(c.newDays)}" style="width:56px"> дн.</label>
+    <label class="row" style="gap:6px"><span>В группах:</span><select data-ch="plsel" data-f="sort" style="width:auto">${[['price','сначала дешевле'],['desc','сначала дороже'],['name','по названию']].map(([k,v])=>`<option value="${k}"${(c.sort||'price')===k?' selected':''}>${v}</option>`).join('')}</select></label>
     <label class="row" style="gap:6px"><span>Наличие:</span><select data-ch="plstock" style="width:auto">${[['smart','меньше 5 шт — количество, от 5 шт — «в наличии»'],['none','не показывать']].map(([k,v])=>`<option value="${k}"${c.cols.stock===k?' selected':''}>${v}</option>`).join('')}</select></label></div>
    <details${c.groups.length?' open':''}><summary class="small" style="cursor:pointer">Группы в прайсе: ${c.groups.length?c.groups.length+' из '+gs.length:'все'}</summary><div class="perm" style="margin-top:8px">${gs.map(g=>`<label><input type="checkbox" data-ch="plgrp" value="${esc(g)}"${!c.groups.length||c.groups.includes(g)?' checked':''}>${esc(g)}</label>`).join('')}</div></details>
    ${plCanSave()?'':'<p class="muted small">Вы можете настроить и скачать прайс, но сохранить настройки может только владелец или сотрудник с правом «Товары».</p>'}</section>
