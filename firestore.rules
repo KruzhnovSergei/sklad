@@ -46,6 +46,26 @@ service cloud.firestore {
     // Наценки по категориям видит и меняет только владелец.
     match /sitecat/{id} { allow read: if true; allow write: if isOwner(); }
     match /sitecfg/{id} { allow read, write: if isOwner(); }
+    // Оптовый каталог для дилеров (страница opt/): документы optcat/{ключ}_* читаются только по точному адресу,
+    // ключ — хеш общего логина и пароля дилеров. Перечислить их нельзя.
+    match /optcat/{id} { allow get: if true; allow list: if false; allow write: if isOwner(); }
+    match /optcfg/{id} { allow read, write: if isOwner(); }
+    // Фото и описания товаров для оптового каталога
+    match /optinfo/{id}  { allow get: if true; allow list: if member(); allow write: if admin() || hasPerm('catalog'); }
+    match /optthumb/{id} { allow get: if true; allow list: if member(); allow write: if admin() || hasPerm('catalog'); }
+    match /optidx/{id}   { allow read: if member(); allow write: if admin() || hasPerm('catalog'); }
+    // Заказы дилеров: создать может тот, кто знает действующий ключ каталога; читают и обрабатывают продавцы
+    match /optorders/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['at','key','name','phone','comment','items','total','st'])
+                    && request.resource.data.st == 'new'
+                    && request.resource.data.key is string && request.resource.data.key.size() == 64
+                    && exists(/databases/$(database)/documents/optcat/$(request.resource.data.key + '_m'))
+                    && request.resource.data.items is list && request.resource.data.items.size() > 0 && request.resource.data.items.size() <= 300
+                    && request.resource.data.name is string && request.resource.data.name.size() <= 120
+                    && request.resource.data.phone is string && request.resource.data.phone.size() <= 40
+                    && request.resource.data.total is number;
+      allow read, update, delete: if seller();
+    }
     // Фото и описание готовых сборок для сайта: видят все, меняют сборщики
     match /pcphotos/{id} { allow read: if true; allow write: if admin() || hasPerm('assembly') || hasPerm('pcedit'); }
 

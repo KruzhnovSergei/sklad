@@ -181,6 +181,8 @@ tbody tr:hover td{background:var(--sunk)}
 .infobox{padding:8px 10px;border-radius:6px;background:var(--sunk);font-size:13px}
 .infobox:empty{display:none}
 .picker{position:relative}
+.nbadge{display:inline-block;min-width:18px;padding:1px 6px;margin-left:6px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;line-height:16px;text-align:center}
+.optth{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--line);vertical-align:middle}
 .results{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 10px 30px rgb(0 0 0 / .12);max-height:300px;overflow:auto}
 .results button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;justify-content:space-between;gap:10px;width:100%;padding:9px 12px;border-bottom:1px solid var(--line)}
 .results button:hover,.results button:focus-visible{background:var(--sunk)}
@@ -260,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 01:59</span>
+      <span class="muted" style="font-size:11px">Версия от 20.10.2026 10:35</span>
     </div>
   </aside>
   <div class="main">
@@ -473,7 +475,7 @@ const ICO={office:'<path d="M3 10h18M5 10v10M19 10v10M8 10V4h8v6M10 14h4"/>',buy
 const NAVG=[['Продажи',['sale','invoices','calc','customers','warranty']],['Склад',['stock','ops','office','buy','asm','catalog','price']],['Финансы',['money','expenses','reports']],['Учёт',['journal','settings']]];
 function navHtml(tabs){const m=new Map(tabs.map(t=>[t[0],t[1]]));return NAVG.map(([g,ks])=>{const its=ks.filter(k=>m.has(k));const gc={'Продажи':'g-sale','Склад':'g-stock','Финансы':'g-fin','Учёт':'g-acc'}[g]||'';return its.length?`<div class="nav-sec ${gc}"><div class="nav-g">${g}</div>`+its.map(k=>`<button data-act="tab" data-v="${k}"${S.tab===k?' aria-current="page"':''}><svg viewBox="0 0 24 24" aria-hidden="true">${ICO[k]||''}</svg>${m.get(k)}</button>`).join('')+'</div>':''}).join('')}
 function updFab(){const f=$('#cartFab');if(!f)return;if(S.tab!=='sale'||!S.cart.length){f.hidden=true;return}const c=calcCart();f.hidden=false;f.innerHTML=`<span>Чек · ${S.cart.length} поз.</span><span>${money(c.total)} →</span>`}
-function tabsFor(){const acc=access();if(acc==='pending'||acc==='off')return [];return [['sale','Касса',can('sell')],['invoices','Продажи',can('sell')||can('reports')],['stock','Остатки',true],['customers','Контрагенты',true],['warranty','Гарантия',true],['ops','Приход и заказы',can('stock')],['buy','Скупка',can('buy')],['asm','Сборка ПК',can('assembly')||can('pcedit')],['office','Подотчёт',can('stock')||can('catalog')],['journal','Журнал',true],['reports','Отчёты',can('reports')],['money','Деньги',can('money')],['expenses','Расходы',can('money')],['catalog','Товары и склады',can('catalog')],['price','Прайс-лист',can('price')||can('catalog')],['calc','Расчёт ПК',can('calc')],['settings','Настройки',S.isOwner]].filter(t=>t[2])}
+function tabsFor(){const acc=access();if(acc==='pending'||acc==='off')return [];return [['sale','Касса',can('sell')],['invoices','Продажи'+(()=>{const n=(S.optOrd||[]).filter(o=>o.st==='new').length;return n?` <span class="nbadge" title="Новые заказы дилеров">${n}</span>`:''})(),can('sell')||can('reports')],['stock','Остатки',true],['customers','Контрагенты',true],['warranty','Гарантия',true],['ops','Приход и заказы',can('stock')],['buy','Скупка',can('buy')],['asm','Сборка ПК',can('assembly')||can('pcedit')],['office','Подотчёт',can('stock')||can('catalog')],['journal','Журнал',true],['reports','Отчёты',can('reports')],['money','Деньги',can('money')],['expenses','Расходы',can('money')],['catalog','Товары и склады',can('catalog')],['price','Прайс-лист',can('price')||can('catalog')],['calc','Расчёт ПК',can('calc')],['settings','Настройки',S.isOwner]].filter(t=>t[2])}
 function render(){
   S.pending=false;
   {const m=myStaff();const acc=access();$('#who').innerHTML=S.db?`${esc(m?.label||S.meName||'')} <span class="chip role">${S.isOwner?ROLE.owner:acc==='pending'?'Ожидает подтверждения':acc==='off'?'Отключён':esc(m?.position||(acc==='default'?'Продавец':ROLE[S.role]))}</span>${SRV()?'<button class="btn link" data-act="signout" style="padding:0 0 0 4px">Выйти</button>':''}`:''}
@@ -2378,7 +2380,7 @@ function vInvoices(){if(S.inv)return vInvEdit();
   const myW=new Set(allowedWh().map(w=>w.id));const all=S.sales.filter(o=>o.type==='sale'&&inR(o,rg)&&(S.isOwner||myW.has(o.wh))).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
   const list=all.filter(o=>(src==='all'||(src==='inv')===!!o.inv)&&(!q||docNo(o).toLowerCase().includes(q)||(o.cust&&cname(o.cust).toLowerCase().includes(q))||(o.party||'').toLowerCase().includes(q)));
   const tot=list.reduce((a,o)=>a+num(o.total),0),dbt=list.reduce((a,o)=>a+Math.max(0,num(o.total)-num(o.paid??o.total)),0);
-  return `<div class="stack"><div class="row between"><div class="row">${periodBar()}</div>${can('sell')?`<button class="btn" data-act="inv-new">+ Расходная накладная</button>`:''}</div>
+  return `<div class="stack">${optOrdPane()}<div class="row between"><div class="row">${periodBar()}</div>${can('sell')?`<button class="btn" data-act="inv-new">+ Расходная накладная</button>`:''}</div>
   <div class="kpis"><div class="kpi main"><span>Продаж за период</span><b>${list.length}</b><small>${list.filter(o=>o.inv).length} накладных, ${list.filter(o=>!o.inv).length} через кассу</small></div><div class="kpi"><span>На сумму</span><b>${money(tot)}</b></div><div class="kpi"><span>Отпущено в долг</span><b style="color:${dbt>0.004?'var(--bad)':'inherit'}">${money(dbt)}</b></div></div>
   <section class="pane"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>Расходные накладные и чеки</h2><div class="row" style="gap:8px"><input id="invQ" data-in="invq" value="${esc(S.invQ||'')}" placeholder="Покупатель или номер" style="width:220px"><div class="seg">${[['all','Все'],['inv','Накладные'],['pos','Касса']].map(([k,v])=>`<button data-act="invsrc" data-v="${k}" aria-pressed="${src===k}">${v}</button>`).join('')}</div></div></div>
   <div class="tbl" id="invList">${invListHtml(list)}</div></section></div>`}
@@ -2447,7 +2449,8 @@ async function saveInv(){const v=S.inv,err=$('#invErr');err.textContent='';
   let ref,ok;
   if(v.id){ref=S.db.collection('sales').doc(v.id);const full={...v.doc,...d,edited:{at:now(),by:S.uid||null}};delete full.id;ok=await guard(()=>ref.set(full),'Изменения сохранены');if(ok){const i=S.sales.findIndex(x=>x.id===v.id);if(i>=0)S.sales[i]={id:v.id,...full}}}
   else{ref=S.db.collection('sales').doc();const full={...d,inv:true,by:S.uid||null};ok=await guard(()=>ref.set(full),'Накладная проведена','sell');if(ok&&!S.sales.some(x=>x.id===ref.id))S.sales.push({id:ref.id,...full})}
-  if(!ok)return;derive();const o=S.sales.find(x=>x.id===ref.id);S.inv=o?invFromDoc(o):null;render()}
+  if(!ok)return;if(v.fromOrd&&!v.id){const oid=v.fromOrd;S.db.collection('optorders').doc(oid).update({st:'done',inv:ref.id,doneAt:now()}).catch(()=>{});const x=(S.optOrd||[]).find(y=>y.id===oid);if(x){x.st='done';x.inv=ref.id}}
+  derive();const o=S.sales.find(x=>x.id===ref.id);S.inv=o?invFromDoc(o):null;render()}
 function invDocSpec(o){const s=reqOf(o.wh);const rows=(o.items||[]).map((it,i)=>({cells:[i+1,pname(it.p),num(it.q),unit(it.p),num(it.price),num(it.disc)?NF.format(num(it.disc))+'%':'',num(it.sum)],note:(it.sn||[]).length?'S/N: '+it.sn.join(', '):''}));
   const tq=(o.items||[]).reduce((a,i)=>a+num(i.q),0);rows.push({bold:true,cells:['','Итого',tq,'','','',num(o.total)]});const paid=num(o.paid??o.total);
   return{title:`РАСХОДНАЯ НАКЛАДНАЯ № ${docNo(o)}`,sheet:'Накладная',shop:[s.shopName||'Магазин',[s.legalName,s.inn?'ИНН '+s.inn:''].filter(Boolean).join(', '),s.shopAddr||'',s.shopPhone?'Тел.: '+s.shopPhone:''].filter(Boolean),
@@ -2661,7 +2664,7 @@ async function kitSave(){const e=S.kitEd;const err=$('#kitErr');e.name=$('#kitNa
   if(await guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект сохранён','catalog')){S.set.kits=L;S.kitEd=null;closeModal(true);render()}}
 /* прайс */
 function plKits(c){if(c.kits===false)return [];const ws=plWhs(c);const inPl=new Set(plRows(c,false).map(r=>r.p.id));return kitList().filter(k=>k.pl!==false&&kitOk(k)).map(k=>{const av=kitAvail(k,ws);const sep=r2(k.items.reduce((a,i)=>a+plPrice(c,S.P[i.p])*num(i.q),0));
-  return{name:k.name,note:k.note||'',comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep:k.items.every(i=>inPl.has(i.p))?sep:0,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
+  return{id:k.id,items:k.items,name:k.name,note:k.note||'',comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep:k.items.every(i=>inPl.has(i.p))?sep:0,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
 /* касса */
 function kitPickModal(){const L=kitList().filter(kitOk);const ws=[S.W[S.curWh]].filter(Boolean);
   openModal(`<h2>Комплекты</h2><p class="muted small">Склад «${esc(wname(S.curWh))}». Товары комплекта добавятся в чек, цены уменьшатся так, чтобы сумма была равна цене комплекта.</p>
@@ -3042,19 +3045,100 @@ async function lblDl(){const d=S.lbl;if(!d)return;const {spec,...keep}=d;lblSave
 const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1',onlyStock:true,wh:'all',groups:[],cols:{sku:false,war:true,stock:'smart'},ov:{},ex:[],notes:{},newDays:10,kits:true};
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
 const plCanSave=()=>S.isOwner||can('catalog');
+/* ---------- оптовый каталог для дилеров (страница opt/) ---------- */
+const OPT_URL=()=>location.origin+location.pathname.replace(/[^/]*$/,'')+'opt/';
+const optPhCol=()=>plCanSave();
+function optIdxLoad(){if(S.optIdxSub||!S.db)return;S.optIdxSub=true;S.db.doc('optidx/main').onSnapshot(d=>{S.optIdx=d.exists?d.data():{};if(S.tab==='price'&&$('#modal').hidden&&!typing())render()},()=>{S.optIdx=S.optIdx||{}})}
+function optPhBtn(id){optIdxLoad();const x=(S.optIdx||{})[id];const n=num(x?.n),d=!!x?.d;return `<button class="btn link" data-act="oi-open" data-id="${esc(id)}" style="white-space:nowrap" title="Фото и описание для оптового каталога">${n||d?`📷 ${n}${d?' · описание':''}`:'+ фото'}</button>`}
+async function oiOpen(id){S.oi={id,imgs:[],desc:'',loading:true};oiRender();try{const d=await S.db.doc('optinfo/'+id).get();if(d.exists){const x=d.data();S.oi.imgs=x.imgs||[];S.oi.desc=x.desc||''}}catch(e){}S.oi.loading=false;oiRender()}
+function oiKeep(){const e=$('#oiDesc');if(e&&S.oi)S.oi.desc=e.value}
+function oiRender(){const w=S.oi;if(!w)return;const p=S.P[w.id]||{};const kb=Math.round(w.imgs.reduce((a,x)=>a+x.length,0)/1024);
+  openModal(`<h2>${esc(p.name||'Товар')}</h2><p class="muted small">Фото и подробное описание для оптового каталога дилеров. До 4 фото, первое — обложка карточки. Фото уменьшаются автоматически.</p>
+   ${w.loading?'<p class="muted">Загружаю…</p>':`<div class="row" style="gap:10px;flex-wrap:wrap;margin:8px 0">${w.imgs.map((src,i)=>`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><img src="${src}" alt="Фото ${i+1}" style="width:140px;height:105px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)">${i===0?'<span class="small muted">Обложка</span>':`<button class="btn link" data-act="oi-first" data-i="${i}">Сделать обложкой</button>`}<button class="btn link bad" data-act="oi-rm" data-i="${i}">Убрать</button></div>`).join('')}
+    ${w.imgs.length<4?`<label class="btn ghost" style="cursor:pointer;align-self:center">Добавить фото…<input type="file" accept="image/*" multiple data-ch="oi-file" hidden></label>`:''}</div>
+   <label class="field"><span>Подробное описание</span><textarea id="oiDesc" rows="6" placeholder="Характеристики, комплектация, совместимость, особенности">${esc(w.desc)}</textarea></label>
+   <p class="small muted">Размер фото: ${kb} КБ из 850 КБ. Каталог дилеров обновится сам через несколько секунд после сохранения.</p>`}
+   <p class="err" id="oiErr"></p>
+   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="oi-save"${w.loading?' disabled':''}>Сохранить</button></div>`)}
+async function oiFiles(t){const fs=[...(t.files||[])];t.value='';const w=S.oi;if(!w||!fs.length)return;oiKeep();
+  for(const f of fs){if(w.imgs.length>=4)break;try{w.imgs.push(await imgShrink(f,1200,0.72))}catch(e){toast(e.message)}}
+  let tot=w.imgs.reduce((a,x)=>a+x.length,0);if(tot>850000){for(let i=0;i<w.imgs.length;i++)w.imgs[i]=await imgShrink(w.imgs[i],900,0.6);tot=w.imgs.reduce((a,x)=>a+x.length,0)}
+  if(tot>850000)toast('Фото слишком большие — уберите одно');oiRender()}
+async function oiSave(){const w=S.oi;if(!w)return;oiKeep();const tot=w.imgs.reduce((a,x)=>a+x.length,0);if(tot>850000){$('#oiErr').textContent='Фото слишком большие — уберите одно';return}
+  let t='';try{if(w.imgs[0])t=await imgShrink(w.imgs[0],320,0.62)}catch(e){}const desc=w.desc.trim().slice(0,4000);const db=S.db;
+  const ok=await guard(async()=>{await db.doc('optinfo/'+w.id).set({imgs:w.imgs,desc,at:now(),by:S.uid||null});await db.doc('optthumb/'+w.id).set({t});await db.doc('optidx/main').set({[w.id]:{n:w.imgs.length,d:desc?1:0}},{merge:true})},'Сохранено','catalog');
+  if(ok){(S.optIdx??={})[w.id]={n:w.imgs.length,d:desc?1:0};S.oi=null;closeModal(true);render();optPubSoon()}}
+async function optSha(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+const optKeyOf=(l,pw)=>optSha('bestcomp-opt\n'+String(l).trim().toLowerCase()+'\n'+String(pw));
+function optGenPass(){const a='abcdefghjkmnpqrstuvwxyz23456789';let r='';const b=crypto.getRandomValues(new Uint8Array(8));for(const x of b)r+=a[x%a.length];return r}
+function optCfgLoad(){if(S.optCfgSub||!S.db||!S.isOwner)return;S.optCfgSub=true;S.db.doc('optcfg/main').onSnapshot(d=>{S.optCfg=d.exists?d.data():null;if(S.tab==='price'&&$('#modal').hidden&&!typing())render()},()=>{S.optCfg=null})}
+function optPane(){if(!S.isOwner)return '';optCfgLoad();const c=S.optCfg;const on=!!c?.key;
+  return `<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Оптовый каталог для дилеров</h2>${on?`<span class="chip ok">работает</span>`:'<span class="chip">выключен</span>'}</div>
+   <p class="muted small">Отдельная страница с этим прайс-листом: те же товары, цены, наличие и примечания, плюс фото и подробное описание (кнопка «+ фото» в таблице ниже). Дилер входит по общему логину и паролю, собирает корзину и отправляет заказ — он появится у вас в «Продажах». На розничный сайт каталог не попадает. Обновляется сам при изменении прайса и цен.</p>
+   <div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 180px"><span>Логин</span><input id="optLogin" value="${esc(c?.login||'diler')}" autocomplete="off"></label>
+    <label class="field" style="flex:1 1 180px"><span>Пароль</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="optPass" value="${esc(c?.pass||'')}" autocomplete="off" placeholder="не короче 6 символов"><button class="btn ghost" data-act="opt-gen" style="padding:8px 10px" title="Придумать пароль">⟳</button></div></label>
+    <button class="btn" data-act="opt-save">${on?'Сохранить и обновить':'Включить каталог'}</button></div>
+   ${on?`<div class="infobox stack" style="gap:6px"><div><b>Ссылка:</b> <a href="${esc(OPT_URL())}" target="_blank" rel="noopener">${esc(OPT_URL())}</a> · логин <b>${esc(c.login)}</b> · пароль <b>${esc(c.pass)}</b></div>
+     <div class="small muted">Обновлён ${c.at?dt(c.at):'—'}: ${NF.format(num(c.n))} позиций${num(c.kits)?`, ${c.kits} комплектов`:''}. Если сменить пароль, старый сразу перестанет работать.</div>
+     <div class="row" style="gap:8px"><button class="btn ghost" data-act="opt-copy">Скопировать для группы дилеров</button><button class="btn ghost" data-act="opt-pub">Обновить сейчас</button><button class="btn link bad" data-act="opt-off">Выключить</button></div></div>`:''}
+  </section>`}
+async function optSaveCfg(){const l=($('#optLogin')?.value||'').trim(),pw=($('#optPass')?.value||'').trim();if(!l){toast('Введите логин');return}if(pw.length<6){toast('Пароль — не короче 6 символов');return}
+  await optPublish(false,{login:l,pass:pw})}
+function optRows(){const c=plCfg();const fi=plFirstIn();const st=c.cols.stock!=='none';const I=S.optIdx||{};
+  return plRows(c,false).map(r=>{const p=r.p;const x=I[p.id]||{};const o={i:p.id,n:p.name||'',g:r.g,p:plPrice(c,p)};if(st){o.s=plStock(r.q);o.t=r.q<=0?0:r.q<5?1:2}const nt=(c.notes[p.id]||'').trim();if(nt)o.nt=nt;if(c.cols.war){const w=pWTxt(p);if(w)o.w=w}if(plIsNew(c,fi,p.id))o.nw=1;if(num(x.n))o.ph=num(x.n);if(x.d)o.d=1;return o}).filter(o=>o.p>0)}
+async function optPublish(auto,nw){if(!S.isOwner||!S.db)return false;const cur=S.optCfg;const login=nw?.login||cur?.login,pass=nw?.pass||cur?.pass;if(!login||!pass)return false;
+  if(!S.optIdx){try{const d=await S.db.doc('optidx/main').get();S.optIdx=d.exists?d.data():{}}catch(e){S.optIdx={}}}
+  const c=plCfg();const s=S.set;const key=await optKeyOf(login,pass);const rows=optRows();const st=c.cols.stock!=='none';
+  const kits=plKits(c).map(k=>({k:k.id,n:k.name,nt:k.note||'',c:k.comps,p:k.price,sep:k.sep||0,...(st?{s:k.stock,t:k.q<=0?0:k.q<5?1:2}:{})})).filter(k=>k.p>0);
+  const parts=[];{let cr=[],sz=0;for(const x of rows){const b=JSON.stringify(x).length*2;if(cr.length&&sz+b>600000){parts.push(cr);cr=[];sz=0}cr.push(x);sz+=b}if(cr.length||!parts.length)parts.push(cr)}
+  const wa=String(s.shopPhone||'').replace(/\D/g,'');const meta={at:now(),n:rows.length,chunks:parts.length,title:c.title||'Прайс-лист',note:c.note||'',shop:(c.wh!=='all'&&S.W[c.wh]?(reqOf(c.wh).shopName||S.W[c.wh].name):'')||s.shopName||'',contact:plContact(c),wa:(c.wh!=='all'&&S.W[c.wh]?String(whC(c.wh).phone||'').replace(/\D/g,''):'')||wa,war:!!c.cols.war,st,kits,sort:c.sort||'price'};
+  const db=S.db;const oldKey=cur?.key,oldN=num(cur?.chunks);
+  const btn=$('[data-act=opt-save]');if(btn&&!auto){btn.disabled=true;btn.textContent='Публикую…'}
+  const ok=await guard(async()=>{for(let k=0;k<parts.length;k++)await db.doc(`optcat/${key}_${k}`).set({rows:parts[k]});await db.doc(`optcat/${key}_m`).set(meta);
+    if(oldKey&&oldKey!==key){for(let k=0;k<oldN;k++)await db.doc(`optcat/${oldKey}_${k}`).delete().catch(()=>{});await db.doc(`optcat/${oldKey}_m`).delete().catch(()=>{})}
+    else for(let k=parts.length;k<oldN;k++)await db.doc(`optcat/${key}_${k}`).delete().catch(()=>{});
+    const cfg={login,pass,key,chunks:parts.length,n:rows.length,kits:kits.length,at:meta.at};await db.doc('optcfg/main').set(cfg);S.optCfg=cfg},auto?'':`Оптовый каталог обновлён: ${NF.format(rows.length)} позиций`,'owner');
+  if(btn&&!auto){btn.disabled=false}if(ok&&!auto)render();return ok}
+function optPubSoon(ms){if(!S.isOwner||!S.optCfg?.key)return;const t=Date.now()+(ms||6000);if(S.optT&&S.optAt&&S.optAt<=t)return;clearTimeout(S.optT);S.optAt=t;S.optT=setTimeout(function go(){if(S.busy){S.optT=setTimeout(go,2000);return}S.optT=null;S.optAt=0;optPublish(true)},ms||6000)}
+async function optAutoCheck(){if(!S.isOwner||!S.db)return;try{const d=await S.db.doc('optcfg/main').get();if(!d.exists)return;S.optCfg=d.data();if(!S.optCfg.key)return;
+  if(Date.now()-new Date(S.optCfg.at||0)<3600e3)return;if(!S.loaded.has('ops')||!S.loaded.has('products')){setTimeout(optAutoCheck,5000);return}optPublish(true)}catch(e){}}
+async function optOff(){const c=S.optCfg;if(!c?.key)return;if(!confirm('Выключить оптовый каталог? Дилеры больше не смогут его открыть.'))return;const db=S.db;
+  if(await guard(async()=>{for(let k=0;k<num(c.chunks);k++)await db.doc(`optcat/${c.key}_${k}`).delete().catch(()=>{});await db.doc(`optcat/${c.key}_m`).delete().catch(()=>{});await db.doc('optcfg/main').set({login:c.login,pass:c.pass})},'Каталог выключен','owner')){S.optCfg={login:c.login,pass:c.pass};render()}}
+async function optCopy(){const c=S.optCfg;if(!c)return;const t=`Оптовый каталог ${S.set.shopName||''} с фото и наличием:\n${OPT_URL()}\nЛогин: ${c.login}\nПароль: ${c.pass}\nЗаказ можно оформить прямо в каталоге.`;try{await navigator.clipboard.writeText(t);toast('Скопировано — вставьте в группу дилеров')}catch(e){prompt('Скопируйте текст:',t)}}
+/* заказы дилеров */
+const ordNo=o=>'З-'+String(o.id||'').slice(-5).toUpperCase();
+function optOrdPane(){const L=S.optOrd||[];if(!L.length||!can('sell'))return '';const act=L.filter(o=>o.st==='new');const show=S.ordAll?L.slice(0,50):act;
+  if(!act.length&&!S.ordAll)return `<div class="row between"><span class="muted small">Новых заказов дилеров нет.</span><button class="btn link" data-act="ord-all">Все заказы дилеров (${L.length})</button></div>`;
+  return `<section class="pane"><div class="pane-h"><h2>Заказы дилеров ${act.length?`<span class="nbadge">${act.length}</span>`:''}</h2><button class="btn link" data-act="ord-all">${S.ordAll?'Только новые':'Все заказы ('+L.length+')'}</button></div>
+   <div class="tbl"><table><thead><tr><th>Заказ</th><th>Дата</th><th>Дилер</th><th class="num">Позиций</th><th class="num">Сумма</th><th>Статус</th></tr></thead><tbody>${show.map(o=>{const op=S.ordOpen===o.id;
+    return `<tr class="jrow" tabindex="0" data-act="ord-open" data-id="${esc(o.id)}" aria-expanded="${op}"><td class="mono">${ordNo(o)}</td><td>${dt(o.at)}</td><td><b>${esc(o.name||'')}</b><span class="psku">${esc(o.phone||'')}</span></td><td class="num">${(o.items||[]).length}</td><td class="num">${money(o.total)}</td><td>${o.st==='new'?'<span class="chip low">новый</span>':`<span class="chip ok">обработан</span>${o.inv?` <button class="btn link" data-act="inv-open" data-id="${esc(o.inv)}">накладная</button>`:''}`}</td></tr>
+    ${op?`<tr class="jdet"><td colspan="6">${ordDet(o)}</td></tr>`:''}`}).join('')||'<tr><td colspan="6" class="muted">Нет заказов</td></tr>'}</tbody></table></div></section>`}
+function ordDet(o){const wh=S.curWh;
+  return `${o.comment?`<p style="margin:0 0 8px"><b>Комментарий:</b> ${esc(o.comment)}</p>`:''}<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th><th class="num">На складе «${esc(wname(wh))}»</th></tr></thead><tbody>${(o.items||[]).map(it=>{const kit=it.k?kitList().find(k=>k.id===it.k):null;const av=it.i&&S.P[it.i]?qty(wh,it.i):kit?kitAvail(kit,[S.W[wh]].filter(Boolean)):null;
+   return `<tr><td>${esc(it.n)}${it.k?' <span class="chip">комплект</span>':''}${it.i&&!S.P[it.i]?' <span class="chip bad">товар удалён</span>':''}</td><td class="num">${q3(it.q)}</td><td class="num">${NF.format(num(it.p))}</td><td class="num">${NF.format(r2(num(it.p)*num(it.q)))}</td><td class="num${av!=null&&av<num(it.q)?' debt':''}">${av==null?'—':q3(av)}</td></tr>`}).join('')}</tbody></table></div>
+   <div class="row" style="margin-top:8px;gap:8px">${o.st==='new'?`<button class="btn" data-act="ord-inv" data-id="${esc(o.id)}">Оформить расходную накладную</button><button class="btn ghost" data-act="ord-done" data-id="${esc(o.id)}">Отметить обработанным</button>`:`<button class="btn ghost" data-act="ord-new" data-id="${esc(o.id)}">Вернуть в новые</button>`}${o.phone?`<a class="btn ghost" href="https://wa.me/${esc(String(o.phone).replace(/\D/g,''))}" target="_blank" rel="noopener">WhatsApp дилеру</a>`:''}<button class="btn link bad" data-act="ord-del" data-id="${esc(o.id)}">Удалить</button></div>`}
+function ordToInv(id){const o=(S.optOrd||[]).find(x=>x.id===id);if(!o)return;invNew();const v=S.inv;v.fromOrd=id;
+  const ph=String(o.phone||'').replace(/\D/g,'').slice(-9);const c=ph.length>=9?visCust().find(c=>String(c.phone||'').replace(/\D/g,'').slice(-9)===ph):null;if(c)v.cust=c.id;
+  v.note=`Заказ дилера ${ordNo(o)}: ${o.name||''}${o.phone?', '+o.phone:''}`;const miss=[];
+  for(const it of o.items||[]){if(it.k){const k=kitList().find(x=>x.id===it.k);if(!k){miss.push(it.n);continue}const base=k.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0);
+      for(const i of k.items){if(!S.P[i.p]){miss.push(pname(i.p));continue}const pr=base>0?r2(num(S.P[i.p].sellPrice)*num(it.p)/base):0;v.items.push({p:i.p,q:String(r3(num(i.q)*num(it.q))),price:String(pr),disc:'',sn:[]})}continue}
+    if(!S.P[it.i]){miss.push(it.n);continue}v.items.push({p:it.i,q:String(r3(num(it.q))),price:String(r2(num(it.p))),disc:'',sn:[]})}
+  S.tab='invoices';render();window.scrollTo(0,0);toast(miss.length?'Не найдены в программе: '+miss.join(', '):c?`Покупатель подобран по телефону: ${c.name}. Проверьте склад и серийные номера`:'Выберите покупателя, проверьте склад и серийные номера')}
+async function ordSet(id,st){await guard(()=>S.db.collection('optorders').doc(id).update({st}),st==='done'?'Заказ отмечен обработанным':'Заказ снова в новых');const o=(S.optOrd||[]).find(x=>x.id===id);if(o)o.st=st;render()}
+async function ordDel(id){if(!confirm('Удалить заказ дилера?'))return;if(await guard(()=>S.db.collection('optorders').doc(id).delete(),'Заказ удалён')){S.optOrd=(S.optOrd||[]).filter(x=>x.id!==id);render()}}
 let plT=null;function plAuto(){if(!plCanSave())return;clearTimeout(plT);const e=$('#plSaved');if(e)e.textContent='сохраняю…';
-  plT=setTimeout(async()=>{const c=JSON.parse(JSON.stringify(plCfg()));try{const r=S.db.doc('settings/main');try{await r.update({priceList:c})}catch(err){await r.set({priceList:c},{merge:true})}S.set.priceList=c;const e2=$('#plSaved');if(e2)e2.textContent='Изменения сохранены'}catch(err){console.error(err);const e2=$('#plSaved');if(e2)e2.textContent='';toast('Не удалось сохранить прайс: '+(err?.code==='permission-denied'?'нет прав':'нет связи'))}},1200)}
+  plT=setTimeout(async()=>{const c=JSON.parse(JSON.stringify(plCfg()));try{const r=S.db.doc('settings/main');try{await r.update({priceList:c})}catch(err){await r.set({priceList:c},{merge:true})}S.set.priceList=c;const e2=$('#plSaved');if(e2)e2.textContent='Изменения сохранены';optPubSoon()}catch(err){console.error(err);const e2=$('#plSaved');if(e2)e2.textContent='';toast('Не удалось сохранить прайс: '+(err?.code==='permission-denied'?'нет прав':'нет связи'))}},1200)}
 async function plSetPrice(t){const id=t.dataset.id;const p=S.P[id];if(!p)return;const v=r2(num(t.value));if(!(v>0)){t.value=num(p.sellPrice)||'';toast('Цена должна быть больше нуля');return}if(v===num(p.sellPrice))return;const old=num(p.sellPrice);
-  if(await guard(()=>S.db.collection('products').doc(id).update({sellPrice:v}),`Цена продажи «${p.name}»: ${NF.format(old)} → ${NF.format(v)} сом`,'catalog')){p.sellPrice=v;const o=document.querySelector(`input[data-in="plov"][data-id="${CSS.escape(id)}"]`);if(o)o.placeholder=NF.format(plBase(plCfg(),p))}else t.value=old||''}
+  if(await guard(()=>S.db.collection('products').doc(id).update({sellPrice:v}),`Цена продажи «${p.name}»: ${NF.format(old)} → ${NF.format(v)} сом`,'catalog')){p.sellPrice=v;optPubSoon();const o=document.querySelector(`input[data-in="plov"][data-id="${CSS.escape(id)}"]`);if(o)o.placeholder=NF.format(plBase(plCfg(),p))}else t.value=old||''}
 function plWhs(c){const VW=viewWh();return c.wh==='all'||!VW.some(w=>w.id===c.wh)?VW:[S.W[c.wh]]}
 function plBase(c,p){let v=num(p.sellPrice);if(c.mode==='pct'&&num(c.pct))v=v*(1+num(c.pct)/100);const r=num(c.round)||1;return r>1?Math.round(v/r)*r:r2(v)}
 const plPrice=(c,p)=>c.ov[p.id]!=null&&c.ov[p.id]!==''?num(c.ov[p.id]):plBase(c,p);
 function plRows(c,all){const ws=plWhs(c);return S.prod.filter(p=>!p.archived&&!ownOnly(p.id)).map(p=>({p,q:qtyIn(ws,p.id),g:pgroup(p)})).filter(r=>(!c.groups.length||c.groups.includes(r.g))&&(!c.onlyStock||r.q>0)&&(all||!c.ex.includes(r.p.id)))
   .sort((a,b)=>a.g.localeCompare(b.g,'ru')||(c.sort==='name'?0:c.sort==='desc'?plPrice(c,b.p)-plPrice(c,a.p):plPrice(c,a.p)-plPrice(c,b.p))||(a.p.name||'').localeCompare(b.p.name||'','ru'))}
 function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const rows=plRows(c,true);const gs=[...new Set(S.prod.filter(p=>!p.archived).map(pgroup))].sort((a,b)=>a.localeCompare(b,'ru'));const inc=rows.filter(r=>!c.ex.includes(r.p.id));
-  let cur=null,body='';for(const r of rows){if(r.g!==cur){cur=r.g;const n=rows.filter(x=>x.g===cur);body+=`<tr class="grp plg"><td colspan="8">${esc(cur)} <span class="gmeta">· ${n.filter(x=>!c.ex.includes(x.p.id)).length} из ${n.length}</span></td></tr>`}
+  let cur=null,body='';for(const r of rows){if(r.g!==cur){cur=r.g;const n=rows.filter(x=>x.g===cur);body+=`<tr class="grp plg"><td colspan="${optPhCol()?9:8}">${esc(cur)} <span class="gmeta">· ${n.filter(x=>!c.ex.includes(x.p.id)).length} из ${n.length}</span></td></tr>`}
     const p=r.p,ex=c.ex.includes(p.id),ov=c.ov[p.id]!=null&&c.ov[p.id]!=='';
-    body+=`<tr${ex?' style="opacity:.45"':''}><td><input type="checkbox" data-ch="plinc" value="${esc(p.id)}"${ex?'':' checked'} aria-label="Включить в прайс"></td><td><span class="pname">${esc(p.name)}${plIsNew(c,fi,p.id)?' <span class="chip ok">новинка</span>':''}</span></td><td><input data-in="plnote" data-id="${esc(p.id)}" value="${esc(c.notes[p.id]||'')}" placeholder="—" style="min-width:150px;padding:6px 8px;font-size:13px"></td><td class="num muted">${pWTxt(p)||'—'}</td><td class="num"><span style="font-weight:600;color:${r.q<=0?'var(--muted)':r.q<5?'var(--warn)':'var(--good)'}">${plStock(r.q)}</span></td><td class="num">${can('catalog')?`<input class="sm" inputmode="decimal" data-ch="plsp" data-id="${esc(p.id)}" value="${esc(num(p.sellPrice)||'')}" placeholder="0" title="Цена продажи товара — меняется везде: в кассе, накладных, на сайте" style="width:100px">`:`<span class="muted">${NF.format(num(p.sellPrice))}</span>`}</td>
+    body+=`<tr${ex?' style="opacity:.45"':''}><td><input type="checkbox" data-ch="plinc" value="${esc(p.id)}"${ex?'':' checked'} aria-label="Включить в прайс"></td><td><span class="pname">${esc(p.name)}${plIsNew(c,fi,p.id)?' <span class="chip ok">новинка</span>':''}</span></td>${optPhCol()?`<td>${optPhBtn(p.id)}</td>`:''}<td><input data-in="plnote" data-id="${esc(p.id)}" value="${esc(c.notes[p.id]||'')}" placeholder="—" style="min-width:150px;padding:6px 8px;font-size:13px"></td><td class="num muted">${pWTxt(p)||'—'}</td><td class="num"><span style="font-weight:600;color:${r.q<=0?'var(--muted)':r.q<5?'var(--warn)':'var(--good)'}">${plStock(r.q)}</span></td><td class="num">${can('catalog')?`<input class="sm" inputmode="decimal" data-ch="plsp" data-id="${esc(p.id)}" value="${esc(num(p.sellPrice)||'')}" placeholder="0" title="Цена продажи товара — меняется везде: в кассе, накладных, на сайте" style="width:100px">`:`<span class="muted">${NF.format(num(p.sellPrice))}</span>`}</td>
      <td class="num"><input class="sm" inputmode="decimal" data-in="plov" data-id="${esc(p.id)}" value="${ov?esc(c.ov[p.id]):''}" placeholder="${esc(NF.format(plBase(c,p)))}" style="width:110px${ov?';font-weight:700;border-color:var(--accent)':''}"></td><td>${ov?`<button class="x" data-act="plov-rm" data-id="${esc(p.id)}" title="Вернуть расчётную цену">×</button>`:''}</td></tr>`}
   const dis=plCanSave()?'':' disabled';
   return `<div class="stack"><section class="pane stack"><div class="pane-h" style="margin:0"><h2>Прайс-лист</h2><div class="row" style="gap:8px"><button class="btn" data-act="pl-dl" data-f="pdf">Скачать PDF</button><button class="btn" data-act="pl-dl" data-f="xlsx">Скачать Excel</button>${plCanSave()?'<span class="muted small" id="plSaved"></span><button class="btn ghost" data-act="pl-save">Сохранить настройки</button>':''}</div></div>
@@ -3071,9 +3155,10 @@ function vPrice(){const c=plCfg();const fi=plFirstIn();const VW=viewWh();const r
    <details${c.groups.length?' open':''}><summary class="small" style="cursor:pointer">Группы в прайсе: ${c.groups.length?c.groups.length+' из '+gs.length:'все'}</summary><div class="perm" style="margin-top:8px">${gs.map(g=>`<label><input type="checkbox" data-ch="plgrp" value="${esc(g)}"${!c.groups.length||c.groups.includes(g)?' checked':''}>${esc(g)}</label>`).join('')}</div></details>
    ${plCanSave()?'':'<p class="muted small">Вы можете настроить и скачать прайс, но сохранить настройки может только владелец или сотрудник с правом «Товары».</p>'}</section>
   ${kitsPane()}
+  ${optPane()}
   <section class="pane"><div class="pane-h"><h2>Товары в прайсе</h2><span class="muted">${inc.length} поз.${Object.keys(c.ov).length?` · <button class="btn link" data-act="plov-clear">сбросить ручные цены (${Object.keys(c.ov).length})</button>`:''}</span></div>
    <p class="muted small" style="margin-bottom:8px">Снимите галочку, чтобы убрать товар из прайса. В «Примечание» можно написать, например, «б/у» или «царапина на корпусе» — колонка появится в прайсе, если есть хоть одно примечание. В колонке «Цена продажи» можно сразу поменять цену товара — она изменится везде: в кассе, накладных, на сайте. В колонке «В прайсе» можно вписать особую цену только для этого прайс-листа — цена в кассе при этом не меняется. Примечания, галочки и цены «в прайсе» сохраняются сами. Товар, впервые поступивший за последние дни, помечается как новинка.</p>
-   <div class="tbl">${rows.length?`<table><thead><tr><th></th><th>Товар</th><th>Примечание</th><th class="num">Гарантия</th><th class="num">Наличие</th><th class="num">Цена продажи</th><th class="num">В прайсе</th><th></th></tr></thead><tbody>${body}</tbody></table>`:'<div class="empty">Нет товаров по этим условиям</div>'}</div></section></div>`}
+   <div class="tbl">${rows.length?`<table><thead><tr><th></th><th>Товар</th>${optPhCol()?'<th>Фото</th>':''}<th>Примечание</th><th class="num">Гарантия</th><th class="num">Наличие</th><th class="num">Цена продажи</th><th class="num">В прайсе</th><th></th></tr></thead><tbody>${body}</tbody></table>`:'<div class="empty">Нет товаров по этим условиям</div>'}</div></section></div>`}
 function plSpec(){const c=plCfg();const s=S.set;const rows=plRows(c,false);const st=c.cols.stock;
   const cols=[['№',.05,'q'],...(c.cols.sku?[['Артикул',.13]]:[]),['Наименование',.5],...(c.cols.war?[['Гарантия',.1]]:[]),...(st!=='none'?[[st==='qty'?'Остаток':'Наличие',.1,st==='qty'?'q':undefined]]:[]),['Цена, сом',.12,'m']];
   const tot=cols.reduce((a,x)=>a+x[1],0);cols.forEach(x=>x[1]=x[1]/tot);
@@ -3208,7 +3293,9 @@ const ACT={
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
   'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
-  'calc-ldel':t=>calcDel(t.dataset.id),'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
+  'calc-ldel':t=>calcDel(t.dataset.id),'oi-open':t=>oiOpen(t.dataset.id),'oi-save':()=>oiSave(),'oi-rm':t=>{oiKeep();S.oi.imgs.splice(+t.dataset.i,1);oiRender()},'oi-first':t=>{oiKeep();const i=+t.dataset.i;const [x]=S.oi.imgs.splice(i,1);S.oi.imgs.unshift(x);oiRender()},
+  'opt-pub':()=>optPublish(false),'opt-save':()=>optSaveCfg(),'opt-off':()=>optOff(),'opt-copy':()=>optCopy(),'opt-gen':()=>{const e=$('#optPass');if(e)e.value=optGenPass()},
+  'ord-inv':t=>ordToInv(t.dataset.id),'ord-done':t=>ordSet(t.dataset.id,'done'),'ord-new':t=>ordSet(t.dataset.id,'new'),'ord-del':t=>ordDel(t.dataset.id),'ord-open':t=>{S.ordOpen=S.ordOpen===t.dataset.id?null:t.dataset.id;render()},'ord-all':()=>{S.ordAll=!S.ordAll;render()},'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
@@ -3549,7 +3636,7 @@ sfwh:t=>{if(t.checked)S.sf.whs.add(t.value);else S.sf.whs.delete(t.value)},
   pfgroup:t=>{const g=S.G[t.value];if(!g)return;const isNew=!$('#mcard [data-act="prod-save"]')?.dataset.id;if(!isNew)return;const sc=$('#pf-serial');if(sc&&!sc.disabled)sc.checked=!!g.serial},
   snchk:t=>{if(t.checked)S.snSel.add(t.value);else S.snSel.delete(t.value);const e=$('#snCnt');if(e)e.textContent='Выбрано: '+S.snSel.size},
 };
-CH.plsp=t=>plSetPrice(t);
+CH.plsp=t=>plSetPrice(t);CH['oi-file']=t=>oiFiles(t);
 for(const T of [IN,CH])for(const k of Object.keys(T))if(/^pl(?!sp$|y$)/.test(k)){const f=T[k];T[k]=t=>{const r=f(t);plAuto();return r}}
 for(const k of ['plmode','plov-rm','plov-clear']){const f=ACT[k];if(f)ACT[k]=(t,e)=>{const r=f(t,e);plAuto();return r}}
 document.addEventListener('click',e=>{const r=$('#asmRes');if(r&&r.innerHTML&&!e.target.closest('.picker'))r.innerHTML='';},true);
@@ -3581,7 +3668,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
       const me=await user.me();S.meName=me?.name||'';S.meEmail=me?.email||''}catch(e){}}
   if(S.isOwner)setTimeout(()=>{try{siteLoad()}catch(e){}},4000);
   const fail=e=>{if(e?.code==='revoked'||e?.code==='not_granted'){S.offline=true;render()}};
-  const mark=k=>{S.loaded.add(k);derive();scheduleRender()};
+  const mark=k=>{S.loaded.add(k);derive();scheduleRender();if((k==='ops'||k==='sales'||k==='products')&&S.optCfg?.key)optPubSoon(45000)};
   const failK=k=>e=>{if(e?.code==='permission-denied'){mark(k);return}fail(e)};
   const sub=(col,key,sort)=>db.collection(col).onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()})).sort(sort);mark(key)},failK(key));
   const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','ru');
@@ -3590,6 +3677,9 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
   sub('ops','ops',(a,b)=>(b.at||'').localeCompare(a.at||''));sub('sales','sales',(a,b)=>(b.at||'').localeCompare(a.at||''));sub('buys','buysL',(a,b)=>num(b.no)-num(a.no));
   if(S.isOwner)sub('seen','seenL',()=>0);
   if(S.role==='admin'){sub('costs','costsL',()=>0);sub('opcosts','opcL',()=>0);sub('suppliers','supp',byName);sub('suppays','spays',(a,b)=>(b.at||'').localeCompare(a.at||''));sub('money','moneyL',(a,b)=>(b.at||'').localeCompare(a.at||''));sub('pos','posL',(a,b)=>(b.at||'').localeCompare(a.at||''))}
+  if(S.isOwner||S.role==='admin'||S.role==='seller')db.collection('optorders').onSnapshot(s=>{const was=new Set((S.optOrd||[]).filter(o=>o.st==='new').map(o=>o.id));S.optOrd=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
+    const fresh=S.optOrd.filter(o=>o.st==='new'&&!was.has(o.id));if(S.optOrdInit&&fresh.length)toast(`Новый заказ дилера: ${fresh[0].name||''} на ${money(fresh[0].total)}`);S.optOrdInit=true;if($('#modal').hidden&&!typing())scheduleRender()},()=>{});
+  if(S.isOwner){setTimeout(()=>{try{optAutoCheck()}catch(e){}},9000);setInterval(()=>{try{optAutoCheck()}catch(e){}},1800e3)}
   db.doc('settings/main').onSnapshot(s=>{S.set={newPolicy:'pending',shopName:'',shopAddr:'',shopPhone:'',wTerms:'',...(s.exists?s.data():{})};mark('set')},failK('set'));
   if(!S.isOwner&&S.uid&&S.role!=='view'){const ref=db.doc('seen/'+S.uid);ref.get().then(sn=>{const d=sn.exists?sn.data():null;if(!d||d.lvl!==S.role||(SRV()&&d.name!==S.meName)||Date.now()-new Date(d.at)>864e5)return ref.set({at:now(),lvl:S.role,...(SRV()?{name:S.meName,email:S.meEmail}:{})})}).catch(()=>{})}
 })();
