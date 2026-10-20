@@ -2832,6 +2832,14 @@ function siteFind(s){let best=null;if(!s)return null;
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d|\d+\s?gb.*(ssd|hdd)|(ssd|hdd).*\d+\s?gb/.test(nl))
   ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
 function siteCat(nl,gl){
+  // то, что выглядит как корпус, но им не является
+  if(/^case (cooler|fan)|^case fan|(^|[^a-z])fan\s?\d{2,3}\s?mm|^\d{2}cm led|^transwarp|вентилятор/.test(nl)&&!/корпус|w\/o psu/.test(nl))return SITE_NAMES.indexOf('Охлаждение');
+  if(/^аккумулятор|^источник вторичного|^ббп/.test(nl))return SITE_NAMES.indexOf('Стабилизаторы, ИБП, инверторы');
+  if(/внешний блок|кондиционер|сплит/.test(nl))return SITE_NAMES.indexOf('Бытовая техника');
+  if(/^корпус ноутбука/.test(nl))return SITE_NAMES.indexOf('Кабели и аксессуары');
+  if(/^case for (hdd|ssd)|^корпус для (жестк|hdd|ssd|диск)/.test(nl))return SITE_NAMES.indexOf('Накопители');
+  if(/^case logic|backpack|рюкзак|(^|[^a-z])bag([^a-z]|$)|сумк/.test(nl))return SITE_NAMES.indexOf('Кабели и аксессуары');
+  if(/led strip|led stripe|лента светодиод|декоративн/.test(nl))return SITE_NAMES.indexOf('Корпуса');
   // корпуса: «w/o PSU», «без БП», габариты 400*176*410mm
   if(/w\/o\s?psu|without psu|без бп|без блока питания|\d{3}\s?[*x×]\s?\d{3}\s?[*x×]\s?\d{3}\s?mm/.test(nl))return SITE_NAMES.indexOf('Корпуса');
   // платы, T-Con и подсветка для телевизоров (Mainboard for Hisense …)
