@@ -2795,12 +2795,12 @@ async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;i
 /* ---------- Каталог на сайте: розничные цены из прайсов ---------- */
 const SITE_CATS=[
   ['Процессоры',['процессор','cpu','core i','core ultra','ryzen','xeon','celeron','pentium','athlon']],
-  ['Видеокарты',['видеокарт','видео карт','video card','graphics card','geforce','radeon','rtx','gtx','quadro','intel arc','arc a','arc b']],
+  ['Видеокарты',['nvidia cmp','видеокарт','видео карт','video card','graphics card','geforce','radeon','rtx','gtx','quadro','intel arc','arc a','arc b']],
   ['Материнские платы',['материнск','матплат','мат. плат','motherboard','mainboard','m/b']],
   ['Оперативная память',['оперативн','озу','dimm','sodimm','ddr','memory']],
   ['Накопители',['microreader','ssd','hdd','жестк','накопител','nvme','флеш','flash','pen drive','карта памяти','microsd','secure digital','sdxc','sdhc','usb drive','оптический привод','dvd rw']],
   ['Блоки питания',['источник питания','блок питания','блоки питания','power supply','psu','бп']],
-  ['Корпуса',['корпус','case','chassis']],
+  ['Корпуса',['deepcool atx','deepcool matx','deepcool eatx','экран для корпуса','экран для копуса','корпус','case','chassis']],
   ['Охлаждение',['deepcool ak','deepcool ag','deepcool as','deepcool an','deepcool gammax','deepcool ls','id-cooling','pccooler','pc cooler','lovingcool','jungle leopard','arctic freezer','arctic liquid','noctua','dark rock','рамка сокета','рамка для сокета','cpu cooler','cpu fan','cpu кулер','процессорный кулер','кулер для процессор','система охлаждения','системы охлаждения','кулер','cooler','охлажд','вентилятор','fan','термопаст','радиатор','водян']],
   ['Ноутбуки',['ноутбук','notebook','laptop']],
   ['Мониторы',['монитор','monitor']],
@@ -2833,9 +2833,11 @@ const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(
   ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
 function siteCat(nl,gl){
   // то, что выглядит как корпус, но им не является
-  if(/^case (cooler|fan)|^case fan|(^|[^a-z])fan\s?\d{2,3}\s?mm|^\d{2}cm led|^transwarp|вентилятор/.test(nl)&&!/корпус|w\/o psu/.test(nl))return SITE_NAMES.indexOf('Охлаждение');
+  if(/^(case (cooler|fan)|case fan|вентилятор|\d{2}cm led|transwarp)/.test(nl)&&!/корпус|w\/o psu/.test(nl))return SITE_NAMES.indexOf('Охлаждение');
+  // жёсткие диски с «7200rpm» — не кулеры
+  if(/(^|[^a-z])(\d{1,2}tb|\d{3,4}gb)([^a-z]|$)/.test(nl)&&/\d{4}\s?rpm/.test(nl)&&/sata|hdd|surveillance|barracuda|baracuda|exos|purple|blue|enterprise/.test(nl))return SITE_NAMES.indexOf('Накопители');
   if(/^аккумулятор|^источник вторичного|^ббп/.test(nl))return SITE_NAMES.indexOf('Стабилизаторы, ИБП, инверторы');
-  if(/внешний блок|кондиционер|сплит/.test(nl))return SITE_NAMES.indexOf('Бытовая техника');
+  if(/внешний блок|кондиционер|сплит|обогреват|(радиатор|конвектор).{0,60}(\d{3,4}\s?вт|тэн|секци)/.test(nl))return SITE_NAMES.indexOf('Бытовая техника');
   if(/^корпус ноутбука/.test(nl))return SITE_NAMES.indexOf('Кабели и аксессуары');
   if(/^case for (hdd|ssd)|^корпус для (жестк|hdd|ssd|диск)/.test(nl))return SITE_NAMES.indexOf('Накопители');
   if(/^case logic|backpack|рюкзак|(^|[^a-z])bag([^a-z]|$)|сумк/.test(nl))return SITE_NAMES.indexOf('Кабели и аксессуары');
