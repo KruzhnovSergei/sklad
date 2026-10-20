@@ -56,7 +56,7 @@ service cloud.firestore {
     match /optidx/{id}   { allow read: if member(); allow write: if admin() || hasPerm('catalog'); }
     // Заказы дилеров: создать может тот, кто знает действующий ключ каталога; читают и обрабатывают продавцы
     match /optorders/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['at','key','name','phone','comment','items','total','st'])
+      allow create: if request.resource.data.keys().hasOnly(['at','key','name','phone','addr','rcv','comment','items','total','st'])
                     && request.resource.data.st == 'new'
                     && request.resource.data.key is string && request.resource.data.key.size() == 64
                     && exists(/databases/$(database)/documents/optcat/$(request.resource.data.key + '_m'))

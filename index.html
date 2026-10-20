@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 10:35</span>
+      <span class="muted" style="font-size:11px">Версия от 20.10.2026 10:47</span>
     </div>
   </aside>
   <div class="main">
@@ -3114,12 +3114,12 @@ function optOrdPane(){const L=S.optOrd||[];if(!L.length||!can('sell'))return '';
     return `<tr class="jrow" tabindex="0" data-act="ord-open" data-id="${esc(o.id)}" aria-expanded="${op}"><td class="mono">${ordNo(o)}</td><td>${dt(o.at)}</td><td><b>${esc(o.name||'')}</b><span class="psku">${esc(o.phone||'')}</span></td><td class="num">${(o.items||[]).length}</td><td class="num">${money(o.total)}</td><td>${o.st==='new'?'<span class="chip low">новый</span>':`<span class="chip ok">обработан</span>${o.inv?` <button class="btn link" data-act="inv-open" data-id="${esc(o.inv)}">накладная</button>`:''}`}</td></tr>
     ${op?`<tr class="jdet"><td colspan="6">${ordDet(o)}</td></tr>`:''}`}).join('')||'<tr><td colspan="6" class="muted">Нет заказов</td></tr>'}</tbody></table></div></section>`}
 function ordDet(o){const wh=S.curWh;
-  return `${o.comment?`<p style="margin:0 0 8px"><b>Комментарий:</b> ${esc(o.comment)}</p>`:''}<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th><th class="num">На складе «${esc(wname(wh))}»</th></tr></thead><tbody>${(o.items||[]).map(it=>{const kit=it.k?kitList().find(k=>k.id===it.k):null;const av=it.i&&S.P[it.i]?qty(wh,it.i):kit?kitAvail(kit,[S.W[wh]].filter(Boolean)):null;
+  return `<div class="row" style="gap:6px 20px;margin:0 0 8px;flex-wrap:wrap">${o.phone?`<span><b>WhatsApp:</b> ${esc(o.phone)}</span>`:''}${o.addr?`<span><b>Доставка:</b> ${esc(o.addr)}</span>`:''}${o.rcv?`<span><b>Принимает:</b> ${esc(o.rcv)}</span>`:''}</div>${o.comment?`<p style="margin:0 0 8px"><b>Комментарий:</b> ${esc(o.comment)}</p>`:''}<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th><th class="num">На складе «${esc(wname(wh))}»</th></tr></thead><tbody>${(o.items||[]).map(it=>{const kit=it.k?kitList().find(k=>k.id===it.k):null;const av=it.i&&S.P[it.i]?qty(wh,it.i):kit?kitAvail(kit,[S.W[wh]].filter(Boolean)):null;
    return `<tr><td>${esc(it.n)}${it.k?' <span class="chip">комплект</span>':''}${it.i&&!S.P[it.i]?' <span class="chip bad">товар удалён</span>':''}</td><td class="num">${q3(it.q)}</td><td class="num">${NF.format(num(it.p))}</td><td class="num">${NF.format(r2(num(it.p)*num(it.q)))}</td><td class="num${av!=null&&av<num(it.q)?' debt':''}">${av==null?'—':q3(av)}</td></tr>`}).join('')}</tbody></table></div>
    <div class="row" style="margin-top:8px;gap:8px">${o.st==='new'?`<button class="btn" data-act="ord-inv" data-id="${esc(o.id)}">Оформить расходную накладную</button><button class="btn ghost" data-act="ord-done" data-id="${esc(o.id)}">Отметить обработанным</button>`:`<button class="btn ghost" data-act="ord-new" data-id="${esc(o.id)}">Вернуть в новые</button>`}${o.phone?`<a class="btn ghost" href="https://wa.me/${esc(String(o.phone).replace(/\D/g,''))}" target="_blank" rel="noopener">WhatsApp дилеру</a>`:''}<button class="btn link bad" data-act="ord-del" data-id="${esc(o.id)}">Удалить</button></div>`}
 function ordToInv(id){const o=(S.optOrd||[]).find(x=>x.id===id);if(!o)return;invNew();const v=S.inv;v.fromOrd=id;
   const ph=String(o.phone||'').replace(/\D/g,'').slice(-9);const c=ph.length>=9?visCust().find(c=>String(c.phone||'').replace(/\D/g,'').slice(-9)===ph):null;if(c)v.cust=c.id;
-  v.note=`Заказ дилера ${ordNo(o)}: ${o.name||''}${o.phone?', '+o.phone:''}`;const miss=[];
+  v.note=`Заказ дилера ${ordNo(o)}: ${o.name||''}${o.phone?', WhatsApp '+o.phone:''}${o.addr?'. Доставка: '+o.addr:''}${o.rcv?', принимает '+o.rcv:''}`;const miss=[];
   for(const it of o.items||[]){if(it.k){const k=kitList().find(x=>x.id===it.k);if(!k){miss.push(it.n);continue}const base=k.items.reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0);
       for(const i of k.items){if(!S.P[i.p]){miss.push(pname(i.p));continue}const pr=base>0?r2(num(S.P[i.p].sellPrice)*num(it.p)/base):0;v.items.push({p:i.p,q:String(r3(num(i.q)*num(it.q))),price:String(pr),disc:'',sn:[]})}continue}
     if(!S.P[it.i]){miss.push(it.n);continue}v.items.push({p:it.i,q:String(r3(num(it.q))),price:String(r2(num(it.p))),disc:'',sn:[]})}

@@ -103,6 +103,13 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .cl .s{font-weight:800;text-align:right}
 .cl .rm{background:none;border:0;color:var(--bad);font-size:13px;text-decoration:underline;padding:0;justify-self:start}
 .df{border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;background:var(--card)}
+.of{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 12px;display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.of h3{margin:0;font:700 16px var(--f-b)}
+.fe{color:var(--bad);font-size:12.5px;font-weight:600;min-height:0}
+.fe:empty{display:none}
+input.inv{border-color:var(--bad)}
+.hint{margin:0;padding:10px 12px;border-radius:10px;background:var(--okbg);color:var(--ok);font-size:13.5px;font-weight:600;line-height:1.4}
+.df .err:empty{display:none}
 .tot{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:20px}
 .ok{background:var(--okbg);color:var(--ok);border-radius:12px;padding:16px;font-weight:600}
 .md{position:fixed;inset:0;z-index:60;background:rgb(20 22 26 / .7);display:grid;place-items:center;padding:16px}
@@ -232,24 +239,30 @@ function modal(){let el=$('#md');const o=S.open;if(!o){el?.remove();document.bod
 /* ---------- корзина и заказ ---------- */
 function drawer(){let el=$('#dr');if(!S.cartOpen){el?.remove();document.body.style.overflow='';return}
   if(!el){el=document.createElement('div');el.id='dr';el.className='ov';document.body.appendChild(el);document.body.style.overflow='hidden'}
-  const sent=S.sent;const m=S.meta;const keep={n:$('#on')?.value,p:$('#op')?.value,c:$('#oc')?.value};
+  const sent=S.sent;const m=S.meta;const keep={n:$('#on')?.value,p:$('#op')?.value,a:$('#oa')?.value,r:$('#or')?.value,c:$('#oc')?.value};
   el.innerHTML=`<div class="drawer" role="dialog" aria-modal="true" aria-label="Корзина"><div class="dh"><h2>Корзина</h2><button class="x" data-close="1" aria-label="Закрыть">×</button></div>
-   <div class="db">${sent?`<div class="ok">Заказ <b>${esc(sent.no)}</b> на ${money(sent.total)} отправлен. Мы свяжемся с вами для подтверждения.</div>${m.wa?`<a class="btn wa" href="https://wa.me/${esc(m.wa)}?text=${encodeURIComponent(sent.text)}" target="_blank" rel="noopener">Продублировать в WhatsApp</a>`:''}<button class="btn line" data-close="1">Вернуться в каталог</button>`
+   <div class="db">${sent?`<div class="ok">Заказ <b>${esc(sent.no)}</b> на ${money(sent.total)} отправлен.<br>В ближайшее время с вами свяжется менеджер по продажам в WhatsApp, чтобы подтвердить заказ.</div>${m.wa?`<a class="btn wa" href="https://wa.me/${esc(m.wa)}?text=${encodeURIComponent(sent.text)}" target="_blank" rel="noopener">Продублировать в WhatsApp</a>`:''}<button class="btn line" data-close="1">Вернуться в каталог</button>`
     :S.cart.length?S.cart.map(x=>`<div class="cl"><div><div class="t">${esc(x.n)}</div><div class="u">${NF.format(x.p)} сом × ${x.q}</div></div><div class="s">${money(x.p*x.q)}</div><div data-ctl="${esc(x.id)}">${ctlHtml(x.id)}</div><button class="rm" data-rm="${esc(x.id)}">Убрать</button></div>`).join('')
-    :'<div class="empty">Корзина пуста. Нажмите «В корзину» у нужных товаров.</div>'}</div>
-   ${!sent&&S.cart.length?`<form class="df" id="of"><div class="tot"><span>Итого</span><span data-cartsum>${money(cartTot())}</span></div>
-    <label class="f">Ваше имя или компания *<input id="on" required value="${esc(S.me.name)}" autocomplete="organization"></label>
-    <label class="f">Телефон / WhatsApp *<input id="op" required inputmode="tel" value="${esc(S.me.phone)}" autocomplete="tel" placeholder="+996 …"></label>
-    <label class="f">Комментарий<textarea id="oc" placeholder="Доставка, оплата, сроки"></textarea></label>
-    <p class="err" id="oe"></p><button class="btn acc" id="ob" type="submit">Отправить заказ</button></form>`:''}</div>`;
-  if(keep.n!=null&&$('#on')){$('#on').value=keep.n;$('#op').value=keep.p;$('#oc').value=keep.c}
+    :'<div class="empty">Корзина пуста. Нажмите «В корзину» у нужных товаров.</div>'}
+   ${!sent&&S.cart.length?`<form class="of" id="of" novalidate><h3>Оформление заказа</h3>
+    <label class="f">Имя или компания *<input id="on" value="${esc(S.me.name)}" autocomplete="organization" placeholder="Например: Азамат, «Комп Сервис»"><span class="fe" id="on-e"></span></label>
+    <label class="f">WhatsApp *<input id="op" inputmode="tel" value="${esc(S.me.phone)}" autocomplete="tel" placeholder="+996 555 123 456"><span class="fe" id="op-e"></span></label>
+    <label class="f">Адрес доставки<input id="oa" value="${esc(S.me.addr||'')}" autocomplete="street-address" placeholder="Город, улица, дом — или «самовывоз»"></label>
+    <label class="f">Телефон того, кто примет доставку<input id="or" inputmode="tel" value="${esc(S.me.rcv||'')}" autocomplete="off" placeholder="+996 …"><span class="fe" id="or-e"></span></label>
+    <label class="f">Комментарий<textarea id="oc" placeholder="Оплата, удобное время доставки"></textarea></label>
+    <p class="hint">После отправки в ближайшее время с вами свяжется менеджер по продажам в WhatsApp, чтобы подтвердить заказ, наличие и доставку.</p></form>`:''}</div>
+   ${!sent&&S.cart.length?`<div class="df"><div class="tot"><span>Итого</span><span data-cartsum>${money(cartTot())}</span></div><p class="err" id="oe"></p><button class="btn acc" id="ob" type="submit" form="of">Отправить заказ</button></div>`:''}</div>`;
+  if(keep.n!=null&&$('#on')){$('#on').value=keep.n;$('#op').value=keep.p;$('#oa').value=keep.a;$('#or').value=keep.r;$('#oc').value=keep.c}
   $('#of')?.addEventListener('submit',sendOrder)}
-async function sendOrder(e){e.preventDefault();const name=$('#on').value.trim(),phone=$('#op').value.trim(),comment=$('#oc').value.trim();const err=$('#oe');err.textContent='';
-  if(!name||phone.replace(/\D/g,'').length<6){err.textContent='Укажите имя и телефон';return}
+async function sendOrder(e){e.preventDefault();const name=$('#on').value.trim(),phone=$('#op').value.trim(),addr=$('#oa').value.trim(),rcv=$('#or').value.trim(),comment=$('#oc').value.trim();const err=$('#oe');err.textContent='';
+  const bad=[];const fe=(id,msg)=>{const x=$('#'+id+'-e');if(x)x.textContent=msg||'';$('#'+id)?.classList.toggle('inv',!!msg);if(msg)bad.push(id)};
+  fe('on',name?'':'Укажите имя или название компании');fe('op',phone.replace(/\D/g,'').length>=9?'':'Укажите номер WhatsApp полностью, например +996 555 123 456');
+  fe('or',rcv&&rcv.replace(/\D/g,'').length<9?'Номер указан не полностью':addr&&!/самовывоз/i.test(addr)&&!rcv?'Укажите, кто примет доставку':'');
+  if(bad.length){err.textContent='Заполните отмеченные поля';$('#'+bad[0])?.focus();return}
   const items=S.cart.map(x=>x.id[0]==='k'?{k:x.id.slice(1),n:x.n,q:x.q,p:x.p}:{i:x.id.slice(1),n:x.n,q:x.q,p:x.p});const total=Math.round(cartTot()*100)/100;
-  const b=$('#ob');b.disabled=true;b.textContent='Отправляю…';S.me={name,phone};LS.set('opt_me',S.me);
-  try{const ref=db.collection('optorders').doc();await ref.set({at:new Date().toISOString(),key:S.key,name:name.slice(0,120),phone:phone.slice(0,40),comment:comment.slice(0,1000),items,total,st:'new'});
-    const no='З-'+ref.id.slice(-5).toUpperCase();const text=`Заказ ${no} из оптового каталога\n${name}, ${phone}\n`+S.cart.map(x=>`• ${x.n} × ${x.q} = ${NF.format(x.p*x.q)} сом`).join('\n')+`\nИтого: ${money(total)}${comment?'\n'+comment:''}`;
+  const b=$('#ob');b.disabled=true;b.textContent='Отправляю…';S.me={name,phone,addr,rcv};LS.set('opt_me',S.me);
+  try{const ref=db.collection('optorders').doc();await ref.set({at:new Date().toISOString(),key:S.key,name:name.slice(0,120),phone:phone.slice(0,40),addr:addr.slice(0,300),rcv:rcv.slice(0,40),comment:comment.slice(0,1000),items,total,st:'new'});
+    const no='З-'+ref.id.slice(-5).toUpperCase();const text=`Заказ ${no} из оптового каталога\n${name}, WhatsApp ${phone}\n${addr?'Доставка: '+addr+(rcv?', принимает: '+rcv:'')+'\n':''}`+S.cart.map(x=>`• ${x.n} × ${x.q} = ${NF.format(x.p*x.q)} сом`).join('\n')+`\nИтого: ${money(total)}${comment?'\n'+comment:''}`;
     S.sent={no,total,text};S.cart=[];cartSave();updCart();drawer()}
   catch(ex){b.disabled=false;b.textContent='Отправить заказ';err.textContent='Не удалось отправить. Проверьте интернет и попробуйте ещё раз'}}
 
