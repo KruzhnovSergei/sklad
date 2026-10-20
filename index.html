@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 10:57</span>
+      <span class="muted" style="font-size:11px">Версия от 20.10.2026 11:25</span>
     </div>
   </aside>
   <div class="main">
@@ -3087,11 +3087,11 @@ function optPane(){if(!S.isOwner)return '';optCfgLoad();const c=S.optCfg;const o
 async function optSaveCfg(){const l=($('#optLogin')?.value||'').trim(),pw=($('#optPass')?.value||'').trim();if(!l){toast('Введите логин');return}if(pw.length<6){toast('Пароль — не короче 6 символов');return}
   await optPublish(false,{login:l,pass:pw,wh:$('#optWh')?.value||''})}
 function optRows(){const c=plCfg();const fi=plFirstIn();const st=c.cols.stock!=='none';const I=S.optIdx||{};
-  return plRows(c,false).map(r=>{const p=r.p;const x=I[p.id]||{};const o={i:p.id,n:p.name||'',g:r.g,p:plPrice(c,p)};if(st){o.s=plStock(r.q);o.t=r.q<=0?0:r.q<5?1:2}const nt=(c.notes[p.id]||'').trim();if(nt)o.nt=nt;if(c.cols.war){const w=pWTxt(p);if(w)o.w=w}if(plIsNew(c,fi,p.id))o.nw=1;if(num(x.n))o.ph=num(x.n);if(x.d)o.d=1;return o}).filter(o=>o.p>0)}
+  return plRows(c,false).map(r=>{const p=r.p;const x=I[p.id]||{};const o={i:p.id,n:p.name||'',g:r.g,p:plPrice(c,p),q:Math.max(0,Math.floor(r.q))};if(st){o.s=plStock(r.q);o.t=r.q<=0?0:r.q<5?1:2}const nt=(c.notes[p.id]||'').trim();if(nt)o.nt=nt;if(c.cols.war){const w=pWTxt(p);if(w)o.w=w}if(plIsNew(c,fi,p.id))o.nw=1;if(num(x.n))o.ph=num(x.n);if(x.d)o.d=1;return o}).filter(o=>o.p>0)}
 async function optPublish(auto,nw){if(!S.isOwner||!S.db)return false;const cur=S.optCfg;const login=nw?.login||cur?.login,pass=nw?.pass||cur?.pass;if(!login||!pass)return false;
   if(!S.optIdx){try{const d=await S.db.doc('optidx/main').get();S.optIdx=d.exists?d.data():{}}catch(e){S.optIdx={}}}
   const c=plCfg();const s=S.set;const key=await optKeyOf(login,pass);const rows=optRows();const st=c.cols.stock!=='none';
-  const kits=plKits(c).map(k=>({k:k.id,n:k.name,nt:k.note||'',c:k.comps,p:k.price,sep:k.sep||0,...(st?{s:k.stock,t:k.q<=0?0:k.q<5?1:2}:{})})).filter(k=>k.p>0);
+  const kits=plKits(c).map(k=>({k:k.id,n:k.name,nt:k.note||'',c:k.comps,p:k.price,sep:k.sep||0,q:Math.max(0,Math.floor(k.q)),...(st?{s:k.stock,t:k.q<=0?0:k.q<5?1:2}:{})})).filter(k=>k.p>0);
   const parts=[];{let cr=[],sz=0;for(const x of rows){const b=JSON.stringify(x).length*2;if(cr.length&&sz+b>600000){parts.push(cr);cr=[];sz=0}cr.push(x);sz+=b}if(cr.length||!parts.length)parts.push(cr)}
   const wa=String(s.shopPhone||'').replace(/\D/g,'');const meta={at:now(),n:rows.length,chunks:parts.length,title:c.title||'Прайс-лист',note:c.note||'',shop:(c.wh!=='all'&&S.W[c.wh]?(reqOf(c.wh).shopName||S.W[c.wh].name):'')||s.shopName||'',contact:plContact(c),wa:(c.wh!=='all'&&S.W[c.wh]?String(whC(c.wh).phone||'').replace(/\D/g,''):'')||wa,war:!!c.cols.war,st,kits,sort:c.sort||'price'};
   const db=S.db;const oldKey=cur?.key,oldN=num(cur?.chunks);

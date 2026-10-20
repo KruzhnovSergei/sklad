@@ -84,6 +84,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:60
 .pr small{font-size:13px;font-weight:600;color:var(--muted)}
 .sep{font-size:12px;color:var(--muted);text-decoration:line-through}
 .step{display:inline-flex;align-items:center;border:1.5px solid var(--ink);border-radius:9px;overflow:hidden;height:36px}
+.step button:disabled{opacity:.35;cursor:default}
 .step button{width:34px;height:100%;border:0;background:#fff;font-size:18px;font-weight:700}
 .step input{width:46px;min-height:0;height:100%;border:0;border-radius:0;text-align:center;padding:0;font-weight:700}
 .add{min-height:36px;padding:0 14px;font-size:14px;border-radius:9px}
@@ -178,16 +179,20 @@ async function load(k){if(!db)throw new Error('db');const m=await db.doc(`optcat
 /* ---------- каталог ---------- */
 const cartKey=()=>'opt_cart_'+String(S.key).slice(0,12);
 function cartLoad(){const c=LS.get(cartKey(),[]);const R={};for(const r of S.rows)R['i'+r.i]=r;for(const k of S.meta.kits||[])R['k'+k.k]=k;
-  S.cart=c.map(x=>{const r=R[x.id];return r?{id:x.id,q:x.q,n:r.n,p:r.p}:null}).filter(Boolean)}
+  S.cart=c.map(x=>{const r=R[x.id];if(!r)return null;const q=Math.min(x.q,maxOf(x.id));return q>0?{id:x.id,q,n:r.n,p:r.p}:null}).filter(Boolean)}
+/* сколько можно заказать: не больше остатка на складе (если остаток передан в каталоге) */
+function rowOf(id){return id[0]==='k'?(S.meta.kits||[]).find(k=>'k'+k.k===id):S.rows.find(x=>'i'+x.i===id)}
+function maxOf(id){const r=rowOf(id);const q=r?.q;return q==null?9999:Math.max(0,Math.floor(Number(q)||0))}
 function cartSave(){LS.set(cartKey(),S.cart.map(x=>({id:x.id,q:x.q})))}
 const inCart=id=>S.cart.find(x=>x.id===id);
-function setQty(id,q,r){q=Math.max(0,Math.floor(Number(q)||0));const c=inCart(id);if(!q){S.cart=S.cart.filter(x=>x.id!==id)}else if(c)c.q=q;else S.cart.push({id,q,n:r.n,p:r.p});cartSave();updCart()}
+function setQty(id,q,r){q=Math.max(0,Math.floor(Number(q)||0));const mx=maxOf(id);if(q>mx){q=mx;toast(mx?`На складе только ${mx} шт`:'Этого товара сейчас нет на складе')}const c=inCart(id);if(!q){S.cart=S.cart.filter(x=>x.id!==id)}else if(c)c.q=q;else S.cart.push({id,q,n:r.n,p:r.p});cartSave();updCart()}
 const cartTot=()=>S.cart.reduce((a,x)=>a+x.p*x.q,0);
 function updCart(){const n=S.cart.reduce((a,x)=>a+x.q,0);for(const e of document.querySelectorAll('[data-cartn]'))e.textContent=n;for(const e of document.querySelectorAll('[data-cartsum]'))e.textContent=money(cartTot());
   const f=$('#fab');if(f)f.hidden=!S.cart.length;
   for(const e of document.querySelectorAll('[data-ctl]'))e.innerHTML=ctlHtml(e.dataset.ctl);
   if(S.cartOpen)drawer()}
-function ctlHtml(id){const c=inCart(id);return c?`<span class="step"><button data-q="-1" data-id="${esc(id)}" aria-label="Меньше">−</button><input inputmode="numeric" value="${c.q}" data-qi="${esc(id)}" aria-label="Количество"><button data-q="1" data-id="${esc(id)}" aria-label="Больше">+</button></span>`:`<button class="btn add" data-add="${esc(id)}">В корзину</button>`}
+function ctlHtml(id){const c=inCart(id);const mx=maxOf(id);if(!c&&mx<=0)return '<button class="btn add" disabled title="Нет на складе">Нет в наличии</button>';
+  return c?`<span class="step"><button data-q="-1" data-id="${esc(id)}" aria-label="Меньше">−</button><input inputmode="numeric" value="${c.q}" data-qi="${esc(id)}" aria-label="Количество"><button data-q="1" data-id="${esc(id)}" aria-label="Больше"${c.q>=mx?' disabled title="Больше нет на складе"':''}>+</button></span>`:`<button class="btn add" data-add="${esc(id)}">В корзину</button>`}
 function stPill(r){if(!S.meta.st||r.s==null)return '';return `<span class="pill s${r.t}">${esc(r.s)}</span>`}
 function filtered(){const ws=S.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   let L=S.rows.filter(r=>(!S.g||r.g===S.g)&&(!S.only||r.t>0||r.t==null)&&(!ws.length||ws.every(w=>(r.n+' '+r.g+' '+(r.nt||'')).toLowerCase().includes(w))));
