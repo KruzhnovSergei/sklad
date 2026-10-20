@@ -2855,9 +2855,10 @@ function siteCat(nl,gl){
   // SSD с «Memory» в названии бренда (Union Memory … NVMe M.2)
   // плата с сокетом и чипсетом — это плата, даже если в названии «2xNVME» или «DDR5»
   const sock=/lga\s?\d{3,4}|(^|[^a-z])am[2-5]([^a-z0-9]|$)/.test(nl);
-  if(chip&&sock&&!/core i|core ultra|ryzen|процессор|cpu|xeon|celeron|pentium/.test(nl))return MB;
+  const cool=/кулер|cooler|охлажд|вентилят|(^|[^a-z])fan|трубк|heat ?pipe|радиатор|rpm|cfm|tdp/.test(nl);
+  if(chip&&sock&&!cool&&!/core i|core ultra|ryzen|процессор|cpu|xeon|celeron|pentium/.test(nl))return MB;
   if((weak||a.c===RM)&&/nvme|m\.2\s?22\d0|(^|[^a-z])ssd([^a-z]|$)|read\/write|pcie gen/.test(nl)&&!/ddr\d|dimm/.test(nl)&&!(chip&&sock))return SITE_NAMES.indexOf('Накопители');
-  if((weak||a.c===RM)&&chip&&/lga\s?\d{3,4}|(^|[^a-z])am[2-5]([^a-z0-9]|$)|материнск|motherboard|mainboard/.test(nl)&&!/core i|ryzen|процессор|cpu/.test(nl))return MB;
+  if((weak||a.c===RM)&&chip&&!cool&&/lga\s?\d{3,4}|(^|[^a-z])am[2-5]([^a-z0-9]|$)|материнск|motherboard|mainboard/.test(nl)&&!/core i|ryzen|процессор|cpu/.test(nl))return MB;
   // Материнские платы: «MB …», слоты «2xDDR4», сокет вместе с форм-фактором mATX/ATX/ITX
   if(weak&&(/^mb\b/.test(nl)||/\d\s?x\s?ddr\d/.test(nl)||(/lga\s?\d{3,4}|\bam[2345]\b|\bfm2/.test(nl)&&/\b(m-?atx|e-?atx|atx|mini-?itx|itx)\b/.test(nl))))return MB;
   // Мониторы: диагональ от 17" и параметры экрана (cd/m2, Гц, мс, FHD, IPS, VA, LED)
