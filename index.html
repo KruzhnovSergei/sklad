@@ -2830,7 +2830,7 @@ function siteFind(s){let best=null;if(!s)return null;
 // Категория: по первым словам названия, иначе по группе в прайсе, иначе по любому слову названия
 // Ноутбук без слова «ноутбук»: мобильный процессор (i3-7020U, 7530U, …HX) или экран в дюймах вместе с процессором
 const siteLaptop=nl=>!/моноблок|all-in-one|монитор|monitor/.test(nl)&&(/\b(i[3579]-?\d{4,5}(u|h|hs|hx|p)|\d{4,5}(u|hs|hx))\b/.test(nl)||(/\b1[0-8](\.\d)?\s?("|”|''|inch|дюйм)/.test(nl)&&/core|ryzen|celeron|pentium|athlon|apple m\d|\d+\s?gb.*(ssd|hdd)|(ssd|hdd).*\d+\s?gb/.test(nl))
-  ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf gaming [af]\d|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
+  ||/macbook|thinkpad|ideapad|vivobook|zenbook|expertbook|tuf (gaming )?[af]\d{2}|(^|\s)dell (\d{2}|pro|inspiron|latitude|vostro|xps)\s|ryzen [3579] [12]\d0([^\d]|$)|touchscreen|wuxga|full hd\+|rog (strix|zephyrus|flow)|legion|aspire|nitro (v|5)|predator helios|omen \d|victus|pavilion|probook|elitebook|inspiron|vostro|latitude|matebook|magicbook|redmibook/.test(nl));
 function siteCat(nl,gl){
   // то, что выглядит как корпус, но им не является
   if(/^(case (cooler|fan)|case fan|вентилятор|\d{2}cm led|transwarp)/.test(nl)&&!/корпус|w\/o psu/.test(nl))return SITE_NAMES.indexOf('Охлаждение');
