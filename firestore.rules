@@ -98,8 +98,8 @@ service cloud.firestore {
     }
 
     // Себестоимость, поставщики, деньги, заказы — только администраторы
-    match /costs/{id}     { allow read, write: if admin(); }
-    match /opcosts/{id}   { allow read, write: if admin(); }
+    match /costs/{id}     { allow read: if admin() || hasPerm('cost'); allow write: if admin(); }
+    match /opcosts/{id}   { allow read: if admin() || hasPerm('cost'); allow write: if admin(); }
     match /suppliers/{id} { allow read, write: if admin(); }
     match /suppays/{id}   { allow read, write: if admin(); }
     match /money/{id}     { allow read, write: if admin(); }
