@@ -2900,7 +2900,7 @@ function sitePcs(cfg){const out=[];if(!S.pca||!siteStockReady())return out;const
   for(const sn in S.pca){const o=S.pca[sn];if(!pcIn(sn)||!SW.has(pcWh(sn)))continue;if(/^Тестовая сборка/i.test(o.party||''))continue;
     const pr=pcPrice(sn);if(!(pr>0))continue;
     const parts=(S.pcComp?.[sn]||[]).map(i=>String(pname(i.p)).slice(0,140)+(num(i.q)>1?' ×'+q3(i.q):'')).slice(0,14);
-    out.push({sn,n:String(pname(o.out.p)||'Компьютер').slice(0,120),cfg:String(o.party||'').slice(0,300),parts,p:r2(pr),at:o.at||''})}
+    const w=pWTxt(o.out.p);out.push({sn,n:String(pname(o.out.p)||'Компьютер').slice(0,120),cfg:String(o.party||'').slice(0,300),parts,p:r2(pr),at:o.at||'',...(w?{w}:{})})}
   return out.sort((a,b)=>b.at.localeCompare(a.at)).slice(0,40)}
 function siteCounts(){const key=(S.pll||[]).map(l=>l.id+':'+(S.plr[l.id]?.v||'')+':'+(S.plr[l.id]?.rows?1:0)).join('|');
   if(S.siteCnt?.key===key)return S.siteCnt.c;const c=SITE_NAMES.map(()=>0);for(const x of siteRows())c[x.c]++;S.siteCnt={key,c};return c}
