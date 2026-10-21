@@ -130,10 +130,11 @@ button.pcd-main{width:100%;padding:0;cursor:zoom-in;font:inherit}
 .spec-sec{margin-top:40px}
 .spec-h{font-family:var(--f-display);font-size:24px;margin-bottom:16px}
 .specs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+@media (min-width:861px){.specs{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
 .spec{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
 .spec-i{width:40px;height:40px;border-radius:10px;background:var(--ink);color:var(--accent);display:grid;place-items:center;margin-bottom:4px}
 .spec-t{font-size:13px;color:#6B717A;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
-.spec-v{font-family:var(--f-display);font-size:17px;line-height:1.25}
+.spec-v{font-family:var(--f-display);font-size:16px;line-height:1.3}
 .pcd-low{margin-top:28px;display:flex;flex-direction:column;gap:16px;max-width:900px}
 .qty-b{display:inline-block;margin-left:6px;padding:0 7px;border-radius:999px;background:var(--paper2);font-size:13px;font-weight:700;color:var(--ink)}
 .sim{margin-top:48px}
