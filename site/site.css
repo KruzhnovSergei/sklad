@@ -103,8 +103,10 @@ a.card{text-decoration:none;color:var(--ink);transition:border-color .15s}a.card
 /* страница компьютера */
 .pcd{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}
 .pcd-gal{flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:12px}
-.pcd-main{aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#EFEDE8;display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
-.pcd-main img{width:100%;height:100%;object-fit:contain;background:#fff}
+.pcd-main{position:relative;aspect-ratio:4/3;border-radius:18px;overflow:hidden;background:#1C1F24;display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+/* пустые поля по бокам заполняет размытая копия того же фото */
+.pcd-main .bg{position:absolute;inset:-40px;background-size:cover;background-position:center;filter:blur(40px) brightness(.8) saturate(1.2);transform:scale(1.2)}
+.pcd-main img{position:relative;width:100%;height:100%;object-fit:contain;background:none;filter:drop-shadow(0 10px 30px rgba(0,0,0,.35))}
 .pcd-thumbs{display:flex;gap:10px;flex-wrap:wrap}
 .pcd-thumbs button{width:96px;height:72px;padding:0;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:#fff}
 .pcd-thumbs button[aria-pressed="true"]{border-color:var(--ink)}
