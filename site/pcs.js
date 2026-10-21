@@ -18,7 +18,11 @@ window.BCPC=(function(){
       <div class="pc-body"><h3>${esc(x.n)}</h3>${x.cfg?`<p class="pc-cfg">${esc(x.cfg)}</p>`:''}
       <div class="pc-foot"><span class="pc-price">${money(x.p)}</span><span class="pc-more-link">Подробнее →</span></div></div></a>`}
   async function load(){try{if(!firebase.apps.length)firebase.initializeApp(window.SK_CONFIG.firebase)}catch(e){}
-    const d=await firebase.firestore().doc('sitecat/pcs').get();return d.exists?(d.data().rows||[]):[]}
+    const db=firebase.firestore();const d=await db.doc('sitecat/pcs').get();const rows=d.exists?(d.data().rows||[]):[];
+    // свежие фото и описания, которые сотрудники добавили после последней выгрузки сайта
+    try{const M={};await Promise.all(rows.map(x=>db.doc('pcthumbs/'+x.sn).get().then(t=>{if(t.exists)M[x.sn]=t.data()}).catch(()=>{})));
+      for(const x of rows){const m=M[x.sn];if(!m)continue;if(m.th)x.th=m.th;else if(m.np===0)delete x.th;if(m.desc!=null)x.desc=m.desc;if(m.np!=null)x.np=m.np}}catch(e){}
+    return rows}
   async function photos(sn){const d=await firebase.firestore().doc('pcphotos/'+sn).get();return d.exists?d.data():null}
   return {NF,esc,money,kind,buy,card,load,photos,ph};
 })();

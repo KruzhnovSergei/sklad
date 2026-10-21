@@ -67,7 +67,9 @@ service cloud.firestore {
       allow read, update, delete: if seller();
     }
     // Фото и описание готовых сборок для сайта: видят все, меняют сборщики
-    match /pcphotos/{id} { allow read: if true; allow write: if admin() || hasPerm('assembly') || hasPerm('pcedit'); }
+    match /pcphotos/{id} { allow read: if true; allow write: if admin() || hasPerm('assembly') || hasPerm('pcedit') || hasPerm('pcsite'); }
+    // Обложка и описание сборки для карточек сайта (маленький документ, сайт читает их все сразу)
+    match /pcthumbs/{id} { allow read: if true; allow write: if admin() || hasPerm('assembly') || hasPerm('pcedit') || hasPerm('pcsite'); }
 
     // Счётчик посетителей сайта: любой может только прибавить 1
     match /sitestats/{id} {
