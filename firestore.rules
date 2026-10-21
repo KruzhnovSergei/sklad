@@ -89,7 +89,13 @@ service cloud.firestore {
     match /products/{id}   { allow read: if member(); allow write: if admin(); }
     match /groups/{id}     { allow read: if member(); allow write: if admin(); }
     match /settings/{id}   { allow read: if member(); allow write: if admin(); }
-    match /ops/{id}        { allow read: if member(); allow write: if admin(); }
+    match /ops/{id}        {
+      allow read: if member(); allow write: if admin();
+      // Собранные ПК на своих складах (право 'pcedit'): замена и снятие деталей, цена и описание сборки
+      allow create: if hasPerm('pcedit') && request.resource.data.type == 'mod';
+      allow update: if hasPerm('pcedit') && resource.data.type == 'asm'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['price', 'party']);
+    }
 
     // Себестоимость, поставщики, деньги, заказы — только администраторы
     match /costs/{id}     { allow read, write: if admin(); }
