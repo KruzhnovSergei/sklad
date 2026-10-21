@@ -20,8 +20,11 @@ window.BCPC=(function(){
   async function load(){try{if(!firebase.apps.length)firebase.initializeApp(window.SK_CONFIG.firebase)}catch(e){}
     const db=firebase.firestore();const d=await db.doc('sitecat/pcs').get();const rows=d.exists?(d.data().rows||[]):[];
     // свежие фото и описания, которые сотрудники добавили после последней выгрузки сайта
-    try{const M={};await Promise.all(rows.map(x=>db.doc('pcthumbs/'+x.sn).get().then(t=>{if(t.exists)M[x.sn]=t.data()}).catch(()=>{})));
+    let M={};const M_has=sn=>!!(M[sn]&&(M[sn].th||M[sn].np===0));
+    try{M={};await Promise.all(rows.map(x=>db.doc('pcthumbs/'+x.sn).get().then(t=>{if(t.exists)M[x.sn]=t.data()}).catch(()=>{})));
       for(const x of rows){const m=M[x.sn];if(!m)continue;if(m.th)x.th=m.th;else if(m.np===0)delete x.th;if(m.desc!=null)x.desc=m.desc;if(m.np!=null)x.np=m.np}}catch(e){}
+    // запасной путь: обложки нет ни в выгрузке, ни в pcthumbs — берём из самих фото сборки
+    try{await Promise.all(rows.filter(x=>!x.th&&!M_has(x.sn)).map(x=>db.doc('pcphotos/'+x.sn).get().then(t=>{if(!t.exists)return;const d=t.data();if(d.thumb)x.th=d.thumb;else if((d.imgs||[])[0])x.th=d.imgs[0];if(!x.desc&&d.desc)x.desc=d.desc}).catch(()=>{})))}catch(e){}
     return rows}
   async function photos(sn){const d=await firebase.firestore().doc('pcphotos/'+sn).get();return d.exists?d.data():null}
   return {NF,esc,money,kind,buy,card,load,photos,ph};

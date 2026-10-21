@@ -2947,6 +2947,8 @@ async function sitePublish(auto){if(!S.isOwner||!S.db)return false;
     const ph=await Promise.all(pcs.map(x=>db.doc('pcphotos/'+x.sn).get().then(d=>d.exists?d.data():null).catch(()=>null)));
     pcs.forEach((x,i)=>{const d=ph[i];if(!d)return;if(d.desc){x.desc=String(d.desc).slice(0,2000);budget-=x.desc.length*2}x.np=(d.imgs||[]).length;if(d.thumb&&budget-d.thumb.length>0){x.th=d.thumb;budget-=d.thumb.length}});
     await db.doc('sitecat/pcs').set({at:now(),rows:pcs});
+    // обложки для карточек на сайте (pcthumbs) — дописать для сборок, где их ещё нет
+    await Promise.all(pcs.map((x,i)=>{const d=ph[i];if(!d||!d.thumb)return null;return db.doc('pcthumbs/'+x.sn).get().then(t=>t.exists?null:db.doc('pcthumbs/'+x.sn).set({th:d.thumb,desc:d.desc||'',np:(d.imgs||[]).length,at:now()})).catch(()=>null)}));
     await db.doc('sitecat/meta').set({at:now(),n:rows.length,chunks:parts.length,cats:SITE_NAMES,cnt});
     for(let k=parts.length;k<oldN;k++)await db.doc('sitecat/c'+k).delete()},`Каталог на сайте обновлён: ${NF.format(rows.length)} позиций`,'owner');
   if(ok&&!auto)S.siteCfg=cfg;if(btn&&!auto){btn.disabled=false;btn.textContent='Сохранить и обновить сайт'}return ok}
