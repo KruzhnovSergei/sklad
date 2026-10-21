@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 20.10.2026 11:25</span>
+      <span class="muted" style="font-size:11px">Версия от 21.10.2026 13:54</span>
     </div>
   </aside>
   <div class="main">
@@ -395,7 +395,7 @@ function derive(){
           if((x.sn||[]).length){for(const z of x.sn){const i=parts.findIndex(y=>(y.sn||[]).includes(z));if(i>=0)parts.splice(i,1)}}
           else{let left=num(x.q);for(let i=parts.length-1;i>=0&&left>0;i--){const y=parts[i];if(y.p!==x.p||(y.sn||[]).length)continue;const t=Math.min(left,num(y.q));y.q=r3(num(y.q)-t);left-=t;if((x.rsn||[]).length)y.rsn=(y.rsn||[]).filter(r=>!x.rsn.includes(r));if(y.q<=0)parts.splice(i,1)}}}
         for(const x of (o.add||[])){const q=num(x.q);add(o.wh,x.p,-q);dc+=q*avgNow(x.p);for(const z of (x.sn||[])){delete snLoc[z];cin[z]=pc;(snH[z]??=[]).push({o,p:x.p})}for(const r of (x.rsn||[]))cin[r]=pc;
-          if((x.sn||[]).length)for(const z of x.sn)parts.push({p:x.p,q:1,sn:[z]});else parts.push({p:x.p,q,rsn:[...(x.rsn||[])]})}
+          const c=avgNow(x.p);if((x.sn||[]).length)for(const z of x.sn)parts.push({p:x.p,q:1,sn:[z],c});else parts.push({p:x.p,q,rsn:[...(x.rsn||[])],c})}
         pcu[pc]=num(pcu[pc])+dc;inS[op]=(inS[op]||0)+dc}
       (snH[pc]??=[]).push({o,p:op});continue}
     if(o.type==='sale'&&o.cust){debt[o.cust]=(debt[o.cust]||0)+num(o.total)-num(o.paid??o.total);last[o.cust]=o.at}
@@ -412,7 +412,7 @@ function derive(){
         if(o.type==='in'||(o.type==='ret'&&o.restock))snLoc[sn]={p:it.p,wh:o.wh};else if(o.type==='move'){if(snLoc[sn])snLoc[sn].wh=o.toWh}else if(o.type!=='ret')delete snLoc[sn];if(o.type==='asm'&&o.out?.sn?.[0])cin[sn]=o.out.sn[0]}
       if(o.type==='asm'&&o.out?.sn?.[0])for(const r of (it.rsn||[]))cin[r]=o.out.sn[0]})
     if(o.type==='asm'&&o.out){const op=o.out.p;const n=(o.out.sn||[]).length||1;const cs=(o.items||[]).reduce((a,it,j)=>a+num(it.q)*num(ic[o.id+':'+j]),0)+num(S.opc[o.id]?.labor);const unitC=cs/n;ic[o.id+':out']=cs;
-      add(o.wh,op,n);inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items)}}}
+      add(o.wh,op,n);inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items,(o.items||[]).map((it,j)=>ic[o.id+':'+j]))}}}
   {const CB={},SA={};for(const o of S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''))){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;if(o.type==='sale'){const cov=r2((b1-b0)-(Math.max(0,b1)-Math.max(0,b0)));if(cov>0.004)SA[o.id]=cov}}S.saleAdv=SA}
   S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
   consDerive();const sd={},sl={};for(const l of S.consLots)if(l.supp)sd[l.supp]=(sd[l.supp]||0)+l.sold*l.price;for(const o of S.ops){if(o.type!=='in'||!o.supp)continue;const oc=S.opc[o.id];if(oc&&!o.cons)sd[o.supp]=(sd[o.supp]||0)+num(oc.total)-num(oc.paid??oc.total);if(!sl[o.supp]||o.at>sl[o.supp])sl[o.supp]=o.at}
@@ -1142,7 +1142,7 @@ function pcStatus(sn){const o=S.pca[sn];const loc=S.snLoc[sn];if(loc&&o&&loc.p==
   if(last?.o.type==='dis')return['t-dis',`Разобран ${ds(last.o.at)}`];
   if(last?.o.type==='sale')return['t-sale',`Продан ${ds(last.o.at)} · ${docNo(last.o)}`];if(last?.o.type==='wx')return['t-wx','Выдан по гарантии'];if(last?.o.type==='off')return['out','Списан'];return['t-move','—']}
 function nextPcSn(){const d=new Date();const pre=`PC-${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}-`;let n=1;while(S.snH[pre+String(n).padStart(4,'0')])n++;return pre+String(n).padStart(4,'0')}
-function mkParts(items){const r=[];for(const i of items||[]){if((i.sn||[]).length)for(const z of i.sn)r.push({p:i.p,q:1,sn:[z]});else r.push({p:i.p,q:num(i.q),rsn:[...(i.rsn||[])]})}return r}
+function mkParts(items,cs){const r=[];(items||[]).forEach((i,j)=>{const c=cs?num(cs[j]):undefined;if((i.sn||[]).length)for(const z of i.sn)r.push({p:i.p,q:1,sn:[z],c});else r.push({p:i.p,q:num(i.q),rsn:[...(i.rsn||[])],c})});return r}
 const pcPrice=sn=>{const o=S.pca[sn];return o?(num(o.price)||num(S.P[o.out.p]?.sellPrice)):0};
 const pcIn=(sn)=>{const o=S.pca[sn];const l=S.snLoc[sn];return !!(o&&l&&l.p===o.out.p)};
 const pcWh=sn=>pcIn(sn)?S.snLoc[sn].wh:null;
@@ -1205,7 +1205,9 @@ async function pcWebSave(){const w=S.pcWeb;if(!w)return;pcWebKeep();const tot=w.
   const ok=await guard(()=>S.db.doc('pcphotos/'+w.sn).set({imgs:w.imgs,thumb,desc:w.desc.trim().slice(0,2000),at:now(),by:S.uid||null}),'Сохранено. На сайте появится после «Обновить сайт»',pcNeed());
   if(ok){S.pcWeb=null;closeModal(true)}}
 function pcPassport(sn){const o=S.pca[sn];const inSt=pcIn(sn);const ca=canPC(sn);const cd=ca&&can('assembly');
-  return `<div class="tbl"><table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th></tr></thead><tbody>${pcCompRows(S.pcComp[sn]||[])||'<tr><td colspan="3" class="muted">Деталей нет</td></tr>'}</tbody></table></div>
+  const P=S.pcComp[sn]||[];const sc=can('cost');const uc=i=>i.c!=null?num(i.c):cost(i.p);const tC=P.reduce((a,i)=>a+num(i.q)*uc(i),0),tR=P.reduce((a,i)=>a+num(i.q)*num(S.P[i.p]?.sellPrice),0);const pr=num(o.price)||num(S.P[o.out.p]?.sellPrice);
+  return `<div class="tbl"><table><thead><tr><th>Деталь</th><th>Серийные номера</th><th class="num">Кол-во</th>${sc?'<th class="num">Себест.</th>':''}<th class="num">Розница</th></tr></thead><tbody>${P.map(i=>`<tr><td>${esc(pname(i.p))}</td><td>${[...(i.sn||[]),...(i.rsn||[])].map(x=>`<span class="sn">${esc(x)}</span>`).join(' ')||'<span class="muted">—</span>'}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${sc?`<td class="num">${NF.format(r2(num(i.q)*uc(i)))}</td>`:''}<td class="num">${num(S.P[i.p]?.sellPrice)?NF.format(r2(num(i.q)*num(S.P[i.p].sellPrice))):'<span class="muted">—</span>'}</td></tr>`).join('')||`<tr><td colspan="${sc?5:4}" class="muted">Деталей нет</td></tr>`}</tbody>
+   ${P.length?`<tfoot><tr><td colspan="3"><b>Итого по деталям</b>${pr&&tR?`<span class="psku" style="display:inline;margin-left:8px">компьютер продаётся за ${money(pr)}${tR>pr?` — на ${money(tR-pr)} дешевле, чем детали по отдельности`:''}</span>`:''}</td>${sc?`<td class="num"><b>${NF.format(r2(tC))}</b></td>`:''}<td class="num"><b>${NF.format(r2(tR))}</b></td></tr></tfoot>`:''}</table></div>
   ${can('cost')?`<p class="small muted" style="margin-top:6px">Себестоимость: ${money(S.pcu[sn])}${num(S.opc[o.id]?.labor)?`, включая работу ${money(S.opc[o.id].labor)}`:''}${num(o.price)&&num(S.pcu[sn])?` · наценка ${NF.format(r2((num(o.price)-S.pcu[sn])/S.pcu[sn]*100))}%`:''}</p>`:''}
   ${inSt&&ca?`<div class="row" style="margin-top:8px;gap:8px;align-items:flex-end"><label class="field" style="flex:2 1 320px"><span>Конфигурация / описание</span><input id="pcNote" value="${esc(o.party||'')}" placeholder="Например: i5-12400 / 16 ГБ / SSD 512 ГБ"></label><label class="field" style="flex:0 1 150px"><span>Цена продажи, сом</span><input id="pcPrice" inputmode="decimal" value="${esc(o.price||'')}" placeholder="${esc(num(S.P[o.out.p]?.sellPrice)||'')}"></label><button class="btn ghost" data-act="pc-price" data-id="${esc(sn)}">Сохранить</button><span class="muted small">${num(o.price)?'':'Сейчас действует цена модели'}</span></div>`:''}
   <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="pc-pass" data-id="${esc(sn)}">Паспорт для печати</button>${can('assembly')?`<button class="btn ghost" data-act="pc-same" data-id="${esc(sn)}">Собрать такой же</button>`:''}${inSt?`<button class="btn ghost" data-act="pc-lbl" data-id="${esc(sn)}">Этикетка на витрину</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pcw-open" data-id="${esc(sn)}">Фото и описание для сайта</button>`:''}${inSt&&ca?`<button class="btn ghost" data-act="pc-mod" data-id="${esc(sn)}">Заменить или снять детали</button>`:''}${inSt&&cd?(S.asmDis===sn?`<div class="confirm"><span>Разобрать ${esc(sn)}? Все детали вернутся на склад «${esc(wname(pcWh(sn)))}».</span><button class="btn danger" data-act="pc-dis-yes" data-id="${esc(sn)}">Разобрать</button><button class="btn ghost" data-act="pc-dis-no">Отмена</button></div>`:`<button class="btn link bad" data-act="pc-dis" data-id="${esc(sn)}">Разобрать</button>`):''}</div>
