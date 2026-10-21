@@ -25,6 +25,9 @@ window.BCPC=(function(){
       for(const x of rows){const m=M[x.sn];if(!m)continue;if(m.th)x.th=m.th;else if(m.np===0)delete x.th;if(m.desc!=null)x.desc=m.desc;if(m.np!=null)x.np=m.np}}catch(e){}
     // запасной путь: обложки нет ни в выгрузке, ни в pcthumbs — берём из самих фото сборки
     try{await Promise.all(rows.filter(x=>!x.th&&!M_has(x.sn)).map(x=>db.doc('pcphotos/'+x.sn).get().then(t=>{if(!t.exists)return;const d=t.data();if(d.thumb)x.th=d.thumb;else if((d.imgs||[])[0])x.th=d.imgs[0];if(!x.desc&&d.desc)x.desc=d.desc}).catch(()=>{})))}catch(e){}
+    // порядок по умолчанию: сначала игровые, потом рабочие станции, прочие, офисные; внутри — как было (новые первыми)
+    const rk={'Игровой':0,'Рабочая станция':1,'Компьютер':2,'Офисный':3};
+    rows.forEach((x,i)=>x._i=i);rows.sort((a,b)=>(rk[kind(a)]??2)-(rk[kind(b)]??2)||a._i-b._i);
     return rows}
   async function photos(sn){const d=await firebase.firestore().doc('pcphotos/'+sn).get();return d.exists?d.data():null}
   return {NF,esc,money,kind,buy,card,load,photos,ph};
