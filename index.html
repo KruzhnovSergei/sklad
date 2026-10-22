@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 21.10.2026 23:25</span>
+      <span class="muted" style="font-size:11px">Версия от 22.10.2026 10:21</span>
     </div>
   </aside>
   <div class="main">
@@ -3066,7 +3066,7 @@ const PL_DEF={title:'Прайс-лист',note:'',mode:'retail',pct:'',round:'1'
 function plCfg(){if(!S.pl){const c=JSON.parse(JSON.stringify({...PL_DEF,...(S.set.priceList||{})}));c.cols={...PL_DEF.cols,...(c.cols||{})};c.cols.sku=false;if(c.cols.stock!=='none')c.cols.stock='smart';c.ov=c.ov||{};c.notes=c.notes||{};if(c.newDays==null)c.newDays=10;if(c.kits==null)c.kits=true;c.ex=c.ex||[];c.groups=c.groups||[];S.pl=c}return S.pl}
 const plCanSave=()=>S.isOwner||can('catalog');
 /* ---------- оптовый каталог для дилеров (страница opt/) ---------- */
-const OPT_URL=()=>location.origin+location.pathname.replace(/[^/]*$/,'')+'opt/';
+const OPT_URL=()=>'https://r-bitsystem.com.kg/';
 const optPhCol=()=>plCanSave();
 function optIdxLoad(){if(S.optIdxSub||!S.db)return;S.optIdxSub=true;S.db.doc('optidx/main').onSnapshot(d=>{S.optIdx=d.exists?d.data():{};if(S.tab==='price'&&$('#modal').hidden&&!typing())render()},()=>{S.optIdx=S.optIdx||{}})}
 function optPhBtn(id){optIdxLoad();const x=(S.optIdx||{})[id];const n=num(x?.n),d=!!x?.d;return `<button class="btn link" data-act="oi-open" data-id="${esc(id)}" style="white-space:nowrap" title="Фото и описание для оптового каталога">${n||d?`📷 ${n}${d?' · описание':''}`:'+ фото'}</button>`}
