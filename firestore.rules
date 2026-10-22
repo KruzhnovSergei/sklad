@@ -50,6 +50,11 @@ service cloud.firestore {
     // ключ — хеш общего логина и пароля дилеров. Перечислить их нельзя.
     match /optcat/{id} { allow get: if true; allow list: if false; allow write: if isOwner(); }
     match /optcfg/{id} { allow read, write: if isOwner(); }
+    // «Сейчас смотрят» в оптовом каталоге: отметка времени посетителя, без личных данных
+    match /optonline/{id} {
+      allow read: if true;
+      allow create, update: if id.size() <= 40 && request.resource.data.keys().hasOnly(['t']) && request.resource.data.t == request.time;
+    }
     // Фото и описания товаров для оптового каталога
     match /optinfo/{id}  { allow get: if true; allow list: if member(); allow write: if admin() || hasPerm('catalog'); }
     match /optthumb/{id} { allow get: if true; allow list: if member(); allow write: if admin() || hasPerm('catalog'); }

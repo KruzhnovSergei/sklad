@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 22.10.2026 10:21</span>
+      <span class="muted" style="font-size:11px">Версия от 22.10.2026 10:23</span>
     </div>
   </aside>
   <div class="main">
@@ -3093,7 +3093,7 @@ const optKeyOf=(l,pw)=>optSha('bestcomp-opt\n'+String(l).trim().toLowerCase()+'\
 function optGenPass(){const a='abcdefghjkmnpqrstuvwxyz23456789';let r='';const b=crypto.getRandomValues(new Uint8Array(8));for(const x of b)r+=a[x%a.length];return r}
 function optCfgLoad(){if(S.optCfgSub||!S.db||!S.isOwner)return;S.optCfgSub=true;S.db.doc('optcfg/main').onSnapshot(d=>{S.optCfg=d.exists?d.data():null;if(S.tab==='price'&&$('#modal').hidden&&!typing())render()},()=>{S.optCfg=null})}
 function optPane(){if(!S.isOwner)return '';optCfgLoad();const c=S.optCfg;const on=!!c?.key;
-  return `<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Оптовый каталог для дилеров</h2>${on?`<span class="chip ok">работает</span>`:'<span class="chip">выключен</span>'}</div>
+  return `<section class="pane stack"><div class="pane-h" style="margin:0"><h2>Оптовый каталог для дилеров</h2><div class="row" style="gap:8px">${on?`${optLive()}<span class="chip ok">работает</span>`:'<span class="chip">выключен</span>'}</div></div>
    <p class="muted small">Отдельная страница с этим прайс-листом: те же товары, цены, наличие и примечания, плюс фото и подробное описание (кнопка «+ фото» в таблице ниже). Дилер входит по общему логину и паролю, собирает корзину и отправляет заказ — он появится у вас в «Продажах». На розничный сайт каталог не попадает. Обновляется сам при изменении прайса и цен.</p>
    <div class="row" style="align-items:flex-end"><label class="field" style="flex:1 1 180px"><span>Логин</span><input id="optLogin" value="${esc(c?.login||'diler')}" autocomplete="off"></label>
     <label class="field" style="flex:1 1 180px"><span>Пароль</span><div class="row" style="gap:6px;flex-wrap:nowrap"><input id="optPass" value="${esc(c?.pass||'')}" autocomplete="off" placeholder="не короче 6 символов"><button class="btn ghost" data-act="opt-gen" style="padding:8px 10px" title="Придумать пароль">⟳</button></div></label>
@@ -3104,6 +3104,9 @@ function optPane(){if(!S.isOwner)return '';optCfgLoad();const c=S.optCfg;const o
      <div class="small muted">Обновлён ${c.at?dt(c.at):'—'}: ${NF.format(num(c.n))} позиций${num(c.kits)?`, ${c.kits} комплектов`:''}. Если сменить пароль, старый сразу перестанет работать.</div>
      <div class="row" style="gap:8px"><button class="btn ghost" data-act="opt-copy">Скопировать для группы дилеров</button><button class="btn ghost" data-act="opt-pub">Обновить сейчас</button><button class="btn link bad" data-act="opt-off">Выключить</button></div></div>`:''}
   </section>`}
+function optLive(){if(Date.now()-(S.optLiveAt||0)>60000&&S.db&&window.firebase?.firestore?.Timestamp){S.optLiveAt=Date.now();
+    try{S.db.collection('optonline').where('t','>',firebase.firestore.Timestamp.fromMillis(Date.now()-120000)).get().then(sn=>{S.optLiveN=sn.size;const e=$('#optLiveN');if(e)e.textContent=sn.size}).catch(()=>{})}catch(e){}}
+  return S.optLiveN==null?'':`<span class="small muted" title="Кто открывал каталог за последние 2 минуты">Сейчас смотрят: <b id="optLiveN">${S.optLiveN}</b></span>`}
 async function optSaveCfg(){const l=($('#optLogin')?.value||'').trim(),pw=($('#optPass')?.value||'').trim();if(!l){toast('Введите логин');return}if(pw.length<6){toast('Пароль — не короче 6 символов');return}
   await optPublish(false,{login:l,pass:pw,wh:$('#optWh')?.value||''})}
 function optRows(){const c=plCfg();const fi=plFirstIn();const st=c.cols.stock!=='none';const I=S.optIdx||{};
