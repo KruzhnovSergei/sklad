@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 22.10.2026 10:23</span>
+      <span class="muted" style="font-size:11px">Версия от 22.10.2026 16:00</span>
     </div>
   </aside>
   <div class="main">
@@ -982,7 +982,7 @@ async function saveFile(name,data){const d=window.claude?await window.claude.use
   try{await d.save({filename:name,data})}catch(e){if(!/cancel|declin|denied/i.test(e?.code||''))toast('Файл не сохранён')}}
 
 /* ---------- деньги ---------- */
-const EXP_CATS=['Аренда','Зарплата','Коммунальные услуги','Налоги','Реклама','Доставка','Хозяйственные нужды','Прочее'];
+const EXP_CATS=['Аренда','Зарплата','Коммунальные услуги','Налоги','Реклама','Доставка','Хозяйственные нужды','Ремонт по гарантии','Прочее'];
 function accList(){const a=S.set.accounts;return a&&a.length?a:[{id:'cash',name:'Касса (наличные)'},{id:'bank',name:'Банковский счёт'}]}
 const accName=id=>accList().find(a=>a.id===id)?.name||'Счёт';
 function accOf(pay){const m={cash:'cash',qr:'bank',transfer:'bank',card:'bank',...(S.set.payAcc||{})};const id=m[pay]||'cash';return accList().some(a=>a.id===id)?id:accList()[0].id}
