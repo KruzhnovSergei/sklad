@@ -1746,7 +1746,7 @@ function bankRowsHtml(){if(!S.bankEdit)S.bankEdit=bankList().map(b=>({...b}));if
 function vSettings(){
   const pend=S.seenL.filter(x=>!S.ST[x.id]).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
   const st=[...S.staffL].sort((a,b)=>(a.off?1:0)-(b.off?1:0)||(a.label||'').localeCompare(b.label||'','ru'));
-  return `<div class="stack">
+  return `<div class="stack">${noteHtml()}
   <section class="pane"><div class="pane-h"><h2>Сотрудники</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="st-test" title="Сотрудник без входа — чтобы посмотреть программу его глазами">Тестовый сотрудник</button><button class="btn" data-act="st-new">Добавить сотрудника</button></div></div>
    <div class="infobox" style="margin-bottom:12px"><b>Как подключить сотрудника</b><ol class="steps" style="margin-top:6px">${SRV()?`<li>Отправьте сотруднику адрес программы: <b>${esc(location.origin+location.pathname)}</b>. Он входит через свой Google-аккаунт.</li><li>После входа он появится ниже в списке «Ожидают подтверждения».</li><li>Назначьте должность и права. Кнопка «Отключить» сразу закрывает ему доступ к данным.</li>`:`<li>В меню «Поделиться» этой страницы дайте человеку доступ: «Участник» для продавца или «Редактор», если ему нужны приход, товары, поставщики или себестоимость.</li><li>Сотрудник открывает ссылку и появляется ниже в списке «Ожидают подтверждения». Можно и заранее найти его по имени кнопкой «Добавить сотрудника».</li><li>Назначьте должность и права. Полностью закрыть доступ можно только в меню «Поделиться».</li>`}</ol></div>
    ${pend.length?`<h3 style="font-size:14px;margin:4px 0 8px">Ожидают подтверждения</h3><div class="tbl" style="margin-bottom:14px"><table><tbody>${pend.map(x=>`<tr><td><span class="pname" data-uid="${esc(x.id)}" data-fb="Новый сотрудник">…</span><span class="psku">${SRV()?esc(x.email||''):`доступ «${lvlName(x.lvl)}»`} · заходил ${dt(x.at)}</span></td><td style="white-space:nowrap;text-align:right"><button class="btn ghost" data-act="st-quick" data-id="${esc(x.id)}">Принять как продавца</button> <button class="btn link" data-act="st-edit" data-id="${esc(x.id)}">Настроить права</button></td></tr>`).join('')}</tbody></table></div>`:''}
@@ -2799,6 +2799,25 @@ async function calcRenSave(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)retu
   if(v===l.supp){closeModal(true);return}
   if(await guard(()=>S.db.doc('pricelists/'+id).update({supp:v}),'Название изменено','owner')){const old=(l.supp||l.file||'');l.supp=v;try{let ch=0;for(const x of calcState().lines||[]){const k=x.pick;if(k&&k.src==='pl'&&old&&(k.supp===old||(k.supp||'').startsWith(old+' · '))){k.supp=v+k.supp.slice(old.length);ch++}}if(ch)calcSave()}catch(e){}closeModal(true);render()}}
 async function calcDel(id){const l=(S.pll||[]).find(x=>x.id===id);if(!l)return;if(await guard(async()=>{for(let k=0;k<num(l.chunks);k++)await S.db.doc('plrows/'+id+'_'+k).delete();await S.db.doc('pricelists/'+id).delete()},'Прайс удалён','owner')){delete S.plr[id];render();siteAuto()}}
+/* ---------- Объявление на сайте: «завтра не работаем», праздники, ЧП (sitecat/notice) ---------- */
+function noteLoad(){if(S.noteSub||!S.db||!S.isOwner)return;S.noteSub=true;
+  S.db.doc('sitecat/notice').onSnapshot(d=>{S.siteNote=d.exists?d.data():null;if(S.tab==='settings'&&$('#modal').hidden&&!typing())render()},()=>{})}
+const noteDay=k=>{const d=new Date();d.setDate(d.getDate()+k);return d};
+const noteRu=d=>d.toLocaleDateString('ru-RU',{day:'numeric',month:'long'});
+const NOTE_TPL=[['Завтра не работаем',()=>[`Завтра, ${noteRu(noteDay(1))}, магазин не работает. Ждём вас ${noteRu(noteDay(noteDay(2).getDay()===0?3:2))}!`,isoD(noteDay(1))]],
+  ['Праздничный день',()=>[`${noteRu(noteDay(1))} — праздничный день, магазин не работает.`,isoD(noteDay(1))]],
+  ['Сегодня закрыты',()=>[`Сегодня магазин не работает по техническим причинам. Заказы принимаем в WhatsApp: +996 707 198 806.`,isoD(noteDay(0))]]];
+function noteHtml(){if(!S.isOwner)return '';noteLoad();const n=S.siteNote||{};const on=n.text&&(!n.until||isoD(new Date())<=n.until);
+  return `<section class="pane"><div class="pane-h"><h2>Объявление на сайте</h2><a class="btn ghost" href="https://bestcomp.kg/" target="_blank" rel="noopener">Открыть сайт</a></div>
+   <p class="muted small" style="margin-bottom:8px">Жёлтая строка над шапкой на всех страницах bestcomp.kg: выходной, праздник, ЧП. Пустой текст — строки нет. После даты «Показывать до» строка исчезает сама.</p>
+   <div class="row" style="gap:6px;margin-bottom:8px">${NOTE_TPL.map((t,i)=>`<button class="btn ghost" data-act="note-tpl" data-i="${i}">${esc(t[0])}</button>`).join('')}</div>
+   <label class="field"><span>Текст объявления</span><textarea id="noteTx" rows="2" maxlength="300" style="font-family:inherit;font-size:15px" placeholder="Например: 28 октября магазин не работает — праздничный день.">${esc(n.text||'')}</textarea></label>
+   <div class="row" style="align-items:flex-end;gap:14px;margin-top:10px">
+    <label class="field" style="flex:0 1 210px"><span>Показывать до (включительно)</span><input id="noteTo" type="date" value="${esc(n.until||'')}"></label>
+    <button class="btn" data-act="note-save">Сохранить объявление</button>${n.text?'<button class="btn ghost bad" data-act="note-del">Убрать с сайта</button>':''}</div>
+   <p class="muted small" style="margin-top:8px">${on?`Сейчас на сайте: «${esc(n.text)}»${n.until?` — до ${esc(ds(n.until))} включительно`:' — без срока, пока не уберёте'}.`:n.text?'Срок объявления прошёл, на сайте его уже нет.':'Сейчас объявления на сайте нет.'}</p></section>`}
+async function noteSave(del){if(!S.isOwner||!S.db)return;const text=del?'':($('#noteTx')?.value||'').trim().slice(0,300);const until=del?'':($('#noteTo')?.value||'');
+  await guard(async()=>{if(!text)await S.db.doc('sitecat/notice').delete();else await S.db.doc('sitecat/notice').set({text,until,at:now()})},text?'Объявление на сайте сохранено':'Объявление убрано с сайта','owner')}
 /* ---------- Каталог на сайте: розничные цены из прайсов ---------- */
 const SITE_CATS=[
   ['Процессоры',['процессор','cpu','core i','core ultra','ryzen','xeon','celeron','pentium','athlon']],
@@ -3328,7 +3347,7 @@ const ACT={
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
   'calc-ldel':t=>calcDel(t.dataset.id),'oi-open':t=>oiOpen(t.dataset.id),'oi-save':()=>oiSave(),'oi-rm':t=>{oiKeep();S.oi.imgs.splice(+t.dataset.i,1);oiRender()},'oi-first':t=>{oiKeep();const i=+t.dataset.i;const [x]=S.oi.imgs.splice(i,1);S.oi.imgs.unshift(x);oiRender()},
   'opt-pub':()=>optPublish(false),'opt-save':()=>optSaveCfg(),'opt-off':()=>optOff(),'opt-copy':()=>optCopy(),'opt-gen':()=>{const e=$('#optPass');if(e)e.value=optGenPass()},
-  'ord-inv':t=>ordToInv(t.dataset.id),'ord-done':t=>ordSet(t.dataset.id,'done'),'ord-new':t=>ordSet(t.dataset.id,'new'),'ord-del':t=>ordDel(t.dataset.id),'ord-open':t=>{S.ordOpen=S.ordOpen===t.dataset.id?null:t.dataset.id;render()},'ord-all':()=>{S.ordAll=!S.ordAll;render()},'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'cu-save':()=>calcUpSave(),
+  'ord-inv':t=>ordToInv(t.dataset.id),'ord-done':t=>ordSet(t.dataset.id,'done'),'ord-new':t=>ordSet(t.dataset.id,'new'),'ord-del':t=>ordDel(t.dataset.id),'ord-open':t=>{S.ordOpen=S.ordOpen===t.dataset.id?null:t.dataset.id;render()},'ord-all':()=>{S.ordAll=!S.ordAll;render()},'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'note-save':()=>noteSave(false),'note-del':()=>noteSave(true),'note-tpl':t=>{const r=NOTE_TPL[+t.dataset.i]?.[1]();if(!r)return;const x=$('#noteTx'),y=$('#noteTo');if(x){x.value=r[0];x.focus()}if(y)y.value=r[1]},'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
   'kit-new':()=>kitForm(null),'kit-edit':t=>kitForm(t.dataset.id),'kit-del':t=>{const L=kitList().filter(x=>x.id!==t.dataset.id);guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект удалён','catalog').then(ok=>{if(ok){S.set.kits=L;render()}})},
