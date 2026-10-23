@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.10.2026 21:05</span>
+      <span class="muted" style="font-size:11px">Версия от 23.10.2026 21:50</span>
     </div>
   </aside>
   <div class="main">
@@ -1322,11 +1322,14 @@ function vCons(){const sc=can('cost');const rows=consRows();const F=S.consF||'op
 function consAgg(rows){rows=rows||consRows();return [...new Set(rows.map(r=>r.supp))].map(sid=>{const rs=rows.filter(r=>r.supp===sid);return{sid,name:sname(sid),pos:rs.filter(r=>r.rem>0.0005).length,rem:rs.reduce((a,r)=>a+r.rem,0),remv:rs.reduce((a,r)=>a+r.remv,0),sum:rs.reduce((a,r)=>a+r.sum,0),d:supDebtOf(sid)}}).sort((a,b)=>a.name.localeCompare(b.name,'ru'))}
 function consFiltered(agg){const F=S.consF||'open';const q=(S.consQ||'').trim().toLowerCase();return (agg||consAgg()).filter(a=>(F==='all'||a.rem>0.0005||a.sid===S.consSel)&&(!q||a.name.toLowerCase().includes(q)))}
 function consListHtml(list,sel,sc){return list.length?`<table><thead><tr><th>Поставщик</th><th class="num">Позиций</th><th class="num">Остаток</th>${sc?'<th class="num">Остаток на сумму</th><th class="num">Продано на сумму</th><th class="num">Наш долг</th>':''}</tr></thead><tbody>${list.map(a=>`<tr class="jrow" tabindex="0" data-act="cons-sel" data-id="${esc(a.sid)}" aria-expanded="${sel===a.sid}"${sel===a.sid?' style="background:var(--accent-soft)"':''}><td><b>${esc(a.name)}</b></td><td class="num">${a.pos}</td><td class="num">${q3(a.rem)} шт</td>${sc?`<td class="num">${money(a.remv)}</td><td class="num">${money(a.sum)}</td><td class="num${a.d>0.004?' debt':''}">${money(a.d)}</td>`:''}</tr>`).join('')}</tbody></table>`:`<div class="empty">${S.consLots?.length?'Нет поставщиков с остатком':'Товара под реализацией пока нет'}</div>`}
-function consSuppHtml(sid,sc,F){const rs=consRows().filter(r=>r.supp===sid&&(F==='all'||r.rem>0.0005||true)).sort((a,b)=>(b.rem>0)-(a.rem>0)||pname(a.p).localeCompare(pname(b.p),'ru'));const d=supDebtOf(sid);
+function consSuppHtml(sid,sc,F){const all=consRows().filter(r=>r.supp===sid);const showAll=S.consDone===sid;const q=(S.consPQ||'').trim().toLowerCase();
+  const rs=all.filter(r=>(showAll||r.rem>0.0005)&&(!q||pname(r.p).toLowerCase().includes(q))).sort((a,b)=>(b.rem>0)-(a.rem>0)||pname(a.p).localeCompare(pname(b.p),'ru'));const nDone=all.filter(r=>r.rem<=0.0005).length;const nOpen=all.length-nDone;const d=supDebtOf(sid);
   return `<section class="pane" id="consSupp"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>${esc(sname(sid))}</h2><div class="row" style="gap:8px">${sc?`<span class="small">Наш долг: <b class="${d>0.004?'debt':''}">${money(d)}</b></span>`:''}${sc&&d>0.004?`<button class="btn ghost" style="padding:6px 12px" data-act="spay-new" data-id="${esc(sid)}"${ro('suppliers')}>Оплатить</button>`:''}
    <span class="muted small">Остаток для поставщика:</span><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="pdf" data-id="${esc(sid)}">PDF</button><button class="btn" style="padding:6px 12px" data-act="cons-dl" data-f="xlsx" data-id="${esc(sid)}">Excel</button>${can('stock')&&consRows().some(r=>r.supp===sid&&r.rem>0.0005)?`<button class="btn ghost" style="padding:6px 12px" data-act="cretm" data-id="${esc(sid)}">Вернуть несколько</button>`:''}<button class="btn link" data-act="cons-sel" data-id="${esc(sid)}">Свернуть</button></div></div>
-   <div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Взято</th><th class="num">Продано</th><th class="num">Возвращено</th><th class="num">Остаток</th>${sc?'<th class="num">Цена</th><th class="num">За проданное</th>':''}<th></th></tr></thead><tbody>
-   ${rs.map(r=>`<tr${r.rem>0.0005?'':' class="muted"'}><td><span class="pname">${esc(pname(r.p))}</span><span class="psku">последний приход ${ds(r.last)}</span></td><td class="num">${q3(r.q)}</td><td class="num">${q3(r.sold)}</td><td class="num">${q3(r.ret)}</td><td class="num"><b>${q3(r.rem)}</b> ${esc(unit(r.p))}${r.pc>0.0005?`<span class="psku">в т.ч. в сборках ${q3(r.pc)}</span>`:''}</td>${sc?`<td class="num">${NF.format(r2(r.q?r.val/r.q:0))}</td><td class="num">${money(r.sum)}</td>`:''}<td style="text-align:right">${r.rem-r.pc>0.0005?`<button class="btn link" data-act="cret" data-s="${esc(r.supp)}" data-p="${esc(r.p)}"${ro('stock')}>Вернуть</button>`:''}</td></tr>`).join('')}</tbody></table></div></section>`}
+   ${all.length>8?`<input id="consPQ" data-in="conspq" class="search" placeholder="Найти товар этого поставщика" value="${esc(S.consPQ||'')}" autocomplete="off">`:''}
+   <div class="tbl" id="consPTbl"><table><thead><tr><th>Товар</th><th class="num">Взято</th><th class="num">Продано</th><th class="num">Возвращено</th><th class="num">Остаток</th>${sc?'<th class="num">Цена</th><th class="num">За проданное</th>':''}<th></th></tr></thead><tbody>
+   ${rs.map(r=>`<tr${r.rem>0.0005?'':' class="muted"'}><td><span class="pname">${esc(pname(r.p))}</span><span class="psku">последний приход ${ds(r.last)}</span></td><td class="num">${q3(r.q)}</td><td class="num">${q3(r.sold)}</td><td class="num">${q3(r.ret)}</td><td class="num"><b>${q3(r.rem)}</b> ${esc(unit(r.p))}${r.pc>0.0005?`<span class="psku">в т.ч. в сборках ${q3(r.pc)}</span>`:''}</td>${sc?`<td class="num">${NF.format(r2(r.q?r.val/r.q:0))}</td><td class="num">${money(r.sum)}</td>`:''}<td style="text-align:right">${r.rem-r.pc>0.0005?`<button class="btn link" data-act="cret" data-s="${esc(r.supp)}" data-p="${esc(r.p)}"${ro('stock')}>Вернуть</button>`:''}</td></tr>`).join('')}</tbody></table>${rs.length?'':`<div class="empty" style="padding:16px">${q?'Ничего не найдено':'Сейчас под реализацией ничего нет — всё продано или возвращено'}</div>`}</div>
+   ${nDone?`<p class="small muted" style="margin:8px 0 0">${showAll?`Показаны все позиции, включая проданные и возвращённые (${nDone}). <button class="btn link" data-act="cons-done" data-id="${esc(sid)}">Показать только остаток (${nOpen})</button>`:`Скрыто ${nDone} позиций, которые уже полностью проданы или возвращены. <button class="btn link" data-act="cons-done" data-id="${esc(sid)}">Показать все</button>`}</p>`:''}</section>`}
 function cretForm(supp,p){const ls=(S.consLots||[]).filter(l=>l.supp===supp&&l.p===p);const rem=r3(ls.reduce((a,l)=>a+l.free,0));const ser=ls.some(l=>l.serial);
   const sns=ser?ls.flatMap(l=>[...l.left]).filter(z=>S.snLoc[z]):[];const whs=S.wh.filter(w=>qty(w.id,p)>0);
   if(!whs.length){toast('Этого товара сейчас нет ни на одном складе');return}
@@ -3351,7 +3354,8 @@ popay:t=>{S.po.pay=t.dataset.v;document.querySelectorAll('[data-act="popay"]').f
   'po-recv':t=>{const po=S.posL.find(x=>x.id===t.dataset.id);if(po)poReceive(po)},
   opdlvby:t=>{S.op.dlvBy=t.dataset.v;document.querySelectorAll('[data-act="opdlvby"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.op.dlvBy));updOp()},
 consf:t=>{S.consF=t.dataset.v;render()},
-'cons-sel':t=>{S.consSel=S.consSel===t.dataset.id?null:t.dataset.id;render();if(S.consSel)setTimeout(()=>$('#consSupp')?.scrollIntoView({behavior:'smooth',block:'start'}),30)},
+'cons-done':t=>{S.consDone=S.consDone===t.dataset.id?null:t.dataset.id;render()},
+'cons-sel':t=>{S.consSel=S.consSel===t.dataset.id?null:t.dataset.id;S.consPQ='';render();if(S.consSel)setTimeout(()=>$('#consSupp')?.scrollIntoView({behavior:'smooth',block:'start'}),30)},
 'cons-dl':t=>consDl(t.dataset.id,t.dataset.f),
 cret:t=>cretForm(t.dataset.s,t.dataset.p),
 'cret-save':t=>saveCret(t.dataset.s,t.dataset.p),'cretm':t=>cretmForm(t.dataset.id),'cretm-save':()=>cretmSave(),
@@ -3591,6 +3595,7 @@ bankf:t=>{const b=S.bankEdit?.[+t.dataset.i];if(b)b[t.dataset.f]=t.value},
 plf:t=>{const c=plCfg();c[t.dataset.f]=t.value;if(t.dataset.re){clearTimeout(S.plT);S.plT=setTimeout(()=>{if(document.activeElement===t){const pos=t.selectionStart;render();const e=document.querySelector('[data-in="plf"][data-f="'+t.dataset.f+'"]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}}},500)}},
 plnote:t=>{const c=plCfg();const v=t.value;if(v.trim())c.notes[t.dataset.id]=v;else delete c.notes[t.dataset.id]},
 plov:t=>{const c=plCfg();if(t.value.trim()==='')delete c.ov[t.dataset.id];else c.ov[t.dataset.id]=t.value.trim()},
+conspq:t=>{S.consPQ=t.value;const el=$('#consSupp');if(!el||!S.consSel)return;const pos=t.selectionStart;el.outerHTML=consSuppHtml(S.consSel,can('cost'),S.consF||'open');const n=$('#consPQ');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(e){}}},
 consq:t=>{S.consQ=t.value;const e=$('#consList');if(e)e.innerHTML=consListHtml(consFiltered(),S.consSel,can('cost'))},
 opdlv:t=>{S.op.dlv=t.value;updOp()},
   sfq:t=>sfSearch(t.value.trim()),
