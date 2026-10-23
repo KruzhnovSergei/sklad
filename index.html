@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:13</span>
+      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:19</span>
     </div>
   </aside>
   <div class="main">
@@ -3138,7 +3138,7 @@ async function optPublish(auto,nw){if(!S.isOwner||!S.db)return false;const cur=S
   const c=plCfg();const s=S.set;const key=await optKeyOf(login,pass);const rows=optRows();const st=c.cols.stock!=='none';
   const kits=plKits(c).map(k=>({k:k.id,n:k.name,nt:k.note||'',c:k.comps,p:k.price,sep:k.sep||0,...(num(S.optIdx?.['kit_'+k.id]?.n)?{ph:num(S.optIdx['kit_'+k.id].n)}:{}),...(S.optIdx?.['kit_'+k.id]?.d?{d:1}:{}),q:Math.max(0,Math.floor(k.q)),...(st?{s:k.stock,t:k.q<=0?0:k.q<5?1:2}:{})})).filter(k=>k.p>0);
   const parts=[];{let cr=[],sz=0;for(const x of rows){const b=JSON.stringify(x).length*2;if(cr.length&&sz+b>600000){parts.push(cr);cr=[];sz=0}cr.push(x);sz+=b}if(cr.length||!parts.length)parts.push(cr)}
-  const wa=String(s.shopPhone||'').replace(/\D/g,'');const meta={at:now(),n:rows.length,chunks:parts.length,title:c.title||'Прайс-лист',note:c.note||'',shop:(c.wh!=='all'&&S.W[c.wh]?(reqOf(c.wh).shopName||S.W[c.wh].name):'')||s.shopName||'',contact:plContact(c),wa:(c.wh!=='all'&&S.W[c.wh]?String(whC(c.wh).phone||'').replace(/\D/g,''):'')||wa,war:!!c.cols.war,st,kits,sort:c.sort||'price'};
+  const wa=String(s.shopPhone||'').replace(/\D/g,'');const meta={at:now(),n:rows.length,chunks:parts.length,title:c.title||'Прайс-лист',note:c.note||'',shop:(c.wh!=='all'&&S.W[c.wh]?(reqOf(c.wh).shopName||S.W[c.wh].name):'')||s.shopName||'',contact:plContact(c),wa:(c.wh!=='all'&&S.W[c.wh]?String(whC(c.wh).phone||'').replace(/\D/g,''):'')||wa,war:!!c.cols.war,st,kits,sort:c.sort||'price',newDays:num(c.newDays)};
   const db=S.db;const oldKey=cur?.key,oldN=num(cur?.chunks);
   const btn=$('[data-act=opt-save]');if(btn&&!auto){btn.disabled=true;btn.textContent='Публикую…'}
   const ok=await guard(async()=>{for(let k=0;k<parts.length;k++)await db.doc(`optcat/${key}_${k}`).set({rows:parts[k]});await db.doc(`optcat/${key}_m`).set(meta);
