@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 22.10.2026 16:00</span>
+      <span class="muted" style="font-size:11px">Версия от 23.10.2026 21:05</span>
     </div>
   </aside>
   <div class="main">
@@ -1661,7 +1661,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
   const gross=sales.reduce((s,o)=>s+num(o.total),0);const retSum=rets.reduce((s,o)=>s+num(o.total),0);const rev=gross-retSum;const wxCost=wxs.reduce((s,o)=>s+docCost(o),0);
   const cogs=sales.reduce((s,o)=>s+docCost(o),0)-rets.filter(o=>o.restock).reduce((s,o)=>s+docCost(o),0)+wxCost;
-  const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const prof=rev-cogs-offProp;const purch=ops.filter(o=>o.type==='in'&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
+  const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const prof=rev-cogs-offProp;const inAll=ops.filter(o=>o.type==='in'&&!isOW(o));const initIn=inAll.filter(o=>o.init).reduce((s,o)=>s+docTotal(o),0);const consIn=inAll.filter(o=>o.cons&&!o.init).reduce((s,o)=>s+docTotal(o),0);const cretS=ops.filter(o=>o.type==='off'&&o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const purch=inAll.filter(o=>!o.init).reduce((s,o)=>s+docTotal(o),0)-cretS;const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
   const discG=sales.reduce((s,o)=>s+(o.items||[]).reduce((a,i)=>a+num(i.q)*num(i.price)-isum(i),0),0);
   let debtG=sales.filter(o=>!o.cust).reduce((s,o)=>s+num(o.total)-num(o.paid??o.total),0),debtR=0,advUsed=0,debtLeft=debtG;
   {const CB={},FQ={};const ch=S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
@@ -1704,7 +1704,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
    <div class="kpi"><span>Долг по продажам периода</span><b${debtLeft>0.004?' class="debt"':' style="color:var(--good)"'}>${money(debtLeft)}</b><small>${debtG>0.004?`продано в долг ${money(debtG)}, из них уже оплачено ${money(Math.max(0,debtG-debtLeft))}`:'в долг не продавали'}${advUsed>0.004?` · оплачено из предоплаты ${money(advUsed)}`:''}${debtR>0.004?` · всего погашено долгов за период ${money(debtR)}`:''}</small></div>
    <div class="kpi"><span>Долг покупателей сейчас</span><b>${money(debtNow)}</b></div>
    ${sc?`<div class="kpi"><span>Наш долг поставщикам</span><b>${money(S.supp.reduce((a,x)=>a+Math.max(0,supDebtOf(x.id)),0))}</b></div>`:''}
-   ${sc?`<div class="kpi"><span>Закуплено</span><b>${money(purch)}</b><small>списано ${money(offs)}${propIn?' · имущество куплено '+money(propIn):''}</small></div>`:''}</div>
+   ${sc?`<div class="kpi"><span>Закуплено</span><b>${money(purch)}</b><small>${[consIn>0.004?'в т.ч. под реализацию '+money(consIn):'',cretS>0.004?'возвращено поставщикам '+money(cretS):'','списано '+money(offs),initIn>0.004?'ввод остатков '+money(initIn)+' (не входит)':'',propIn?'имущество куплено '+money(propIn):''].filter(Boolean).join(' · ')}</small></div>`:''}</div>
   ${S.repWh==='all'&&saleWhs().length>1?(()=>{const W={};const g=id=>W[id]??={rev:0,prof:0,n:0,gross:0};
     for(const o of sales){const x=g(o.wh);x.n++;x.gross+=num(o.total);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev+=r;x.prof+=r-num(i.q)*icost(o,k)})}
     for(const o of rets){const x=g(o.wh);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev-=r;x.prof-=r-(o.restock?num(i.q)*icost(o,k):0)})}
