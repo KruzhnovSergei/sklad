@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:19</span>
+      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:29</span>
     </div>
   </aside>
   <div class="main">
@@ -2719,7 +2719,7 @@ function calcTot(){const c=calcState();const comp=r2(c.lines.reduce((a,l)=>a+(l.
   let price=comp*(1+mk/100)+work;const rr=num(c.round)||1;const rnd=v=>rr>1?Math.ceil(v/rr)*rr:r2(v);price=rnd(price);const bank=num(c.bank);const bprice=bank>0&&price>0?rnd(price*(1+bank/100)):0;return{comp,mk,work,price,profit:r2(price-comp),bank,bprice}}
 function vCalc(){calcLoad();const c=calcState();const T=calcTot();const lists=S.pll||[];const loading=lists.some(l=>!S.plr[l.id]?.rows);const nRows=Object.values(S.plr||{}).reduce((a,x)=>a+(x.rows?.length||0),0);
   return `<div class="stack">
-  <section class="pane"><div class="pane-h"><h2>Расчёт ПК по прайсам поставщиков</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="calc-reset">Очистить расчёт</button><button class="btn" data-act="calc-dl" data-f="pdf">КП для клиента (PDF)</button><button class="btn ghost" data-act="calc-dl" data-f="xlsx">Excel</button></div></div>
+  <section class="pane"><div class="pane-h"><h2>Расчёт ПК по прайсам поставщиков</h2><div class="row" style="gap:8px"><button class="btn ghost" data-act="calc-reset">Очистить расчёт</button><button class="btn ghost" data-act="kp-text" title="Текст для директа Instagram, WhatsApp, Telegram">Текстом</button><button class="btn ghost" data-act="kp-img" title="Картинка КП — можно отправить в директ Instagram">Картинкой</button><button class="btn" data-act="calc-dl" data-f="pdf">КП для клиента (PDF)</button><button class="btn ghost" data-act="calc-dl" data-f="xlsx">Excel</button></div></div>
    <p class="muted small" style="margin-bottom:10px">Черновой расчёт: ничего не создаётся в товарах, остатках и документах. В строке комплектующего начните вводить модель, например <b>12400F</b> или <b>b760</b> — найдутся позиции из всех загруженных прайсов${c.own?' и из нашего склада':''}, отсортированные по цене. Расчёт сохраняется на этом компьютере.</p>
    ${S.pllErr?`<div class="banner" style="margin:0 0 10px">Нет доступа к прайсам поставщиков (${esc(S.pllErr)}). Владельцу нужно обновить правила доступа Firebase.</div>`:''}
    <div class="row" style="margin-bottom:10px;align-items:flex-end"><label class="field" style="flex:1 1 320px"><span>Название сборки (для КП)</span><input data-in="calcf" data-f="title" value="${esc(c.title||'')}" placeholder="Например: Игровой ПК i5-12400F / RTX 4060"></label>${saleWhs().length>1?`<label class="field" style="flex:0 1 240px"><span>КП от имени точки</span><select data-ch="calckpwh">${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===((c.kpWh&&S.W[c.kpWh])?c.kpWh:S.curWh)?' selected':''}>${esc(reqOf(w.id).shopName||w.name)}</option>`).join('')}</select></label>`:''}</div>
@@ -2988,6 +2988,32 @@ function calcSpec(){const c=calcState();const T=calcTot();const s=S.set;const L=
     ...(c.kpp?(()=>{const P=calcItemPrices();const rows=P.R.map(r=>({cells:[++n,r.l.label,r.l.pick.n,r.q,r.u,r.sum]}));if(P.work>0)rows.push({cells:[++n,'Работа','Сборка и настройка',1,P.work,P.work]});rows.push({bold:true,cells:['','','Итого','','',T.price]});
       return{cols:[['№',.05,'q'],['Комплектующее',.17],['Наименование',.44],['Кол-во',.08,'q'],['Цена',.12,'m'],['Сумма',.14,'m']],rows}})():{cols:[['№',.06,'q'],['Комплектующее',.22],['Наименование',.6],['Кол-во',.12,'q']],rows:L.map(l=>({cells:[++n,l.label,l.pick.n,Math.max(1,num(l.q)||1)]}))}),
     after:[...(num(c.work)&&!c.kpp?[['Сборка и настройка включены в стоимость',false]]:[]),[`Итоговая стоимость: ${money(T.price)}`,true],...(T.bprice?[[`Стоимость в рассрочку: ${money(T.bprice)}`,true]]:[]),['Предложение действительно 3 дня. Цены могут измениться в зависимости от наличия у поставщиков.',false]]}}
+
+/* КП текстом и картинкой — для директа Instagram, где нельзя отправить PDF */
+function kpText(){const c=calcState();const T=calcTot();const L=c.lines.filter(l=>l.pick);const P=c.kpp?calcItemPrices():null;const q=reqOf(c.kpWh&&S.W[c.kpWh]?c.kpWh:S.curWh);
+  const out=[`🖥 ${c.title||'Сборка компьютера'}`,''];
+  out.push('Комплектующие:');
+  (P?P.R:L.map(l=>({l,q:Math.max(1,num(l.q)||1)}))).forEach(r=>{const l=r.l;out.push(`• ${l.label?l.label+': ':''}${l.pick.n}${r.q>1?' × '+r.q:''}${P?' — '+money(r.sum):''}`)});
+  if(P&&P.work>0)out.push(`• Сборка и настройка — ${money(P.work)}`);else if(num(c.work))out.push('• Сборка и настройка включены в стоимость');
+  out.push('',`💰 Цена: ${money(T.price)}`);if(T.bprice)out.push(`💳 В рассрочку: ${money(T.bprice)}`);
+  out.push('','Предложение действительно 3 дня, цены зависят от наличия у поставщиков.');
+  const sh=[q.shopName,q.shopAddr,q.shopPhone?'тел. '+q.shopPhone:''].filter(Boolean).join(', ');if(sh)out.push(`📍 ${sh}`);
+  return out.join('\n')}
+function kpTextOpen(){if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const t=kpText();
+  openModal(`<h2>КП текстом</h2><p class="muted small">Скопируйте и вставьте в директ Instagram, WhatsApp или Telegram. Текст можно поправить прямо здесь.</p>
+   <textarea id="kpTxt" rows="14" style="font-size:14px;line-height:1.45">${esc(t)}</textarea>
+   <div class="row end" style="gap:8px"><button class="btn ghost" data-act="modal-close">Закрыть</button><button class="btn ghost" data-act="kp-wa">Отправить себе в WhatsApp</button><button class="btn" data-act="kp-copy">Скопировать</button></div>`)}
+async function kpCopy(){const e=$('#kpTxt');if(!e)return;const t=e.value;try{await navigator.clipboard.writeText(t);toast('Скопировано — вставьте в директ')}catch(err){e.focus();e.select();try{document.execCommand('copy');toast('Скопировано — вставьте в директ')}catch(x){toast('Выделите текст и скопируйте вручную')}}}
+function kpWa(){const e=$('#kpTxt');if(!e)return;window.open('https://wa.me/?text='+encodeURIComponent(e.value),'_blank','noopener')}
+async function kpImg(){if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}
+  try{const pages=capPages(()=>repPages(calcSpec()));
+    // обрезаем пустой низ страниц и склеиваем в одну картинку
+    const bottom=c=>{const g=c.getContext('2d');const W=c.width;for(let y=Math.floor(c.height*0.94);y>0;y-=4){const d=g.getImageData(0,y,W,1).data;for(let i=0;i<d.length;i+=16)if(d[i]<235||d[i+1]<235||d[i+2]<235)return Math.min(c.height,y+40)}return c.height};
+    const hs=pages.map(bottom);const out=document.createElement('canvas');out.width=pages[0].width;out.height=hs.reduce((a,h)=>a+h,0);const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,out.width,out.height);let y=0;pages.forEach((c,i)=>{g.drawImage(c,0,0,c.width,hs[i],0,y,c.width,hs[i]);y+=hs[i]});
+    const blob=await new Promise(r=>out.toBlob(r,'image/jpeg',0.9));const nm=('КП '+(calcState().title||'компьютер')+' '+dayKey(now())).replace(/[\\/:*?"<>|]/g,' ')+'.jpg';
+    const file=new File([blob],nm,{type:'image/jpeg'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:nm});return}catch(e){if(e?.name==='AbortError')return}}
+    await saveFile(nm,new Uint8Array(await blob.arrayBuffer()))}catch(e){console.error(e);toast('Не удалось сделать картинку')}}
 
 /* ---------- подотчёт (имущество) ---------- */
 function offRows(ws){const out=[];for(const p of S.prod){const q=qtyIn(ws,p.id);if(q<=0.0005)continue;out.push({p,q,c:cost(p.id),ws:ws.filter(w=>qty(w.id,p.id)>0),sn:p.serial?ws.flatMap(w=>snAt(w.id,p.id)):[]})}
@@ -3345,7 +3371,7 @@ const ACT={
   'calc-pick':t=>{const i=+t.dataset.i,r=S.calcHits?.[i]?.[+t.dataset.k];if(!r)return;calcState().lines[i].pick={n:r.n,p:r.p,supp:r.supp,cur:r.cur,op:r.op,src:r.src,pid:r.pid||null};(S.calcQ??={})[i]='';calcSave();render()},
   'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
-  'calc-ldel':t=>calcDel(t.dataset.id),'oi-open':t=>oiOpen(t.dataset.id),'oi-save':()=>oiSave(),'oi-rm':t=>{oiKeep();S.oi.imgs.splice(+t.dataset.i,1);oiRender()},'oi-first':t=>{oiKeep();const i=+t.dataset.i;const [x]=S.oi.imgs.splice(i,1);S.oi.imgs.unshift(x);oiRender()},
+  'calc-ldel':t=>calcDel(t.dataset.id),'kp-text':()=>kpTextOpen(),'kp-copy':()=>kpCopy(),'kp-wa':()=>kpWa(),'kp-img':()=>kpImg(),'oi-open':t=>oiOpen(t.dataset.id),'oi-save':()=>oiSave(),'oi-rm':t=>{oiKeep();S.oi.imgs.splice(+t.dataset.i,1);oiRender()},'oi-first':t=>{oiKeep();const i=+t.dataset.i;const [x]=S.oi.imgs.splice(i,1);S.oi.imgs.unshift(x);oiRender()},
   'opt-pub':()=>optPublish(false),'opt-save':()=>optSaveCfg(),'opt-off':()=>optOff(),'opt-copy':()=>optCopy(),'opt-gen':()=>{const e=$('#optPass');if(e)e.value=optGenPass()},
   'ord-inv':t=>ordToInv(t.dataset.id),'ord-done':t=>ordSet(t.dataset.id,'done'),'ord-new':t=>ordSet(t.dataset.id,'new'),'ord-del':t=>ordDel(t.dataset.id),'ord-open':t=>{S.ordOpen=S.ordOpen===t.dataset.id?null:t.dataset.id;render()},'ord-all':()=>{S.ordAll=!S.ordAll;render()},'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'note-save':()=>noteSave(false),'note-del':()=>noteSave(true),'note-tpl':t=>{const r=NOTE_TPL[+t.dataset.i]?.[1]();if(!r)return;const x=$('#noteTx'),y=$('#noteTo');if(x){x.value=r[0];x.focus()}if(y)y.value=r[1]},'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
