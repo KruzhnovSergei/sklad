@@ -262,7 +262,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:29</span>
+      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:44</span>
     </div>
   </aside>
   <div class="main">
@@ -3012,7 +3012,9 @@ async function kpImg(){if(!calcState().lines.some(l=>l.pick)){toast('Снача�
     const hs=pages.map(bottom);const out=document.createElement('canvas');out.width=pages[0].width;out.height=hs.reduce((a,h)=>a+h,0);const g=out.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,out.width,out.height);let y=0;pages.forEach((c,i)=>{g.drawImage(c,0,0,c.width,hs[i],0,y,c.width,hs[i]);y+=hs[i]});
     const blob=await new Promise(r=>out.toBlob(r,'image/jpeg',0.9));const nm=('КП '+(calcState().title||'компьютер')+' '+dayKey(now())).replace(/[\\/:*?"<>|]/g,' ')+'.jpg';
     const file=new File([blob],nm,{type:'image/jpeg'});
-    if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:nm});return}catch(e){if(e?.name==='AbortError')return}}
+    // «Поделиться» — только на телефоне; на компьютере Windows открывает своё окно и ничего не сохраняет
+    const mob=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)&&matchMedia('(pointer:coarse)').matches;
+    if(mob&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:nm});return}catch(e){if(e?.name==='AbortError')return}}
     await saveFile(nm,new Uint8Array(await blob.arrayBuffer()))}catch(e){console.error(e);toast('Не удалось сделать картинку')}}
 
 /* ---------- подотчёт (имущество) ---------- */
