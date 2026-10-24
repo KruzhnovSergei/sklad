@@ -142,6 +142,8 @@ input.xs{padding:5px 6px;width:56px;text-align:right;font-variant-numeric:tabula
 .sns{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-block:4px}
 .sn{font-family:var(--f-mono);font-size:11.5px;padding:1px 6px;border-radius:4px;background:var(--sunk);border:1px solid var(--line);white-space:nowrap}
 .tbl{overflow-x:auto;margin-inline:-4px}
+.tbl.scrolly{max-height:min(560px,70vh);overflow-y:auto}
+.tbl.scrolly thead th{position:sticky;top:0;z-index:1;background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
 th.num{text-align:right}
@@ -262,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.10.2026 22:44</span>
+      <span class="muted" style="font-size:11px">Версия от 24.10.2026 10:04</span>
     </div>
   </aside>
   <div class="main">
@@ -1112,7 +1114,7 @@ function vExpenses(){const rg=range();const pl=calcPL(rg);const sc=can('cost');
   <div class="row" style="gap:6px"><span class="muted small">Быстро добавить:</span>${EXP_CATS.map(c=>`<button class="btn ghost" style="padding:5px 10px;font-size:13px" data-act="exp-new" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
   <div class="two">
    <section class="pane"><div class="pane-h"><h2>Расходы за период</h2><span class="muted">${money(pl.exp)}</span></div>
-    <div class="tbl">${list.length?`<table><thead><tr><th>Дата</th><th>Статья</th><th>Комментарий</th><th>Счёт</th><th class="num">Сумма</th><th></th></tr></thead><tbody>${list.map(m=>`<tr><td>${ds(m.at)}</td><td><span class="chip low">${esc(m.cat||'Прочее')}</span></td><td>${esc(m.note||'')}</td><td class="muted">${esc(accName(m.acc))}</td><td class="num">${money(m.amount)}</td><td style="white-space:nowrap">${S.mDel===m.id?`<button class="btn danger" style="padding:4px 8px" data-act="m-del-yes" data-id="${esc(m.id)}">Удалить</button> <button class="btn link" data-act="m-del-no">Нет</button>`:`<button class="btn link" style="padding:2px 6px" data-act="m-edit" data-id="${esc(m.id)}">Изменить</button><button class="x" data-act="m-del" data-id="${esc(m.id)}" aria-label="Удалить">×</button>`}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Расходов за период нет</div>'}</div></section>
+    <div class="tbl scrolly">${list.length?`<table><thead><tr><th>Дата</th><th>Статья</th><th>Комментарий</th><th>Счёт</th><th class="num">Сумма</th><th></th></tr></thead><tbody>${list.map(m=>`<tr><td>${ds(m.at)}</td><td><span class="chip low">${esc(m.cat||'Прочее')}</span></td><td>${esc(m.note||'')}</td><td class="muted">${esc(accName(m.acc))}</td><td class="num">${money(m.amount)}</td><td style="white-space:nowrap">${S.mDel===m.id?`<button class="btn danger" style="padding:4px 8px" data-act="m-del-yes" data-id="${esc(m.id)}">Удалить</button> <button class="btn link" data-act="m-del-no">Нет</button>`:`<button class="btn link" style="padding:2px 6px" data-act="m-edit" data-id="${esc(m.id)}">Изменить</button><button class="x" data-act="m-del" data-id="${esc(m.id)}" aria-label="Удалить">×</button>`}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Расходов за период нет</div>'}</div></section>
    <div class="stack">
     <section class="pane"><div class="pane-h"><h2>По статьям</h2></div>${ct?`<table><tbody>${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="barcell" style="--w:${(v/ct*100).toFixed(1)}%"><span>${esc(k)}</span></td><td class="num">${money(v)}</td><td class="num muted">${NF.format(r2(v/ct*100))}%</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Нет данных</div>'}</section>
     <section class="pane"><div class="pane-h"><h2>Регулярные расходы</h2><button class="btn link" data-act="reg-new">+ Добавить</button></div>
