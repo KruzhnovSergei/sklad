@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 28.10.2026 21:21</span>
+      <span class="muted" style="font-size:11px">Версия от 28.10.2026 21:33</span>
     </div>
   </aside>
   <div class="main">
@@ -3156,12 +3156,24 @@ function optPane(){if(!S.isOwner)return '';optCfgLoad();const c=S.optCfg;const o
     <button class="btn" data-act="opt-save">${on?'Сохранить и обновить':'Включить каталог'}</button></div>
    <p class="muted small" style="margin:-4px 0 0">Заказы дилеров видят только сотрудники этого склада и вы; накладная по заказу оформляется с него же.</p>
    ${on?`<div class="infobox stack" style="gap:6px"><div><b>Ссылка:</b> <a href="${esc(OPT_URL())}" target="_blank" rel="noopener">${esc(OPT_URL())}</a> · логин <b>${esc(c.login)}</b> · пароль <b>${esc(c.pass)}</b></div>
+     ${optVisSum()}
      <div class="small muted">Обновлён ${c.at?dt(c.at):'—'}: ${NF.format(num(c.n))} позиций${num(c.kits)?`, ${c.kits} комплектов`:''}. Если сменить пароль, старый сразу перестанет работать.</div>
      <div class="row" style="gap:8px"><button class="btn ghost" data-act="opt-copy">Скопировать для группы дилеров</button><button class="btn ghost" data-act="opt-pub">Обновить сейчас</button><button class="btn link bad" data-act="opt-off">Выключить</button></div></div>`:''}
   </section>`}
 function optLive(){if(Date.now()-(S.optLiveAt||0)>60000&&S.db&&window.firebase?.firestore?.Timestamp){S.optLiveAt=Date.now();
     try{S.db.collection('optonline').where('t','>',firebase.firestore.Timestamp.fromMillis(Date.now()-120000)).get().then(sn=>{S.optLiveN=sn.size;const e=$('#optLiveN');if(e)e.textContent=sn.size}).catch(()=>{})}catch(e){}}
   return S.optLiveN==null?'':`<span class="small muted" title="Кто открывал каталог за последние 2 минуты">Сейчас смотрят: <b id="optLiveN">${S.optLiveN}</b></span>`}
+/* посещения каталога — только для владельца */
+const tsMs=v=>v?.toMillis?v.toMillis():v?.seconds?v.seconds*1000:v?.__ts??(v?new Date(v).getTime():0);
+function optVisLoad(force){if(!S.isOwner||!S.db)return;if(!force&&Date.now()-(S.optVisAt||0)<60000)return;S.optVisAt=Date.now();
+  S.db.collection('optvisits').get().then(sn=>{S.optVis=sn.docs.map(d=>({id:d.id,...d.data()}));const e=$('#optVisSum');if(e)e.outerHTML=optVisSum();if(S.optVisOpen)optVisRender()}).catch(()=>{S.optVis=S.optVis||[]})}
+function optVisSum(){optVisLoad();const V=S.optVis;if(!V)return '<div id="optVisSum" class="small muted">Посетители: загружаю…</div>';const nowT=Date.now(),day=864e5;
+  const d0=new Date();d0.setHours(0,0,0,0);const c=ms=>V.filter(v=>tsMs(v.last)>=ms).length;
+  return `<div id="optVisSum" class="row" style="gap:6px 16px;flex-wrap:wrap;align-items:center"><span class="small"><b>Посетители</b> (разные устройства): сегодня <b>${c(d0.getTime())}</b> · за 7 дней <b>${c(nowT-7*day)}</b> · за 30 дней <b>${c(nowT-30*day)}</b> · всего <b>${V.length}</b></span><button class="btn link" data-act="optvis">Кто заходил</button></div>`}
+function optVisRender(){const V=(S.optVis||[]).slice().sort((a,b)=>tsMs(b.last)-tsMs(a.last));
+  openModal(`<h2>Кто заходил в оптовый каталог</h2><p class="muted small">Одна строка — один телефон или компьютер (браузер). Имя и телефон появляются, когда дилер хоть раз оформил заказ. Видите только вы. IP-адреса страница без своего сервера узнать не может, поэтому считаем устройства.</p>
+   <div class="tbl" style="max-height:60vh;overflow:auto"><table><thead><tr><th>Дилер</th><th>Устройство</th><th>Первый визит</th><th>Последний</th><th class="num">Визитов</th></tr></thead><tbody>${V.map(v=>`<tr><td>${v.nm?`<b>${esc(v.nm)}</b>${v.ph?`<span class="psku">${esc(v.ph)}</span>`:''}`:'<span class="muted">не заказывал</span>'}</td><td>${esc(v.ua||'—')}</td><td class="muted">${tsMs(v.first)?dt(new Date(tsMs(v.first)).toISOString()):'—'}</td><td>${tsMs(v.last)?dt(new Date(tsMs(v.last)).toISOString()):'—'}</td><td class="num">${num(v.n)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Пока никто не заходил</td></tr>'}</tbody></table></div>
+   <div class="row end"><button class="btn" data-act="modal-close">Закрыть</button></div>`,()=>{S.optVisOpen=false})}
 async function optSaveCfg(){const l=($('#optLogin')?.value||'').trim(),pw=($('#optPass')?.value||'').trim();if(!l){toast('Введите логин');return}if(pw.length<6){toast('Пароль — не короче 6 символов');return}
   await optPublish(false,{login:l,pass:pw,wh:$('#optWh')?.value||''})}
 function optRows(){const c=plCfg();const fi=plFirstIn();const st=c.cols.stock!=='none';const I=S.optIdx||{};
@@ -3387,7 +3399,7 @@ const ACT={
   'calc-reset':()=>{const c=calcState();c.lines=calcDefLines();c.fx2=1;c.title='';c.work='';c.bank='';S.calcQ={};calcSave();render()},
   'calc-dl':async t=>{if(!calcState().lines.some(l=>l.pick)){toast('Сначала выберите комплектующие');return}const d=calcSpec();const nm='КП '+(calcState().title||'компьютер')+' '+dayKey(now());try{if(t.dataset.f==='pdf')await saveFile(nm+'.pdf',repPdf(d));else await saveFile(nm+'.xlsx',repXlsx(d))}catch(e){toast('Не удалось сформировать файл')}},
   'calc-ldel':t=>calcDel(t.dataset.id),'kp-text':()=>kpTextOpen(),'kp-copy':()=>kpCopy(),'kp-wa':()=>kpWa(),'kp-img':()=>kpImg(),'oi-open':t=>oiOpen(t.dataset.id),'oi-save':()=>oiSave(),'oi-rm':t=>{oiKeep();S.oi.imgs.splice(+t.dataset.i,1);oiRender()},'oi-first':t=>{oiKeep();const i=+t.dataset.i;const [x]=S.oi.imgs.splice(i,1);S.oi.imgs.unshift(x);oiRender()},
-  'opt-pub':()=>optPublish(false),'opt-save':()=>optSaveCfg(),'opt-off':()=>optOff(),'opt-copy':()=>optCopy(),'opt-gen':()=>{const e=$('#optPass');if(e)e.value=optGenPass()},
+  'opt-pub':()=>optPublish(false),'optvis':()=>{S.optVisOpen=true;optVisRender();optVisLoad(true)},'opt-save':()=>optSaveCfg(),'opt-off':()=>optOff(),'opt-copy':()=>optCopy(),'opt-gen':()=>{const e=$('#optPass');if(e)e.value=optGenPass()},
   'ord-inv':t=>ordToInv(t.dataset.id),'ord-done':t=>ordSet(t.dataset.id,'done'),'ord-new':t=>ordSet(t.dataset.id,'new'),'ord-del':t=>ordDel(t.dataset.id),'ord-open':t=>{S.ordOpen=S.ordOpen===t.dataset.id?null:t.dataset.id;render()},'ord-all':()=>{S.ordAll=!S.ordAll;render()},'calc-lren':t=>calcRenForm(t.dataset.id),'calc-lren-save':t=>calcRenSave(t.dataset.id),'site-pub':()=>sitePublish(false),'note-save':()=>noteSave(false),'note-del':()=>noteSave(true),'note-tpl':t=>{const r=NOTE_TPL[+t.dataset.i]?.[1]();if(!r)return;const x=$('#noteTx'),y=$('#noteTo');if(x){x.value=r[0];x.focus()}if(y)y.value=r[1]},'cu-save':()=>calcUpSave(),
   'in-edit':t=>inEditStart(t.dataset.id),'in-edit-cancel':()=>{S.op={wh:S.op.wh,toWh:null,party:'',supp:'',debtOn:false,cons:false,paidNow:'',ppay:S.op.ppay,po:null,dlv:'',dlvBy:'sum',dlvAcc:'cash',items:[]};render()},
   'in-wh':t=>inWhForm(t.dataset.id),'in-wh-save':t=>inWhSave(t.dataset.id),
