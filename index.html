@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 28.10.2026 21:33</span>
+      <span class="muted" style="font-size:11px">Версия от 28.10.2026 23:10</span>
     </div>
   </aside>
   <div class="main">
@@ -1174,11 +1174,17 @@ function vAsm(){
    ${sc&&a.items.length?`<div class="kpis" id="asmSum"></div>`:''}
    <div class="row between"><span></span><div class="row"><span class="err" id="asmErr"></span><button class="btn" data-act="asm-post"${ro('assembly')}${a.items.length?'':' disabled'}>Собрать компьютер</button></div></div>
   </section>`:''}
-  <section class="pane"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>Собранные компьютеры</h2><div class="row" style="gap:8px">${S.lblSel?`<span class="small">Выбрано для этикеток: <b>${S.lblSel.size}</b></span><button class="btn" data-act="lbl-batch"${S.lblSel.size?'':' disabled'}>Этикетки A6 (PDF)</button><button class="btn ghost" data-act="lbl-sel-off">Отмена</button>`:`${allPc.some(sn=>pcIn(sn))?'<button class="btn ghost" data-act="lbl-sel-on">Этикетки на несколько ПК</button>':''}<span class="muted">${allPc.length}</span>`}</div></div>
+  <section class="pane"><div class="pane-h" style="flex-wrap:wrap;gap:8px"><h2>Собранные компьютеры на витрине</h2><div class="row" style="gap:8px">${S.lblSel?`<span class="small">Выбрано для этикеток: <b>${S.lblSel.size}</b></span><button class="btn" data-act="lbl-batch"${S.lblSel.size?'':' disabled'}>Этикетки A6 (PDF)</button><button class="btn ghost" data-act="lbl-sel-off">Отмена</button>`:`${allPc.some(sn=>pcIn(sn))?'<button class="btn ghost" data-act="lbl-sel-on">Этикетки на несколько ПК</button>':''}<span class="muted" title="На витрине / всего">на витрине ${allPc.filter(sn=>pcIn(sn)).length} из ${allPc.length}</span>`}</div></div>
    ${S.lblSel?'<p class="small muted" style="margin:-4px 0 8px">Отметьте компьютеры на складе — на каждый лист A4 поместится 4 этикетки. У каждой сборки берутся её собственные настройки этикетки (плашка, старая цена, примечание), если вы их уже задавали кнопкой «Этикетка на витрину».</p>':''}
    <input id="asmF" data-in="asmf" class="search" placeholder="S/N компьютера или любой детали, модель" value="${esc(S.asmF)}">
-   <div class="tbl">${pcs.length?`<table><thead><tr><th>S/N компьютера</th><th>Модель</th><th>Собран</th><th>Статус</th><th class="num">Цена</th><th class="num">Деталей</th></tr></thead><tbody>${pcs.slice(0,60).map(sn=>{const o=S.pca[sn];const st=pcStatus(sn);const op=S.asmOpen===sn;
-    return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${S.lblSel&&pcIn(sn)?`<span data-act="lbl-pick" data-id="${esc(sn)}" role="checkbox" aria-checked="${S.lblSel.has(sn)}" style="display:inline-block;width:22px;font-size:20px;line-height:1;cursor:pointer;color:var(--accent)">${S.lblSel.has(sn)?'☑':'☐'}</span> `:''}${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div>`}</div></section></div>`}
+   ${(()=>{const row=sn=>{const o=S.pca[sn];const st=pcStatus(sn);const op=S.asmOpen===sn;
+    return `<tr class="jrow" tabindex="0" data-act="asm-open" data-id="${esc(sn)}" aria-expanded="${op}"><td class="mono">${S.lblSel&&pcIn(sn)?`<span data-act="lbl-pick" data-id="${esc(sn)}" role="checkbox" aria-checked="${S.lblSel.has(sn)}" style="display:inline-block;width:22px;font-size:20px;line-height:1;cursor:pointer;color:var(--accent)">${S.lblSel.has(sn)?'☑':'☐'}</span> `:''}${esc(sn)}</td><td>${esc(pname(o.out.p))}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</td><td>${ds(o.at)}</td><td><span class="chip ${st[0]}">${esc(st[1])}</span></td><td class="num">${num(o.price)?money(o.price):`<span class="muted">${money(pcPrice(sn))}</span>`}</td><td class="num">${q3((S.pcComp[sn]||[]).reduce((x,i)=>x+num(i.q),0))}</td></tr>${op?`<tr class="jdet"><td colspan="6">${pcPassport(sn)}</td></tr>`:''}`};const head='<table><thead><tr><th>S/N компьютера</th><th>Модель</th><th>Собран</th><th>Статус</th><th class="num">Цена</th><th class="num">Деталей</th></tr></thead><tbody>';
+    const inS=pcs.filter(sn=>pcIn(sn)),outS=pcs.filter(sn=>!pcIn(sn));const lastAt=sn=>{const h=S.snH[sn]||[];return h.length?(h[h.length-1].o.at||''):''};outS.sort((x,y)=>lastAt(y).localeCompare(lastAt(x)));
+    if(!pcs.length)return `<div class="tbl"><div class="empty">${Object.keys(S.pca).length?'Ничего не найдено':'Собранных компьютеров пока нет'}</div></div>`;
+    const open=S.asmSold||!!f;
+    return `<div class="tbl">${inS.length?head+inS.slice(0,80).map(row).join('')+'</tbody></table>':`<div class="empty">${f?'На витрине ничего не найдено':'Сейчас на витрине собранных компьютеров нет'}</div>`}</div>
+     ${outS.length?`<div class="pane-h" style="margin:18px 0 6px;flex-wrap:wrap;gap:8px"><h3 style="font-size:15px;margin:0">Проданные и разобранные <span class="muted" style="font-weight:400">${outS.length}</span></h3><button class="btn link" data-act="asm-sold">${open?'Свернуть':'Показать'}</button></div>
+     ${open?`<div class="tbl" style="opacity:.92">${head+outS.slice(0,100).map(row).join('')}</tbody></table>${outS.length>100?'<p class="muted small">Показаны последние 100 — найдите нужный через поиск</p>':''}</div>`:''}`:''}`})()}</section></div>`}
 /* ---------- Фото и описание сборки для сайта (pcphotos/{sn}) ---------- */
 function imgShrink(src,max,q){return new Promise((res,rej)=>{const isFile=src instanceof Blob;const u=isFile?URL.createObjectURL(src):src;const im=new Image();
   im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
@@ -3556,6 +3562,7 @@ stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.ha
     const sn=t.dataset.sn||'';let i=S.asm.items.findIndex(x=>x.p===pr.id);let isNew=false;if(i<0){S.asm.items.push({p:pr.id,q:pr.serial?0:1,sn:[],rsn:''});i=S.asm.items.length-1;isNew=true}
     if(sn){const it=S.asm.items[i];if(!it.sn.includes(sn))it.sn.push(sn);it.q=it.sn.length;S.asmQ='';render();setTimeout(()=>$('#asmQ')?.focus(),0);return}
     S.asmQ='';render();if(pr.serial)snOpen('asm',i,isNew);else setTimeout(()=>{const e=$('#ar'+i);e?.focus()},0)},
+  'asm-sold':()=>{S.asmSold=!S.asmSold;render()},
   'asm-rm':t=>{S.asm.items.splice(+t.dataset.i,1);render()},
   'asm-gen':()=>{S.asm.sn=nextPcSn();const e=$('#asmSn');if(e)e.value=S.asm.sn},
   'asm-post':postAsm,'asm-again':()=>{if(S.asmLast)asmCopy(S.asmLast)},'asm-autosn':asmAutoSn,
