@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 27.10.2026 18:15</span>
+      <span class="muted" style="font-size:11px">Версия от 28.10.2026 11:10</span>
     </div>
   </aside>
   <div class="main">
@@ -639,7 +639,7 @@ function receiptText(o,debtAfter){
     L.push(`ИТОГО: ${money(o.total)}`);const paid=num(o.paid??o.total);L.push(`Оплачено: ${money(paid)} (${PAYL[o.pay]||''}${o.acc&&o.pay!=='cash'&&accList().length>2?', '+accName(o.acc):''})`);
     {const cov=Math.min(r2(o.total-paid),S.saleAdv?.[o.id]??(debtAfter!=null?Math.max(0,Math.min(r2(o.total-paid),r2((o.total-paid)-Math.max(0,debtAfter)))):0));if(cov>0.004)L.push(`С баланса клиента: ${money(cov)}`);if(o.total-paid-cov>0.004)L.push(`В долг: ${money(o.total-paid-cov)}`)}if(debtAfter!=null)L.push(debtAfter<-0.004?`Остаток предоплаты: ${money(-debtAfter)}`:`Общий долг покупателя: ${money(debtAfter)}`)}
   else if(o.type==='ret'){L.push(`Возвращено покупателю: ${money(o.total)} (${PAYL[o.pay]||''})`);L.push(o.restock?'Товар возвращён на склад':'Товар на склад не возвращён')}
-  else if(showP&&o.type!=='wx'){const oc=o.type==='in'?S.opc[o.id]:null;if(oc&&num(oc.dlv)>0){L.push(`Товар: ${money(oc.total)}`);L.push(`Доставка: ${money(oc.dlv)} (распределена ${oc.dlvBy==='qty'?'по количеству':'по сумме'}, оплачена: ${accName(oc.dlvAcc)})`)}L.push(`ИТОГО${oc&&num(oc.dlv)>0?' с доставкой':''}: ${money(docTotal(o))}`);if(o.init)L.push('Без оплаты: перенос остатков из старой базы');else if(oc&&!o.po&&!o.cons&&num(oc.total)-num(oc.paid??oc.total)>0.004){L.push(`Оплачено поставщику: ${money(oc.paid)}`);L.push(`В долг поставщику: ${money(num(oc.total)-num(oc.paid))}`)}}
+  else if(showP&&o.type!=='wx'){const oc=o.type==='in'?S.opc[o.id]:null;if(oc&&num(oc.dlv)>0){L.push(`Товар: ${money(oc.total)}`);L.push(`Доставка: ${money(oc.dlv)} (распределена ${oc.dlvBy==='qty'?'по количеству':oc.dlvBy==='man'?'вручную':'по сумме'}, оплачена: ${accName(oc.dlvAcc)})`)}L.push(`ИТОГО${oc&&num(oc.dlv)>0?' с доставкой':''}: ${money(docTotal(o))}`);if(o.init)L.push('Без оплаты: перенос остатков из старой базы');else if(oc&&!o.po&&!o.cons&&num(oc.total)-num(oc.paid??oc.total)>0.004){L.push(`Оплачено поставщику: ${money(oc.paid)}`);L.push(`В долг поставщику: ${money(num(oc.total)-num(oc.paid))}`)}}
   return L.join('\n')}
 function showReceipt(o,debtAfter){S.lastDoc=o;
   openModal(`<h2>${o.init?'Ввод остатков':TYPES[o.type].doc} ${docNo(o)}</h2><pre class="receipt" id="rcpt">${esc(receiptText(o,debtAfter))}</pre>
@@ -1553,15 +1553,15 @@ function vOps(){
   <div class="row" style="align-items:flex-start"><select id="opG" data-ch="opg" style="flex:0 1 220px" aria-label="Группа">${groupOpts(S.opG)}</select>
    <div class="picker" style="flex:1 1 260px"><input id="opQ" data-in="opq" placeholder="${S.opG?'Поиск в группе':'Добавить товар: начните вводить название или артикул'}" value="${esc(S.opQ)}" autocomplete="off"><div id="opRes">${opResults()}</div></div>
    ${m==='in'?`<button class="btn ghost" data-act="op-newp"${roA()}>+ Новый товар</button><button class="btn ghost" data-act="op-newg"${roA()}>+ Новая группа</button>`:''}</div>
-  <div class="tbl">${o.items.length?`<table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">${m==='in'?(o.po&&S.posL.find(x=>x.id===o.po)?.pm==='goods'?'Цена товара':'Закупочная цена'):'Себестоимость'}</th>${m==='in'&&!o.init?'<th class="num">С доставкой</th>':''}<th class="num">Сумма</th><th class="num">${m==='in'?'Сейчас на складе':'Доступно'}</th><th></th></tr></thead><tbody>
+  <div class="tbl">${o.items.length?`<table><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">${m==='in'?(o.po&&S.posL.find(x=>x.id===o.po)?.pm==='goods'?'Цена товара':'Закупочная цена'):'Себестоимость'}</th>${m==='in'&&!o.init?`<th class="num">${o.dlvBy==='man'&&!o.buy?'Доставка на позицию<br><span style="text-transform:none;font-weight:400">цена с доставкой</span>':'С доставкой'}</th>`:''}<th class="num">Сумма</th><th class="num">${m==='in'?'Сейчас на складе':'Доступно'}</th><th></th></tr></thead><tbody>
    ${o.items.map((it,i)=>{const ser=!!S.P[it.p]?.serial;return `<tr><td><span class="pname">${esc(pname(it.p))}</span><span class="psku">${esc(S.P[it.p]?.sku||'')}</span>${ser?snChips(it.sn):''}</td>
     <td class="num">${ser?`<b>${(it.sn||[]).length}</b> <button class="btn link" data-act="sn-pick" data-t="op" data-i="${i}">номера</button>`:`<input class="sm" inputmode="decimal" id="oq${i}" aria-label="Количество" data-in="opl" data-i="${i}" data-f="q" value="${esc(it.q)}">`}</td>
     <td class="num">${m==='in'?`<input class="sm" inputmode="decimal" id="op${i}" aria-label="Цена" data-in="opl" data-i="${i}" data-f="price" value="${esc(it.price)}">`:NF.format(r2(cost(it.p)))}</td>
-    ${m==='in'&&!o.init?`<td class="num" id="od${i}">—</td>`:''}<td class="num" id="os${i}"></td><td class="num muted">${q3(qty(o.wh,it.p))} ${esc(unit(it.p))}</td>
+    ${m==='in'&&!o.init?(o.dlvBy==='man'&&!o.buy?`<td class="num"><input class="sm" inputmode="decimal" id="odv${i}" aria-label="Доставка на позицию" data-in="opl" data-i="${i}" data-f="dv" value="${esc(it.dv||'')}" placeholder="доставка" style="width:90px"><span class="psku" id="od${i}">—</span></td>`:`<td class="num" id="od${i}">—</td>`):''}<td class="num" id="os${i}"></td><td class="num muted">${q3(qty(o.wh,it.p))} ${esc(unit(it.p))}</td>
     <td><button class="x" data-act="op-rm" data-i="${i}" aria-label="Убрать">×</button></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Добавьте товары через поиск выше</div>'}</div>
   ${m==='in'&&o.items.length&&!o.po&&!o.cons&&!o.init?`<div class="row" style="gap:12px"><label class="row" style="gap:6px">Оплата из <select id="opPpay" data-ch="opppay" style="width:auto">${accList().map(x=>`<option value="${esc(x.id)}"${x.id===(o.ppay||'cash')?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>${o.buy?'':`<label class="check"><input type="checkbox" id="opDebt" data-ch="opdebt"${o.debtOn?' checked':''}> Оплата с отсрочкой (в долг поставщику)</label>`}${o.debtOn&&!o.buy?`<label class="row" style="gap:6px">Оплачено сейчас, сом <input class="sm" id="opPaid" data-in="oppaid" inputmode="decimal" value="${esc(o.paidNow)}" style="width:120px"></label>`:''}</div>`:''}
   ${m==='in'&&o.items.length&&!o.init&&!o.buy?`<div class="row" style="gap:12px;align-items:flex-end"><label class="field" style="flex:0 1 160px"><span>Доставка, сом</span><input id="opDlv" data-in="opdlv" inputmode="decimal" value="${esc(o.dlv||'')}" placeholder="0"></label>
-   <div class="field" style="flex:0 1 auto"><span>Распределить доставку</span><div class="seg">${[['sum','по сумме'],['qty','по количеству']].map(([k,v])=>`<button data-act="opdlvby" data-v="${k}" aria-pressed="${(o.dlvBy||'sum')===k}">${v}</button>`).join('')}</div></div>
+   <div class="field" style="flex:0 1 auto"><span>Распределить доставку</span><div class="seg">${[['sum','по сумме'],['qty','по количеству'],['man','вручную']].map(([k,v])=>`<button data-act="opdlvby" data-v="${k}" aria-pressed="${(o.dlvBy||'sum')===k}">${v}</button>`).join('')}</div></div>
    <label class="field" style="flex:0 1 200px"><span>Доставку оплатили из</span><select id="opDlvAcc" data-ch="opdlvacc">${accList().map(x=>`<option value="${esc(x.id)}"${x.id===(o.dlvAcc||'cash')?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
    <span class="small muted" id="opDlvInfo" style="padding-bottom:10px"></span></div>`:''}
   <div class="row between"><div class="total" style="padding:0"><span>Итого</span><b id="opTotal">${money(0)}</b></div>
@@ -1571,10 +1571,10 @@ function opResults(){const q=S.opQ.trim();if(!q&&!S.opG)return '';
   const list=filterProds(q).filter(p=>inGroup(p,S.opG)).slice(0,q?8:60);const st=q?'':' style="position:static;margin-top:6px;max-height:280px"';
   return `<div class="results"${st}>${list.length?list.map(p=>`<button data-act="op-add" data-id="${esc(p.id)}"><span>${esc(p.name)} <span class="psku" style="display:inline">${p.serial?'S/N ':''}${esc(p.sku||'')}</span></span><span class="muted">${q3(qty(S.op.wh,p.id))} ${esc(p.unit||'шт')}</span></button>`).join(''):`<div class="empty" style="padding:14px">${q?'Не найдено.':'В этой группе пока нет товаров.'} ${S.opMode==='in'&&can('catalog')?`<button class="btn link" data-act="op-newp">Создать товар${q?' «'+esc(q)+'»':''}</button>`:''}</div>`}</div>`}
 function opQty(it){return S.P[it.p]?.serial?(it.sn||[]).length:num(it.q)}
-function opLanded(o){const d=Math.max(0,num(o.dlv));const base=o.items.map(it=>(o.dlvBy==='qty'?1:num(it.price))*opQty(it));const B=base.reduce((a,x)=>a+x,0);
+function opLanded(o){if(o.dlvBy==='man')return o.items.map(it=>{const q=opQty(it);return num(it.price)+(q?Math.max(0,num(it.dv))/q:0)});const d=Math.max(0,num(o.dlv));const base=o.items.map(it=>(o.dlvBy==='qty'?1:num(it.price))*opQty(it));const B=base.reduce((a,x)=>a+x,0);
   return o.items.map((it,i)=>{const q=opQty(it);if(!d||!q)return num(it.price);const sh=B>0?d*base[i]/B:d*q/o.items.reduce((a,x)=>a+opQty(x),0);return num(it.price)+sh/q})}
 function updOp(){let t=0;S.op.items.forEach((it,i)=>{const pr=S.opMode==='in'?num(it.price):cost(it.p);const q=S.P[it.p]?.serial?(it.sn||[]).length:num(it.q);const s=q*pr;t+=s;const e=$('#os'+i);if(e)e.textContent=NF.format(r2(s))});const e=$('#opTotal');
-  if(S.opMode==='in'){const d=Math.max(0,num(S.op.dlv));const L=opLanded(S.op);S.op.items.forEach((it,i)=>{const x=$('#od'+i);if(x)x.textContent=d?NF.format(r2(L[i])):'—'});const di=$('#opDlvInfo');if(di)di.innerHTML=d?`Товар ${money(t)} + доставка ${money(d)}`:'';if(e)e.textContent=money(t+d)}else if(e)e.textContent=money(t)}
+  if(S.opMode==='in'){const d=Math.max(0,num(S.op.dlv));const L=opLanded(S.op);S.op.items.forEach((it,i)=>{const x=$('#od'+i);if(x)x.textContent=d?NF.format(r2(L[i])):'—'});const di=$('#opDlvInfo');if(di){if(S.op.dlvBy==='man'){const sd=S.op.items.reduce((a,it)=>a+Math.max(0,num(it.dv)),0);const left=r2(d-sd);di.innerHTML=`Товар ${money(t)} + доставка ${money(d)} · распределено ${money(sd)}${Math.abs(left)>0.5?` · <b style="color:var(--bad)">${left>0?'осталось распределить '+money(left):'распределено больше на '+money(-left)}</b>`:' ✓'}`}else di.innerHTML=d?`Товар ${money(t)} + доставка ${money(d)}`:''}if(e)e.textContent=money(t+d)}else if(e)e.textContent=money(t)}
 async function postOp(){
   const m=S.opMode,o=S.op,err=$('#opErr');err.textContent='';
   if(!o.items.length)return;
@@ -1590,8 +1590,9 @@ async function postOp(){
   else for(const i of o.items)for(const sn of (i.sn||[]))if(S.snLoc[sn]&&!editSn(sn)){err.textContent=`Номер ${sn} уже числится на складе`;return}
   const items=o.items.map(i=>{const it={p:i.p,q:r3(num(i.q))};if((i.sn||[]).length)it.sn=[...i.sn];return it});
   const dlv=m==='in'&&!init?r2(num(o.dlv)):0;if(dlv<0){err.textContent='Неверная сумма доставки';return}
+  if(m==='in'&&!init&&o.dlvBy==='man'){const sd=o.items.reduce((a,it)=>a+Math.max(0,num(it.dv)),0);if(Math.abs(sd-dlv)>0.5){err.textContent=`Доставка распределена на ${money(sd)}, а всего ${money(dlv)} — поправьте суммы по позициям`;return}}
   const land=m==='in'?opLanded(o):null;
-  const prices=m==='in'?o.items.map((i,k)=>dlv>0?{p:i.p,price:Math.round(land[k]*10000)/10000,goods:r2(num(i.price))}:{p:i.p,price:r2(num(i.price))}):null;
+  const prices=m==='in'?o.items.map((i,k)=>dlv>0?{p:i.p,price:Math.round(land[k]*10000)/10000,goods:r2(num(i.price)),...(o.dlvBy==='man'?{dv:r2(Math.max(0,num(i.dv)))}:{})}:{p:i.p,price:r2(num(i.price))}):null;
   const tot=m==='in'?r2(items.reduce((a,it,k)=>a+it.q*(prices[k].goods??prices[k].price),0)):0;let paid=tot;if(m==='in'&&(o.po||cons||init))paid=0;
   if(m==='in'&&o.debtOn&&!cons&&!init){if(!o.supp){err.textContent='Для прихода в долг выберите поставщика';return}paid=r2(num(o.paidNow));if(paid<0||paid>tot){err.textContent='Оплаченная сумма должна быть от 0 до суммы прихода';return}}
   const doc={type:m,at:now(),wh:o.wh,items,party:m==='move'?'':m==='in'?(init?'Ввод остатков':o.supp?sname(o.supp):''):o.party.trim(),by:S.uid||null};
@@ -2008,7 +2009,7 @@ function inEditStart(id){const o=S.ops.find(x=>x.id===id);if(!o||o.type!=='in')r
   const oc=S.opc[o.id]||{};const tot=num(oc.total);const paid=num(oc.paid??tot);
   S.opMode='in';S.op={edit:o.id,wh:o.wh,toWh:null,party:'',supp:o.supp||'',cons:!!o.cons,init:!!o.init,po:o.po||null,
     debtOn:!o.po&&!o.cons&&!o.init&&paid<tot-0.004,paidNow:paid<tot-0.004?String(paid):'',ppay:oc.ppay||'cash',dlv:num(oc.dlv)?String(oc.dlv):'',dlvBy:oc.dlvBy||'sum',dlvAcc:oc.dlvAcc||'cash',
-    items:(o.items||[]).map((it,k)=>({p:it.p,q:it.q,price:String(oc.items?.[k]?.goods??oc.items?.[k]?.price??''),sn:[...(it.sn||[])]}))};
+    items:(o.items||[]).map((it,k)=>({p:it.p,q:it.q,price:String(oc.items?.[k]?.goods??oc.items?.[k]?.price??''),sn:[...(it.sn||[])],...(oc.items?.[k]?.dv!=null?{dv:String(oc.items[k].dv)}:{})}))};
   S.opQ='';S.tab='ops';closeModal(true);render();window.scrollTo(0,0)}
 function inEditCheck(E,o,items){const err=[];const key=(w,p)=>w+'|'+p;const delta={};
   for(const it of E.items||[])if(!(it.sn||[]).length){const k=key(E.wh,it.p);delta[k]=(delta[k]||0)-num(it.q)}
@@ -3410,7 +3411,7 @@ popay:t=>{S.po.pay=t.dataset.v;document.querySelectorAll('[data-act="popay"]').f
   pof:t=>{S.poF=t.dataset.v;render()},
   'po-open':t=>{if(window.getSelection()?.toString())return;S.poOpen=S.poOpen===t.dataset.id?null:t.dataset.id;render()},
   'po-recv':t=>{const po=S.posL.find(x=>x.id===t.dataset.id);if(po)poReceive(po)},
-  opdlvby:t=>{S.op.dlvBy=t.dataset.v;document.querySelectorAll('[data-act="opdlvby"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.op.dlvBy));updOp()},
+  opdlvby:t=>{const was=S.op.dlvBy;S.op.dlvBy=t.dataset.v;if(t.dataset.v==='man'&&was!=='man'){const L=opLanded({...S.op,dlvBy:was||'sum'});S.op.items.forEach((it,i)=>{const q=opQty(it);if(it.dv==null||it.dv==='')it.dv=num(S.op.dlv)>0?String(r2((L[i]-num(it.price))*q)):''})}render()},
 consf:t=>{S.consF=t.dataset.v;render()},
 'cons-done':t=>{S.consDone=S.consDone===t.dataset.id?null:t.dataset.id;render()},
 'cons-sel':t=>{S.consSel=S.consSel===t.dataset.id?null:t.dataset.id;S.consPQ='';render();if(S.consSel)setTimeout(()=>$('#consSupp')?.scrollIntoView({behavior:'smooth',block:'start'}),30)},
