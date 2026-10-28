@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 28.10.2026 11:10</span>
+      <span class="muted" style="font-size:11px">Версия от 28.10.2026 21:21</span>
     </div>
   </aside>
   <div class="main">
@@ -2646,7 +2646,7 @@ const kitList=()=>Array.isArray(S.set.kits)?S.set.kits:[];
 const kitOk=k=>(k.items||[]).length>1&&k.items.every(i=>S.P[i.p]&&!S.P[i.p].archived);
 const kitSep=k=>r2((k.items||[]).reduce((a,i)=>a+num(S.P[i.p]?.sellPrice)*num(i.q),0));
 const kitAvail=(k,ws)=>Math.max(0,Math.min(...(k.items||[]).map(i=>Math.floor(qtyIn(ws,i.p)/Math.max(1,num(i.q))))));
-function kitsPane(){const L=kitList();const ed=plCanSave();const ws=plWhs(plCfg());
+function kitsPane(){const L=kitList().slice().sort(kitSort(plCfg()));const ed=plCanSave();const ws=plWhs(plCfg());
   return `<section class="pane"><div class="pane-h"><h2>Комплекты</h2>${ed?'<button class="btn ghost" data-act="kit-new">Создать комплект</button>':''}</div>
   <p class="muted small" style="margin-bottom:8px">Набор товаров с общей ценой ниже суммы по отдельности, например «Материнская плата + процессор + память». Комплекты попадают в прайс отдельным блоком; зачёркнутая цена «по отдельности» и выгода показываются, только если все товары комплекта тоже есть в прайсе и продаются в «Кассе» кнопкой «Комплекты» — цены товаров в чеке уменьшаются пропорционально.</p>
   ${L.length?`<div class="tbl"><table><thead><tr><th>Комплект</th><th class="num">По отдельности</th><th class="num">Цена комплекта</th><th class="num">Выгода</th><th class="num">Можно собрать</th>${optPhCol()?'<th>Фото</th>':''}<th></th></tr></thead><tbody>${L.map(k=>{const ok=kitOk(k);const sep=kitSep(k);return `<tr${k.pl===false?' style="opacity:.6"':''}><td><span class="pname">${esc(k.name)}</span>${k.note?`<span class="small" style="display:block;color:var(--accent)">${esc(k.note)}</span>`:''}<span class="psku">${ok?k.items.map(i=>esc(pname(i.p))+(num(i.q)>1?' ×'+q3(i.q):'')).join(' + '):'<span style="color:var(--bad)">товар удалён или в архиве</span>'}${k.pl===false?' · не в прайсе':''}</span></td><td class="num muted">${money(sep)}</td><td class="num"><b>${money(k.price)}</b></td><td class="num" style="color:var(--good)">${sep>k.price?money(sep-k.price):'—'}</td><td class="num">${ok?q3(kitAvail(k,ws))+' шт':'—'}</td>${optPhCol()?`<td>${optPhBtn('kit_'+k.id)}</td>`:''}<td style="white-space:nowrap">${ed?`<button class="btn link" data-act="kit-edit" data-id="${esc(k.id)}">Изменить</button><button class="btn link bad" data-act="kit-del" data-id="${esc(k.id)}">Удалить</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="empty">Комплектов пока нет</div>'}</section>`}
@@ -2675,7 +2675,8 @@ async function kitSave(){const e=S.kitEd;const err=$('#kitErr');e.name=$('#kitNa
   if(await guard(()=>S.db.doc('settings/main').set({...S.set,kits:L}),'Комплект сохранён','catalog')){S.set.kits=L;S.kitEd=null;closeModal(true);render()}}
 /* прайс */
 function plKits(c){if(c.kits===false)return [];const ws=plWhs(c);const inPl=new Set(plRows(c,false).map(r=>r.p.id));return kitList().filter(k=>k.pl!==false&&kitOk(k)).map(k=>{const av=kitAvail(k,ws);const sep=r2(k.items.reduce((a,i)=>a+plPrice(c,S.P[i.p])*num(i.q),0));
-  return{id:k.id,items:k.items,name:k.name,note:k.note||'',comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep:k.items.every(i=>inPl.has(i.p))?sep:0,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0)}
+  return{id:k.id,items:k.items,name:k.name,note:k.note||'',comps:k.items.map(i=>pname(i.p)+(num(i.q)>1?' × '+q3(i.q):'')),sep:k.items.every(i=>inPl.has(i.p))?sep:0,price:num(k.price),q:av,stock:plStock(av)}}).filter(k=>!c.onlyStock||k.q>0).sort(kitSort(c))}
+const kitSort=c=>(a,b)=>(c.sort==='name'?0:c.sort==='desc'?num(b.price)-num(a.price):num(a.price)-num(b.price))||String(a.name||'').localeCompare(String(b.name||''),'ru');
 /* касса */
 function kitPickModal(){const L=kitList().filter(kitOk);const ws=[S.W[S.curWh]].filter(Boolean);
   openModal(`<h2>Комплекты</h2><p class="muted small">Склад «${esc(wname(S.curWh))}». Товары комплекта добавятся в чек, цены уменьшатся так, чтобы сумма была равна цене комплекта.</p>
