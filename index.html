@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 30.10.2026 00:38</span>
+      <span class="muted" style="font-size:11px">Версия от 30.10.2026 00:50</span>
     </div>
   </aside>
   <div class="main">
@@ -425,6 +425,14 @@ function derive(){
 const qty=(w,p)=>r3(S.stock[w]?.[p]||0);
 const qtyAll=p=>r3(Object.keys(S.stock).filter(w=>S.W[w]&&!S.W[w].office).reduce((s,w)=>s+(S.stock[w][p]||0),0));
 const cost=p=>S.avg[p]??num(S.costs[p]?.buyPrice??S.P[p]?.buyPrice);
+/* минимальная цена продажи = себестоимость. Продавцы себестоимость не видят, поэтому владелец публикует пороги в settings/floor */
+const floorOn=()=>!S.isOwner;
+function floorOf(p,sn){const F=S.floor||{};if(sn&&S.pca[sn]){const v=F.pc?.[sn];return v!=null?num(v):(S.role==='admin'||can('cost')?num(S.pcu[sn]):0)}const v=F.p?.[p];return v!=null?num(v):(S.role==='admin'||can('cost')?cost(p):0)}
+function floorBad(lines){for(const x of lines){if(!(x.q>0))continue;const f=floorOf(x.p,x.sn);if(f>0&&x.unit<f-0.5)return {...x,f}}return null}
+function floorSync(){if(!S.isOwner||!S.db||!S.loaded.has('costsL')||!S.loaded.has('opcL')||!S.loaded.has('ops'))return;clearTimeout(S.floorT);
+  S.floorT=setTimeout(()=>{const P={},PC={};for(const pr of S.prod){if(pr.archived)continue;const c=r2(cost(pr.id));if(c>0)P[pr.id]=c}for(const sn in S.pca)if(pcIn(sn)&&num(S.pcu[sn])>0)PC[sn]=r2(S.pcu[sn]);
+    const F=S.floor||{};const same=(a,b)=>{a=a||{};b=b||{};const k=new Set([...Object.keys(a),...Object.keys(b)]);for(const x of k)if(Math.abs(num(a[x])-num(b[x]))>0.5)return false;return true};
+    if(same(F.p,P)&&same(F.pc,PC))return;const d={p:P,pc:PC,at:now()};S.db.doc('settings/floor').set(d).then(()=>{S.floor=d}).catch(()=>{})},4000)}
 const icost=(o,k)=>num(S.ic[o.id+':'+k]);
 const docTotal=o=>o.type==='asm'?num(S.ic[o.id+':out']):o.type==='spay'?num(o.amount):o.type==='sale'||o.type==='pay'||o.type==='ret'?num(o.total):o.type==='in'&&S.opc[o.id]?r2(num(S.opc[o.id].total)+num(S.opc[o.id].dlv)):r2((o.items||[]).reduce((s,i,k)=>s+num(i.q)*icost(o,k),0));
 const pname=p=>S.P[p]?.name||'Удалённый товар';
@@ -580,6 +588,7 @@ function updCart(){
     const w=$('#lw'+i);if(!w)return;const a=qty(S.curWh,l.p);let msg='';
     if(S.P[l.p]?.serial){if(!(l.sn||[]).length)msg='Выберите серийные номера'}
     else if(need[l.p]>a)msg=`На складе только ${q3(a)} ${unit(l.p)}`;
+    if(!msg&&floorOn()&&c.L[i].q>0){const pcs=(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null;const f=floorOf(l.p,pcs);const u=c.sub>0?c.L[i].s*(c.total/c.sub)/c.L[i].q:0;if(f>0&&u<f-0.5)msg=`Ниже минимальной цены: не дешевле ${money(Math.ceil(f))} за шт`}
     if(!msg&&myMaxDisc()!=null){const le=c.L[i].q&&c.L[i].lp?(1-c.L[i].s/(c.L[i].q*c.L[i].lp))*100:0;if(le>myMaxDisc()+0.01)msg=`Скидка ${NF.format(r2(le))}% больше разрешённой`}
     w.textContent=msg});
   const set=(id,t)=>{const e=$(id);if(e)e.textContent=t};
@@ -598,6 +607,8 @@ async function postSale(){
   const need={};S.cart.forEach((l,i)=>need[l.p]=(need[l.p]||0)+c.L[i].q);
   for(const p in need)if(r3(need[p])>qty(S.curWh,p)){err.textContent=`Недостаточно «${pname(p)}»: на складе ${q3(qty(S.curWh,p))}`;return}
   for(const l of S.cart)for(const sn of (l.sn||[]))if(S.snLoc[sn]?.wh!==S.curWh){err.textContent=`Номер ${sn} уже не числится на этом складе`;return}
+  if(floorOn()){const k=c.sub>0?c.total/c.sub:1;const b=floorBad(S.cart.map((l,i)=>({p:l.p,sn:(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null,q:c.L[i].q,unit:c.L[i].q?c.L[i].s*k/c.L[i].q:0})));
+    if(b){err.textContent=`«${pname(b.p)}» нельзя продать дешевле ${money(Math.ceil(b.f))} за шт — это ниже себестоимости. Уменьшите скидку или обратитесь к владельцу.`;return}}
   if(myMaxDisc()!=null){const mx=myMaxDisc()+0.01;if(c.eff>mx||S.cart.some((l,i)=>c.L[i].lp&&(1-c.L[i].s/(c.L[i].q*c.L[i].lp))*100>mx)){err.textContent=`Скидка больше разрешённой (${NF.format(myMaxDisc())}%). Обратитесь к владельцу.`;return}}
   let paid=c.total;if(!S.debtOn&&S.custSel){const A=Math.max(0,-debtOf(S.custSel));if(A>0.004)paid=r2(Math.max(0,c.total-A))}
   if(S.debtOn&&!can('debt')&&!(S.custSel&&debtOf(S.custSel)+c.total-r2(num(S.paidNow))<=0.004)){err.textContent='Продажа в долг вам недоступна';return}
@@ -2459,6 +2470,8 @@ async function saveInv(){const v=S.inv,err=$('#invErr');err.textContent='';
   const items=v.items.map(l=>{const q=r3(invQty(l));const it={p:l.p,q,price:r2(num(l.price)),disc:r2(Math.min(100,Math.max(0,num(l.disc)))),sum:invSum(l)};
     if(l.keep&&(l.keep.wm!=null||l.keep.wd!=null)){if(num(l.keep.wm)>0)it.wm=num(l.keep.wm);if(num(l.keep.wd)>0)it.wd=num(l.keep.wd)}else wSet(it,l.p);if(l.keep?.until)it.until=l.keep.until;if((l.sn||[]).length)it.sn=[...l.sn];
     if(it.sn&&it.sn.length===1&&(S.pca[it.sn[0]]||l.keep?.parts)){it.parts=l.keep?.parts&&l.orig?.sn===it.sn[0]?l.keep.parts:snapParts(it.sn[0])}return it});
+  if(floorOn()){const b=floorBad(items.map(it=>({p:it.p,sn:(it.sn||[]).length===1&&S.pca[it.sn[0]]?it.sn[0]:null,q:it.q,unit:it.q?it.sum/it.q:0})));
+    if(b){err.textContent=`«${pname(b.p)}» нельзя продать дешевле ${money(Math.ceil(b.f))} за шт — это ниже себестоимости. Обратитесь к владельцу.`;return}}
   const total=r2(items.reduce((a,i)=>a+i.sum,0));let paid=total;if(v.full&&v.cust){const base=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);if(base<-0.004)paid=r2(Math.max(0,total+base))}
   if(!v.full){if(!v.cust){err.textContent='Для продажи в долг выберите покупателя';return}paid=r2(num(v.paid));const base=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);if(!can('debt')&&base+total-paid>0.004){err.textContent='Продажа в долг вам недоступна';return}if(paid<0||paid>total){err.textContent='Оплаченная сумма должна быть от 0 до суммы накладной';return}}
   const acc=v.pay==='cash'?accOf('cash'):($('#invAcc')?.value||v.acc||accOf(v.pay));
@@ -3786,7 +3799,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
       const me=await user.me();S.meName=me?.name||'';S.meEmail=me?.email||''}catch(e){}}
   if(S.isOwner)setTimeout(()=>{try{siteLoad()}catch(e){}},4000);
   const fail=e=>{if(e?.code==='revoked'||e?.code==='not_granted'){S.offline=true;render()}};
-  const mark=k=>{S.loaded.add(k);derive();scheduleRender();if((k==='ops'||k==='sales'||k==='products')&&S.optCfg?.key)optPubSoon(45000)};
+  const mark=k=>{S.loaded.add(k);derive();scheduleRender();if(S.isOwner&&['ops','costsL','opcL','products','sales'].includes(k))floorSync();if((k==='ops'||k==='sales'||k==='products')&&S.optCfg?.key)optPubSoon(45000)};
   const failK=k=>e=>{if(e?.code==='permission-denied'){mark(k);return}fail(e)};
   const sub=(col,key,sort)=>db.collection(col).onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()})).sort(sort);mark(key)},failK(key));
   const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','ru');
@@ -3799,6 +3812,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
   if(S.isOwner||S.role==='admin'||S.role==='seller')db.collection('optorders').onSnapshot(s=>{const was=new Set((S.optOrd||[]).filter(o=>o.st==='new').map(o=>o.id));S.optOrd=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.at||'').localeCompare(a.at||''));
     const fresh=S.optOrd.filter(o=>o.st==='new'&&!was.has(o.id));if(S.optOrdInit&&fresh.length&&ordVis())toast(`Новый заказ дилера: ${fresh[0].name||''} на ${money(fresh[0].total)}`);S.optOrdInit=true;if($('#modal').hidden&&!typing())scheduleRender()},()=>{});
   if(S.isOwner){setTimeout(()=>{try{optAutoCheck()}catch(e){}},9000);setInterval(()=>{try{optAutoCheck()}catch(e){}},1800e3)}
+  db.doc('settings/floor').onSnapshot(s=>{S.floor=s.exists?s.data():null},()=>{});
   db.doc('settings/main').onSnapshot(s=>{S.set={newPolicy:'pending',shopName:'',shopAddr:'',shopPhone:'',wTerms:'',...(s.exists?s.data():{})};mark('set')},failK('set'));
   if(!S.isOwner&&S.uid&&S.role!=='view'){const ref=db.doc('seen/'+S.uid);ref.get().then(sn=>{const d=sn.exists?sn.data():null;if(!d||d.lvl!==S.role||(SRV()&&d.name!==S.meName)||Date.now()-new Date(d.at)>864e5)return ref.set({at:now(),lvl:S.role,...(SRV()?{name:S.meName,email:S.meEmail}:{})})}).catch(()=>{})}
 })();
