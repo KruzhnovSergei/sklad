@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 28.10.2026 23:10</span>
+      <span class="muted" style="font-size:11px">Версия от 30.10.2026 00:38</span>
     </div>
   </aside>
   <div class="main">
@@ -1028,6 +1028,7 @@ function moneyForm(kind,pr){pr=pr||{};S.mfPre=pr;const accs=accList();const {bal
   <div class="row"><label class="field"><span>${kind==='set'?'Фактический остаток, сом':'Сумма, сом'}</span><input id="mfAmt" inputmode="decimal" value="${esc(pr.amount||'')}"></label>${kind==='out'?`<label class="field"><span>Статья расхода</span><input id="mfCat" list="mfCats" value="${esc(pr.cat||'Прочее')}"><datalist id="mfCats">${[...new Set([...EXP_CATS,...S.moneyL.map(m=>m.cat).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>`:''}</div>
   ${kind==='out'&&!ED?`<label class="field" style="flex:none"><span>Кому (если деньги выданы клиенту или поставщику — у него появится долг)</span><select id="mfWho" data-ch="mfwho"><option value="">— Обычный расход (зарплата, аренда, налоги…)</option>${can('payments')&&S.cust.length?`<optgroup label="Покупатели">${[...S.cust].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(c=>{const d=debtOf(c.id);return `<option value="c:${esc(c.id)}">${esc(c.name)}${d>0.004?' · долг '+NF.format(d):d<-0.004?' · предоплата '+NF.format(-d):''}</option>`}).join('')}</optgroup>`:''}${can('suppliers')&&S.supp.length?`<optgroup label="Поставщики">${[...S.supp].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(x=>{const d=supDebtOf(x.id);return `<option value="s:${esc(x.id)}">${esc(x.name)}${d>0.004?' · наш долг '+NF.format(d):d<-0.004?' · должен нам '+NF.format(-d):''}</option>`}).join('')}</optgroup>`:''}</select></label>`:''}
   ${kind==='in'&&!ED&&can('payments')?`<label class="field" style="flex:none"><span>От кого (покупатель — предоплата или оплата долга; поставщик — возврат денег)</span><select id="mfCust"><option value="">— Не от покупателя (обычный приход денег)</option>${[...S.cust].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(c=>{const d=debtOf(c.id);return `<option value="${esc(c.id)}">${esc(c.name)}${d>0.004?' · долг '+NF.format(d):d<-0.004?' · предоплата '+NF.format(-d):''}</option>`}).join('')}${can('suppliers')&&S.supp.length?`<optgroup label="Поставщики">${[...S.supp].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(x=>{const d=supDebtOf(x.id);return `<option value="s:${esc(x.id)}">${esc(x.name)}${d<-0.004?' · должен нам '+NF.format(-d):d>0.004?' · наш долг '+NF.format(d):''}</option>`}).join('')}</optgroup>`:''}</select></label>`:''}
+  ${kind==='out'&&S.staffL.some(x=>num(x.pct)>0)?`<label class="field" style="flex:none"><span>Сотрудник — если это выплата процента от маржи</span><select id="mfStaff"><option value="">— Не выплата процента</option>${S.staffL.filter(x=>num(x.pct)>0||x.id===pr.staff).map(x=>`<option value="${esc(x.id)}"${x.id===pr.staff?' selected':''}>${esc(x.label||x.name||'Сотрудник')}</option>`).join('')}</select></label>`:''}
   <input id="mfNote" value="${esc(pr.note||'')}" placeholder="${kind==='in'?'Откуда деньги: внесение владельцем, займ…':kind==='move'?'Например: сдача выручки в банк':kind==='set'?'Например: начальный остаток, пересчёт в конце дня':'Комментарий'}">
   <div class="err" id="mfErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="m-save" data-v="${kind}">Сохранить</button></div>`);setTimeout(()=>$('#mfAmt')?.focus(),30)}
@@ -1046,7 +1047,7 @@ async function saveMoney(kind){const err=$('#mfErr');const amt=r2(num($('#mfAmt'
   const cu=cu0;
   if(cu){const dd=debtOf(cu);const pay=acc==='cash'||acc===accOf('cash')?'cash':'transfer';const o={type:'pay',at,cust:cu,amount:amt,total:amt,pay,acc,...(amt>Math.max(0,dd)+0.004?{adv:true}:{}),party:$('#mfNote').value.trim(),by:S.uid||null};const ref=S.db.collection('sales').doc();
     if(await guard(()=>ref.set(o),'Оплата от покупателя принята','payments')){closeModal(true);if(!S.sales.some(x=>x.id===ref.id)){S.sales.push({id:ref.id,...o});derive()}render();showReceipt({id:ref.id,...o},r2(dd-amt))}return}
-  const d={kind,at,acc,amount:amt,note:$('#mfNote').value.trim(),by:S.uid||null};const pr=S.mfPre||{};if(pr.reg){d.reg=pr.reg;d.month=pr.month}if(pr.staff&&kind==='out'){d.staff=pr.staff;d.per=pr.per}
+  const d={kind,at,acc,amount:amt,note:$('#mfNote').value.trim(),by:S.uid||null};const pr=S.mfPre||{};if(pr.reg){d.reg=pr.reg;d.month=pr.month}if(kind==='out'){const sv=$('#mfStaff');if(sv){d.staff=sv.value||null;if(sv.value&&pr.per)d.per=pr.per}else if(pr.staff){d.staff=pr.staff;d.per=pr.per}}
   if(kind==='move'){d.to=$('#mfTo').value;if(d.to===acc){err.textContent='Выберите разные счета';return}}
   if(kind==='out')d.cat=$('#mfCat').value.trim()||'Прочее';
   if(pr.edit){const old=S.moneyL.find(x=>x.id===pr.edit);d.by=old?.by??d.by;d.edited={at:now(),by:S.uid||null};if(await guard(()=>S.db.doc('money/'+pr.edit).set(d),'Изменения сохранены','money')){closeModal(true);const i=S.moneyL.findIndex(x=>x.id===pr.edit);if(i>=0)S.moneyL[i]={id:pr.edit,...d};render()}return}
@@ -3352,14 +3353,17 @@ function plXlsx(d){const X=v=>String(v??'').replace(/[\u0000-\u0008\u000B\u000C\
 async function plDl(f){try{const d=plData();if(!d.total){toast('В прайсе нет товаров');return}const nm=`${d.title} ${d.date}`.replace(/[\\/:*?"<>|]/g,' ');if(f==='pdf')await saveFile(nm+'.pdf',plPdf(d));else await saveFile(nm+'.xlsx',plXlsx(d))}catch(e){console.error(e);toast('Не удалось подготовить файл')}}
 
 /* ---------- процент продавцам ---------- */
-function commCalc(rg){const res={};const st=S.staffL.filter(x=>num(x.pct)>0);if(!st.length)return[];const ids=new Set(st.map(x=>x.id));
+function commCalc(rg){return commCalcRaw(rg)}
+function commCalcRaw(rg){const res={};const st=S.staffL.filter(x=>num(x.pct)>0);if(!st.length)return[];const ids=new Set(st.map(x=>x.id));
   const byId={};for(const o of S.sales)byId[o.id]=o;
   for(const o of S.sales){if(!inR(o,rg))continue;
     if(o.type==='sale'&&ids.has(o.by)){const r=res[o.by]??={n:0,rev:0,cogs:0,ret:0};r.n++;r.rev+=num(o.total);r.cogs+=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0)}
     else if(o.type==='ret'){const so=byId[o.sale];const who=so?.by;if(!ids.has(who))continue;const r=res[who]??={n:0,rev:0,cogs:0,ret:0};const dc=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);r.rev-=num(o.total);if(o.restock)r.cogs-=dc;r.ret++}}
   const pk=`${rg.from.toISOString().slice(0,10)}_${rg.to.toISOString().slice(0,10)}`;
   return st.map(x=>{const r=res[x.id]||{n:0,rev:0,cogs:0,ret:0};const margin=r.rev-r.cogs;const sum=r2(Math.max(0,margin)*num(x.pct)/100);
-    const paid=S.moneyL.filter(m=>m.kind==='out'&&m.staff===x.id&&m.per===pk).reduce((a,m)=>a+num(m.amount),0);return{x,...r,margin,sum,paid,pk}})}
+    const pays=S.moneyL.filter(m=>m.kind==='out'&&m.staff===x.id);const paid=pays.filter(m=>inR(m,rg)).reduce((a,m)=>a+num(m.amount),0);return{x,...r,margin,sum,paid,pk,paidAll:pays.reduce((a,m)=>a+num(m.amount),0)}})}
+/* остаток к выплате: всё начисленное за всё время минус все выплаты этому сотруднику (в любой период) */
+function commBal(){const all={from:new Date(0),to:new Date(8.6e15)};const B={};for(const r of commCalcRaw(all))B[r.x.id]=r2(r.sum-r.paidAll);return B}
 /* процент продавцам по складам: начисление продавца делится между складами пропорционально его марже на каждом */
 function commByWh(rg){const L=commCalc(rg);if(!L.length)return null;const sum={};for(const r of L)if(r.sum>0)sum[r.x.id]=r.sum;const ids=new Set(Object.keys(sum));if(!ids.size)return{};
   const M={};const byId={};for(const o of S.sales)byId[o.id]=o;const add=(who,wh,v)=>{((M[who]??={})[wh]=(M[who][wh]||0)+v)};
@@ -3371,10 +3375,10 @@ function commByWh(rg){const L=commCalc(rg);if(!L.length)return null;const sum={}
 function commSection(rg){if(!S.isOwner&&!can('money'))return '';const L=commCalc(rg);
   if(!L.length)return `<section class="pane"><div class="pane-h"><h2>Процент продавцам</h2></div><p class="muted small">Если продавец получает процент от маржи, укажите процент в «Настройки» → сотрудник → «Процент от маржи». Здесь появится расчёт за выбранный период.</p></section>`;
   return `<section class="pane"><div class="pane-h"><h2>Процент продавцам за период</h2><span class="muted small">маржа = выручка − себестоимость проданного, за вычетом возвратов</span></div>
-  <div class="tbl"><table><thead><tr><th>Сотрудник</th><th class="num">Продаж</th><th class="num">Выручка</th><th class="num">Себестоимость</th><th class="num">Маржа</th><th class="num">%</th><th class="num">К начислению</th><th class="num">Выплачено</th><th></th></tr></thead><tbody>
-  ${L.map(r=>{const left=r2(r.sum-r.paid);return `<tr><td><span class="pname">${esc(r.x.label||'Сотрудник')}</span><span class="psku">${esc(r.x.position||'')}${r.ret?` · возвратов ${r.ret}`:''}</span></td><td class="num">${r.n}</td><td class="num">${money(r.rev)}</td><td class="num muted">${money(r.cogs)}</td><td class="num"><b>${money(r.margin)}</b></td><td class="num">${NF.format(num(r.x.pct))}%</td><td class="num"><b style="color:var(--accent)">${money(r.sum)}</b></td><td class="num">${r.paid?money(r.paid):'—'}</td>
-   <td style="white-space:nowrap;text-align:right">${left>0.004?`<button class="btn ghost" style="padding:5px 12px" data-act="comm-pay" data-id="${esc(r.x.id)}" data-amt="${left}" data-pk="${esc(r.pk)}">Начислить и выплатить</button>`:r.sum>0?'<span class="chip ok">выплачено</span>':''} <button class="btn link" data-act="comm-list" data-id="${esc(r.x.id)}">Продажи</button></td></tr>`}).join('')}</tbody></table></div>
-  <p class="muted small" style="margin-top:6px">Продажа засчитывается тому сотруднику, кто провёл её в кассе или оформил накладную. Выплата записывается расходом «Зарплата» и уменьшает прибыль.</p></section>`}
+  <div class="tbl"><table><thead><tr><th>Сотрудник</th><th class="num">Продаж</th><th class="num">Выручка</th><th class="num">Себестоимость</th><th class="num">Маржа</th><th class="num">%</th><th class="num">Начислено за период</th><th class="num">Выплачено за период</th><th class="num">Остаток к выплате</th><th></th></tr></thead><tbody>
+  ${(()=>{const BAL=commBal();return L.map(r=>{const left=r2(BAL[r.x.id]||0);return `<tr><td><span class="pname">${esc(r.x.label||'Сотрудник')}</span><span class="psku">${esc(r.x.position||'')}${r.ret?` · возвратов ${r.ret}`:''}</span></td><td class="num">${r.n}</td><td class="num">${money(r.rev)}</td><td class="num muted">${money(r.cogs)}</td><td class="num"><b>${money(r.margin)}</b></td><td class="num">${NF.format(num(r.x.pct))}%</td><td class="num"><b style="color:var(--accent)">${money(r.sum)}</b></td><td class="num">${r.paid?money(r.paid):'—'}</td><td class="num">${left>0.004?`<b style="color:var(--bad)">${money(left)}</b>`:left<-0.004?`<span class="small" style="color:var(--good)">переплата ${money(-left)}</span>`:'<span class="chip ok">0</span>'}</td>
+   <td style="white-space:nowrap;text-align:right">${left>0.004?`<button class="btn ghost" style="padding:5px 12px" data-act="comm-pay" data-id="${esc(r.x.id)}" data-amt="${left}" data-pk="${esc(r.pk)}">Выплатить</button>`:''} <button class="btn link" data-act="comm-list" data-id="${esc(r.x.id)}">Продажи</button></td></tr>`}).join('')})()}</tbody></table></div>
+  <p class="muted small" style="margin-top:6px">Продажа засчитывается тому сотруднику, кто провёл её в кассе или оформил накладную. «Остаток к выплате» — всё начисленное за всё время минус все выплаты этому сотруднику, в каком бы периоде их ни делали; можно платить частями. Выплата записывается расходом «Зарплата» с выбранным сотрудником и уменьшает прибыль — если платили обычным расходом, откройте его в «Расходах» и выберите сотрудника.</p></section>`}
 function commList(uid){const rg=range();const L=S.sales.filter(o=>o.type==='sale'&&o.by===uid&&inR(o,rg)).sort((a,b)=>(b.at||'').localeCompare(a.at||''));const x=S.ST[uid];
   openModal(`<h2>Продажи: ${esc(x?.label||'сотрудник')}</h2><p class="muted small">${ds(rg.from)} — ${ds(rg.to)} · ${L.length} продаж</p>
   <div class="tbl" style="max-height:420px;overflow:auto">${L.length?`<table><thead><tr><th>Документ</th><th>Дата</th><th class="num">Сумма</th><th class="num">Маржа</th></tr></thead><tbody>${L.map(o=>{const c=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);return `<tr><td class="mono">${docNo(o)}</td><td>${dt(o.at)}</td><td class="num">${money(o.total)}</td><td class="num">${money(num(o.total)-c)}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Продаж нет</div>'}</div>
@@ -3448,7 +3452,7 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
   'po-reopen':t=>guard(()=>S.db.collection('pos').doc(t.dataset.id).update({status:'open'}),'Заказ снова открыт','stock'),
   ply:t=>{const v=t.dataset.v;S.plY=v==='all'?'all':+v;render()},
 'exp-new':t=>moneyForm('out',{cat:t.dataset.cat||'Прочее'}),
-'comm-pay':t=>{const x=S.ST[t.dataset.id];const rg=range();moneyForm('out',{cat:'Зарплата',amount:t.dataset.amt,note:`Процент от маржи ${ds(rg.from)}–${ds(rg.to)}: ${x?.label||''}`,staff:t.dataset.id,per:t.dataset.pk})},
+'comm-pay':t=>{const x=S.ST[t.dataset.id];moneyForm('out',{cat:'Зарплата',amount:t.dataset.amt,note:`Процент от маржи: ${x?.label||''}`,staff:t.dataset.id,per:t.dataset.pk})},
 'comm-list':t=>commList(t.dataset.id),
   'reg-new':()=>regForm(null),'reg-edit':t=>regForm(t.dataset.id),'reg-save':()=>saveReg(false),'reg-del':()=>saveReg(true),
   'reg-post':t=>{const r=regList().find(x=>x.id===t.dataset.id);if(r)moneyForm('out',{cat:r.cat,amount:r.amount,acc:r.acc,note:r.note,reg:r.id,month:ymKey(new Date())})},
