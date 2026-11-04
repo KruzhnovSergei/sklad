@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 01.11.2026 21:53</span>
+      <span class="muted" style="font-size:11px">Версия от 04.11.2026 18:01</span>
     </div>
   </aside>
   <div class="main">
@@ -3401,8 +3401,8 @@ function commSection(rg){if(!S.isOwner&&!can('money'))return '';const L=commCalc
   return `<section class="pane"><div class="pane-h"><h2>Процент продавцам за период</h2><span class="muted small">маржа = выручка − себестоимость проданного, за вычетом возвратов</span></div>
   <div class="tbl"><table><thead><tr><th>Сотрудник</th><th class="num">Продаж</th><th class="num">Выручка</th><th class="num">Себестоимость</th><th class="num">Маржа</th><th class="num">%</th><th class="num">Начислено за период</th><th class="num">Выплачено за период</th><th class="num">Остаток к выплате</th><th></th></tr></thead><tbody>
   ${(()=>{const BAL=commBal();return L.map(r=>{const left=r2(BAL[r.x.id]||0);return `<tr><td><span class="pname">${esc(r.x.label||'Сотрудник')}</span><span class="psku">${esc(r.x.position||'')}${r.ret?` · возвратов ${r.ret}`:''}</span></td><td class="num">${r.n}</td><td class="num">${money(r.rev)}</td><td class="num muted">${money(r.cogs)}</td><td class="num"><b>${money(r.margin)}</b></td><td class="num">${NF.format(num(r.x.pct))}%</td><td class="num"><b style="color:var(--accent)">${money(r.sum)}</b></td><td class="num">${r.paid?money(r.paid):'—'}</td><td class="num">${left>0.004?`<b style="color:var(--bad)">${money(left)}</b>`:left<-0.004?`<span class="small" style="color:var(--good)">переплата ${money(-left)}</span>`:'<span class="chip ok">0</span>'}</td>
-   <td style="white-space:nowrap;text-align:right">${left>0.004?`<button class="btn ghost" style="padding:5px 12px" data-act="comm-pay" data-id="${esc(r.x.id)}" data-amt="${left}" data-pk="${esc(r.pk)}">Выплатить</button>`:''} <button class="btn link" data-act="comm-list" data-id="${esc(r.x.id)}">Продажи</button></td></tr>`}).join('')})()}</tbody></table></div>
-  <p class="muted small" style="margin-top:6px">Продажа засчитывается тому сотруднику, кто провёл её в кассе или оформил накладную. «Остаток к выплате» — всё начисленное за всё время минус все выплаты этому сотруднику, в каком бы периоде их ни делали; можно платить частями. Выплата записывается расходом «Зарплата» с выбранным сотрудником и уменьшает прибыль — если платили обычным расходом, откройте его в «Расходах» и выберите сотрудника.</p></section>`}
+   <td style="white-space:nowrap;text-align:right">${left>0.004?`<button class="btn ghost" style="padding:5px 12px" data-act="comm-pay" data-id="${esc(r.x.id)}" data-amt="${left}" data-pk="${esc(r.pk)}">Выплатить</button>`:`<button class="btn ghost" style="padding:5px 12px" data-act="comm-pay" data-id="${esc(r.x.id)}" data-amt="" data-adv="1" data-pk="${esc(r.pk)}" title="Выдать аванс в счёт будущего процента">Выдать аванс</button>`} <button class="btn link" data-act="comm-list" data-id="${esc(r.x.id)}">Продажи</button></td></tr>`}).join('')})()}</tbody></table></div>
+  <p class="muted small" style="margin-top:6px">Продажа засчитывается тому сотруднику, кто провёл её в кассе или оформил накладную. «Остаток к выплате» — всё начисленное за всё время минус все выплаты этому сотруднику, в каком бы периоде их ни делали; можно платить частями и выдавать аванс — он вычтется из следующих начислений. Выплата записывается расходом «Зарплата» с выбранным сотрудником и уменьшает прибыль — если платили обычным расходом, откройте его в «Расходах» и выберите сотрудника.</p></section>`}
 function commList(uid){const rg=range();const L=S.sales.filter(o=>o.type==='sale'&&o.by===uid&&inR(o,rg)).sort((a,b)=>(b.at||'').localeCompare(a.at||''));const x=S.ST[uid];
   openModal(`<h2>Продажи: ${esc(x?.label||'сотрудник')}</h2><p class="muted small">${ds(rg.from)} — ${ds(rg.to)} · ${L.length} продаж</p>
   <div class="tbl" style="max-height:420px;overflow:auto">${L.length?`<table><thead><tr><th>Документ</th><th>Дата</th><th class="num">Сумма</th><th class="num">Маржа</th></tr></thead><tbody>${L.map(o=>{const c=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);return `<tr><td class="mono">${docNo(o)}</td><td>${dt(o.at)}</td><td class="num">${money(o.total)}</td><td class="num">${money(num(o.total)-c)}</td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Продаж нет</div>'}</div>
@@ -3477,7 +3477,7 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
   ply:t=>{const v=t.dataset.v;S.plY=v==='all'?'all':+v;render()},
 'expcat-new':()=>expCatForm(),'expcat-save':()=>expCatSave(),'expcat-del':t=>expCatDel(t.dataset.v),
   'exp-new':t=>moneyForm('out',{cat:t.dataset.cat||'Прочее'}),
-'comm-pay':t=>{const x=S.ST[t.dataset.id];moneyForm('out',{cat:'Зарплата',amount:t.dataset.amt,note:`Процент от маржи: ${x?.label||''}`,staff:t.dataset.id,per:t.dataset.pk})},
+'comm-pay':t=>{const x=S.ST[t.dataset.id];moneyForm('out',{cat:'Зарплата',amount:t.dataset.amt,note:`${t.dataset.adv?'Аванс в счёт процента':'Процент от маржи'}: ${x?.label||''}`,staff:t.dataset.id,per:t.dataset.pk})},
 'comm-list':t=>commList(t.dataset.id),
   'reg-new':()=>regForm(null),'reg-edit':t=>regForm(t.dataset.id),'reg-save':()=>saveReg(false),'reg-del':()=>saveReg(true),
   'reg-post':t=>{const r=regList().find(x=>x.id===t.dataset.id);if(r)moneyForm('out',{cat:r.cat,amount:r.amount,acc:r.acc,note:r.note,reg:r.id,month:ymKey(new Date())})},
