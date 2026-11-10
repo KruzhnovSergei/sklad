@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 10.11.2026 12:57</span>
+      <span class="muted" style="font-size:11px">Версия от 10.11.2026 13:54</span>
     </div>
   </aside>
   <div class="main">
@@ -837,9 +837,23 @@ function custForm(c,from){c=c||{};const ks=['retail','opt'].filter(k=>canCust(k)
   <div class="row"><label class="field"><span>ИНН (для организаций и ИП)</span><input id="cf-inn" inputmode="numeric" value="${esc(c.inn||'')}"></label><label class="field"><span>Адрес</span><input id="cf-address" value="${esc(c.address||'')}"></label></div>
   <div class="row"><label class="field"><span>Р/счёт</span><input id="cf-acct" value="${esc(c.acct||'')}"></label><label class="field"><span>Банк</span><input id="cf-bank" value="${esc(c.bank||'')}" placeholder="ОАО «Банк»"></label><label class="field" style="flex:0 1 120px"><span>БИК</span><input id="cf-bik" value="${esc(c.bik||'')}"></label></div>
   <label class="field"><span>Заметка</span><input id="cf-note" value="${esc(c.note||'')}" placeholder="Условия оплаты, контактное лицо"></label>
+  ${c.id&&isAdmin()?custMergeBox(c):''}
   <div class="err" id="cf-err"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="cust-save" data-id="${esc(c.id||'')}" data-from="${from||''}">Сохранить</button></div>`);
   setTimeout(()=>$('#cf-name')?.focus(),30)}
+/* объединение: все документы покупателя (продажи, оплаты, возвраты, гарантия) переходят к другому, сам покупатель удаляется */
+function custMergeBox(c){const others=S.cust.filter(x=>x.id!==c.id).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru'));if(!others.length)return '';
+  const n=S.sales.filter(o=>o.cust===c.id).length+S.claims.filter(o=>o.cust===c.id).length;
+  return `<details class="infobox" style="margin:4px 0"><summary style="cursor:pointer"><b>Объединить с другим покупателем</b> <span class="muted small">· документов: ${n}</span></summary>
+  <p class="small" style="margin:8px 0">Все продажи, оплаты, возвраты и гарантийные заявки «${esc(c.name)}» перейдут к выбранному покупателю вместе с долгом или предоплатой. Сам «${esc(c.name)}» будет удалён.</p>
+  <div class="row"><select id="cf-merge" style="flex:1 1 220px" aria-label="К кому перенести">${others.map(x=>`<option value="${esc(x.id)}"${/розн/i.test(x.name||'')?' selected':''}>${esc(x.name)}${x.phone?' · '+esc(x.phone):''}${ckind(x)==='opt'?' (опт)':''}</option>`).join('')}</select>
+  <button class="btn ghost" data-act="cust-merge" data-id="${esc(c.id)}">Перенести и удалить</button></div></details>`}
+async function custMerge(from){const to=$('#cf-merge')?.value;const A=S.C[from],B=S.C[to];if(!A||!B||from===to)return;
+  const W=[...S.sales.filter(o=>o.cust===from).map(o=>'sales/'+o.id),...S.claims.filter(o=>o.cust===from).map(o=>'claims/'+o.id)];
+  if(!confirm(`Перенести ${W.length} док. с «${A.name}» на «${B.name}» и удалить «${A.name}»?`))return;
+  const ok=await guard(async()=>{for(let i=0;i<W.length;i+=400){const b=S.db.batch();for(const path of W.slice(i,i+400))b.update(S.db.doc(path),{cust:to});await b.commit()}
+    await S.db.collection('customers').doc(from).delete()},`«${A.name}» объединён с «${B.name}»`,cperm(ckind(A)));
+  if(ok){if(S.cOpen===from)S.cOpen=to;closeModal(true);render()}}
 async function saveCust(id,from){
   const v=k=>$('#cf-'+k).value.trim();const name=v('name');if(!name){$('#cf-err').textContent='Укажите имя покупателя';return}
   const kind=$('#cf-kind')?.dataset.v==='opt'?'opt':'retail';const old=id?ckind(S.C[id]):kind;
@@ -3551,7 +3565,7 @@ invsrc:t=>{S.invSrc=t.dataset.v;render()},
 invfull:t=>{S.inv.full=t.dataset.v==='1';if(!S.inv.full&&S.inv.paid==='')S.inv.paid='0';render()},
 invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.inv.pay));const bx=$('#invAccBox');if(bx)bx.innerHTML=accBox(S.inv.pay,'invAcc',null,'На какой счёт')},
   'cust-edit':t=>custForm(S.C[t.dataset.id]),
-  'cust-save':t=>saveCust(t.dataset.id||null,t.dataset.from),
+  'cust-save':t=>saveCust(t.dataset.id||null,t.dataset.from),'cust-merge':t=>custMerge(t.dataset.id),
   'cust-del':t=>guard(()=>S.db.collection('customers').doc(t.dataset.id).delete(),'Покупатель удалён',cperm(ckind(S.C[t.dataset.id]))),
   ckind:t=>{S.cKind=t.dataset.v;render()},
   'cf-kind':t=>{const g=$('#cf-kind');g.dataset.v=t.dataset.v;g.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===t.dataset.v))},
