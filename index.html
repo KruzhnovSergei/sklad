@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 10.11.2026 14:07</span>
+      <span class="muted" style="font-size:11px">Версия от 10.11.2026 14:16</span>
     </div>
   </aside>
   <div class="main">
@@ -1029,9 +1029,9 @@ function accBox(pay,id,cur,label){if(pay==='cash')return '';const all=accList();
   return `<label class="field"><span>${label||'Банк / счёт'}</span><select id="${id}" data-ch="${id.toLowerCase()}">${list.map(a=>`<option value="${esc(a.id)}"${a.id===sel?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>${banks.length<2&&S.isOwner?'<span class="muted small">Чтобы выбирать между банками, добавьте их во вкладке «Деньги» → «Настроить счета».</span>':''}`}
 function moneyEvents(){const E=[];const push=(o,acc,amt,label,desc,x)=>E.push({at:o.at,acc,amt,label,desc,o,...(x||{})});
   for(const o of S.sales){if(o.type==='sale'){const p=num(o.paid??o.total);if(p)push(o,accFor(o),p,'Продажа',docNo(o)+(o.cust?' · '+cname(o.cust):''))}
-    else if(o.type==='pay'&&!o.init)push(o,accFor(o),num(o.amount),o.out?'Выдача клиенту':o.adv?'Предоплата':'Оплата долга',cname(o.cust)+(o.out&&o.party?' · '+o.party:''));
+    else if(o.type==='pay'&&!o.init)push(o,accFor(o),num(o.amount),o.out?'Выдача клиенту':o.adv?'Предоплата':'Оплата долга',cname(o.cust)+(o.out&&o.party?' · '+o.party:''),{dx:'sales'});
     else if(o.type==='ret'&&num(o.total))push(o,accFor(o),-num(o.total),'Возврат покупателю',docNo(o))}
-  for(const o of S.spays)push(o,accFor(o),-num(o.amount),o.back?'Возврат от поставщика':o.lend?'Выдача поставщику':'Оплата поставщику',sname(o.supp)+(o.party?' · '+o.party:''));
+  for(const o of S.spays)push(o,accFor(o),-num(o.amount),o.back?'Возврат от поставщика':o.lend?'Выдача поставщику':'Оплата поставщику',sname(o.supp)+(o.party?' · '+o.party:''),{dx:'suppays'});
   for(const o of S.ops){if(o.type!=='in')continue;const oc=S.opc[o.id];if(oc&&oc.ppay&&num(oc.paid)>0)push(o,oc.ppay,-num(oc.paid),'Оплата прихода',docNo(o)+(o.party?' · '+o.party:''));if(oc&&num(oc.dlv)>0&&oc.dlvAcc)push(o,oc.dlvAcc,-num(oc.dlv),'Доставка товара',docNo(o)+(o.party?' · '+o.party:''))}
   for(const o of S.moneyL){const d=[o.cat,o.note].filter(Boolean).join(' · ');
     if(o.kind==='in')push(o,o.acc,num(o.amount),'Приход денег',d,{own:1});else if(o.kind==='out')push(o,o.acc,-num(o.amount),'Расход',d,{own:1,cat:o.cat||'Прочее'});
@@ -1052,7 +1052,7 @@ function vMoney(){const {E,bal}=moneyEvents();const accs=accList();const rg=rang
   <section class="pane"><div class="pane-h"><h2>Движение денег</h2><select id="mAcc" data-ch="macc" style="width:auto" aria-label="Счёт"><option value="all">Все счета</option>${accs.map(a=>`<option value="${esc(a.id)}"${a.id===S.mAcc?' selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
    <div class="row between" style="margin-bottom:10px"><div class="row">${periodBar()}</div><span class="small">Поступило <b style="color:var(--good)">${money(inn)}</b> · выплачено <b style="color:var(--bad)">${money(out)}</b></span></div>
    <div class="tbl">${ev.length?`<table><thead><tr><th>Дата</th><th>Операция</th>${one?'':'<th>Счёт</th>'}<th>Описание</th><th class="num">Приход</th><th class="num">Расход</th>${one?'<th class="num">Остаток</th>':''}<th></th></tr></thead><tbody>${ev.slice(0,300).map(e=>`<tr><td class="num" style="text-align:left">${dt(e.at)}</td><td>${esc(e.label)}${e.cat?` <span class="chip low">${esc(e.cat)}</span>`:''}</td>${one?'':`<td class="muted">${esc(accName(e.acc))}</td>`}<td>${esc(e.desc||'')}</td><td class="num" style="color:var(--good)">${e.amt>0?NF.format(r2(e.amt)):''}</td><td class="num" style="color:var(--bad)">${e.amt<0?NF.format(r2(-e.amt)):''}</td>${one?`<td class="num"><b>${NF.format(r2(e.bal))}</b></td>`:''}
-     <td style="white-space:nowrap">${e.own&&can('money')?(S.mDel===e.o.id?`<button class="btn danger" style="padding:4px 8px" data-act="m-del-yes" data-id="${esc(e.o.id)}">Удалить</button> <button class="btn link" data-act="m-del-no">Нет</button>`:`<button class="btn link" style="padding:2px 6px" data-act="m-edit" data-id="${esc(e.o.id)}">Изменить</button><button class="x" data-act="m-del" data-id="${esc(e.o.id)}" aria-label="Удалить">×</button>`):''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">За период движений нет</div>'}</div></section>
+     <td style="white-space:nowrap">${e.own&&can('money')?(S.mDel===e.o.id?`<button class="btn danger" style="padding:4px 8px" data-act="m-del-yes" data-id="${esc(e.o.id)}">Удалить</button> <button class="btn link" data-act="m-del-no">Нет</button>`:`<button class="btn link" style="padding:2px 6px" data-act="m-edit" data-id="${esc(e.o.id)}">Изменить</button><button class="x" data-act="m-del" data-id="${esc(e.o.id)}" aria-label="Удалить">×</button>`):e.dx&&can(e.dx==='suppays'?'suppliers':'payments')?`<button class="btn link" style="padding:2px 6px" data-act="mx-edit" data-id="${esc(e.o.id)}">Изменить</button>`:''}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">За период движений нет</div>'}</div></section>
   ${expT?`<section class="pane"><div class="pane-h"><h2>Расходы по статьям</h2><span class="muted">${money(expT)}</span></div><table><tbody>${Object.entries(exp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="barcell" style="--w:${(v/expT*100).toFixed(1)}%"><span>${esc(k)}</span></td><td class="num">${money(v)}</td><td class="num muted">${NF.format(r2(v/expT*100))}%</td></tr>`).join('')}</tbody></table></section>`:''}
   <p class="muted small">Расходы удобнее вести во вкладке «Расходы»: там же видна чистая прибыль. Продажи, оплаты долгов, возвраты, оплаты поставщикам и оплата приходов попадают сюда сами. Наличные идут в кассу, QR и перевод на банковский счёт; это меняется в «Настроить счета». Приходы, оформленные до появления этого раздела, не учтены: введите текущие остатки кнопкой «Пересчёт кассы / начальный остаток».</p></div>`}
 function moneyForm(kind,pr){pr=pr||{};S.mfPre=pr;const accs=accList();const {bal}=moneyEvents();const opts=sel=>accs.map(a=>`<option value="${esc(a.id)}"${a.id===sel?' selected':''}>${esc(a.name)} · ${money(bal[a.id]||0)}</option>`).join('');
@@ -1068,6 +1068,25 @@ function moneyForm(kind,pr){pr=pr||{};S.mfPre=pr;const accs=accList();const {bal
   <input id="mfNote" value="${esc(pr.note||'')}" placeholder="${kind==='in'?'Откуда деньги: внесение владельцем, займ…':kind==='move'?'Например: сдача выручки в банк':kind==='set'?'Например: начальный остаток, пересчёт в конце дня':'Комментарий'}">
   <div class="err" id="mfErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="m-save" data-v="${kind}">Сохранить</button></div>`);setTimeout(()=>$('#mfAmt')?.focus(),30)}
+/* оплаты/возвраты покупателей и поставщиков: изменить счёт, дату, сумму, комментарий или удалить */
+function mxDoc(id){const o=S.spays.find(x=>x.id===id);if(o)return{o,col:'suppays',perm:'suppliers'};const q=S.sales.find(x=>x.id===id&&x.type==='pay');return q?{o:q,col:'sales',perm:'payments'}:null}
+function mxForm(id){const X=mxDoc(id);if(!X)return;const o=X.o;const accs=accList();const acc=accFor(o);S.mx=id;
+  const who=X.col==='suppays'?'Поставщик: '+sname(o.supp):'Покупатель: '+cname(o.cust);
+  openModal(`<h2>Изменить: ${esc(tlabel(o))}</h2><p class="muted small">${esc(who)}${(()=>{const P=o.po&&(S.posL||[]).find(x=>x.id===o.po);return P?' · по заказу '+esc(docNo(P)):''})()}</p>
+  <div class="row"><label class="field"><span>Счёт</span><select id="mxAcc">${accs.map(a=>`<option value="${esc(a.id)}"${a.id===acc?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>
+   <label class="field" style="flex:0 1 170px"><span>Дата</span><input type="date" id="mxDate" value="${isoD(new Date(o.at))}"></label></div>
+  <div class="row"><label class="field"><span>Сумма, сом</span><input id="mxAmt" inputmode="decimal" value="${esc(r2(Math.abs(num(o.amount))))}"></label></div>
+  <input id="mxNote" value="${esc(o.party||'')}" placeholder="Комментарий">
+  <div class="err" id="mxErr"></div>
+  <div class="row between"><span>${can('delete')?`<button class="btn link bad" data-act="mx-del">Удалить</button>`:''}</span><span class="row"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="mx-save">Сохранить</button></span></div>`);setTimeout(()=>$('#mxAmt')?.focus(),30)}
+async function mxSave(){const X=mxDoc(S.mx);if(!X)return;const o=X.o;const err=$('#mxErr');const amt=r2(num($('#mxAmt').value));if(!(amt>0)){err.textContent='Введите сумму';return}
+  const acc=$('#mxAcc').value;const sign=num(o.amount)<0?-1:1;const v=sign*amt;let at=o.at;const dv=$('#mxDate').value;if(dv&&dv!==isoD(new Date(o.at))){const [y,m,d]=dv.split('-').map(Number);at=new Date(y,m-1,d,12).toISOString()}
+  const u={acc,pay:acc==='cash'||acc===accOf('cash')?'cash':'transfer',at,amount:v,total:v,party:$('#mxNote').value.trim(),edAt:now(),edBy:S.uid||null};
+  if(X.col==='suppays'&&!o.back){const dd=supDebtOf(o.supp)+num(o.amount);if(!o.po&&!o.adv)u.lend=amt>Math.max(0,dd)+0.004}
+  if(X.col==='sales'&&!o.out){const dd=debtOf(o.cust)+num(o.amount);u.adv=amt>Math.max(0,dd)+0.004}
+  if(await guard(()=>S.db.collection(X.col).doc(o.id).update(u),'Сохранено',X.perm)){Object.assign(o,u);derive();S.mx=null;closeModal(true);render()}}
+async function mxDel(){const X=mxDoc(S.mx);if(!X)return;if(!confirm(`Удалить «${tlabel(X.o)}» на ${money(Math.abs(num(X.o.amount)))}? Долги и остатки на счетах пересчитаются.`))return;
+  if(await guard(()=>S.db.collection(X.col).doc(X.o.id).delete(),'Удалено','delete')){S.mx=null;closeModal(true);render()}}
 async function saveMoney(kind){const err=$('#mfErr');const amt=r2(num($('#mfAmt').value));const acc=$('#mfAcc').value;
   if(kind==='set'?amt<0||$('#mfAmt').value.trim()==='':amt<=0){err.textContent='Введите сумму';return}
   const P0=S.mfPre||{};let at=now();const dv=$('#mfDate')?.value;if(P0.edit){at=P0.at;if(dv&&dv!==isoD(new Date(P0.at))){const [y,m,dd]=dv.split('-').map(Number);at=new Date(y,m-1,dd,12).toISOString()}}else if(dv&&dv!==isoD(new Date())){const [y,m,dd]=dv.split('-').map(Number);at=new Date(y,m-1,dd,12).toISOString()}
@@ -3506,7 +3525,7 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
 'comm-list':t=>commList(t.dataset.id),
   'reg-new':()=>regForm(null),'reg-edit':t=>regForm(t.dataset.id),'reg-save':()=>saveReg(false),'reg-del':()=>saveReg(true),
   'reg-post':t=>{const r=regList().find(x=>x.id===t.dataset.id);if(r)moneyForm('out',{cat:r.cat,amount:r.amount,acc:r.acc,note:r.note,reg:r.id,month:ymKey(new Date())})},
-  'm-save':t=>saveMoney(t.dataset.v),
+  'm-save':t=>saveMoney(t.dataset.v),'mx-edit':t=>mxForm(t.dataset.id),'mx-save':()=>mxSave(),'mx-del':()=>mxDel(),
   'm-edit':t=>{const m=S.moneyL.find(x=>x.id===t.dataset.id);if(!m)return;if(!can('money')){toast('Нет прав');return}moneyForm(m.kind,{edit:m.id,acc:m.acc,amount:m.amount,cat:m.cat,note:m.note,to:m.to,at:m.at,reg:m.reg,month:m.month,staff:m.staff,per:m.per})},
   'm-del':t=>{S.mDel=t.dataset.id;render()},'m-del-no':()=>{S.mDel=null;render()},
   'm-del-yes':async t=>{if(await guard(()=>S.db.collection('money').doc(t.dataset.id).delete(),'Операция удалена','money')){S.mDel=null}},
