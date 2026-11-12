@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 10.11.2026 14:16</span>
+      <span class="muted" style="font-size:11px">Версия от 12.11.2026 20:16</span>
     </div>
   </aside>
   <div class="main">
@@ -296,7 +296,25 @@ const ds=iso=>new Date(iso).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-d
 const ls={get(k,d){try{const v=localStorage.getItem('sk_'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('sk_'+k,JSON.stringify(v))}catch(e){}}};
 
 const TYPES={in:{label:'Приход',doc:'Приходная накладная',pre:'ПН'},sale:{label:'Продажа',doc:'Чек',pre:'ЧК'},pay:{label:'Оплата долга',doc:'Квитанция об оплате',pre:'КВ'},move:{label:'Перемещение',doc:'Накладная на перемещение',pre:'ПМ'},off:{label:'Списание',doc:'Акт списания',pre:'АС'}};
-const PAY={qr:'Оплата по QR',cash:'Наличные',transfer:'Перевод (юр. лица)'};const PAYL={...PAY,card:'Карта'};
+const PAY={qr:'Оплата по QR',cash:'Наличные',transfer:'Перевод (юр. лица)'};const PAYL={...PAY,card:'Карта',tumar:'Рассрочка «Тумар»'};
+/* рассрочка «Тумар»: банк перечисляет всю сумму, а раз в месяц забирает свою долю (комиссия + НДС + НсП).
+   Эта доля не входит в прибыль, а её оплата банку — не расход. */
+function tumCfg(){const t=S.set?.tumar||{};return{fee:t.fee??12,vat:t.vat??12,nsp:t.nsp??1,nspVat:t.nspVat??true,acc:t.acc||''}}
+function tumFee(amt){const c=tumCfg();const a=r2(num(amt)*c.fee/100),v=r2(a*c.vat/100),n=r2((c.nspVat?a+v:a)*c.nsp/100);return{a,v,n,t:r2(a+v+n)}}
+const bfee=o=>o&&o.type==='sale'?num(o.bfee):0;
+const ifee=(o,k)=>{const f=bfee(o);if(!f)return 0;const T=(o.items||[]).reduce((s,i)=>s+isum(i),0);return T?f*isum(o.items[k])/T:0};
+function tumAcc(){const c=tumCfg();const L=accList();return L.some(a=>a.id===c.acc)?c.acc:(L.find(a=>/бакай/i.test(a.name))||L.find(a=>a.id!=='cash')||L[0]).id}
+function tumDue(){return r2(S.sales.reduce((a,o)=>a+bfee(o),0)-S.moneyL.filter(m=>m.kind==='bank').reduce((a,m)=>a+num(m.amount),0))}
+function tumHtml(total){const c=tumCfg();const F=tumFee(total);const pc=x=>NF.format(x)+'%';
+  return `<div class="infobox small"><b>Рассрочка «Тумар»: банк удержит ${money(F.t)}</b><br>комиссия ${pc(c.fee)} — ${money(F.a)} · НДС ${pc(c.vat)} — ${money(F.v)} · НсП ${pc(c.nsp)} — ${money(F.n)}<br>Вам останется <b>${money(r2(total-F.t))}</b>. Доля банка не входит в прибыль; её оплата банку — не расход.${S.isOwner?' <button class="btn link" data-act="tum-cfg" style="padding:0 4px">Проценты</button>':''}</div>`}
+function tumCfgForm(){const c=tumCfg();const ta=tumAcc();openModal(`<h2>Рассрочка «Тумар»</h2>
+  <p class="muted small">Банк перечисляет всю сумму продажи, а раз в месяц вы оплачиваете ему его долю с этого счёта.</p>
+  <div class="row"><label class="field"><span>Комиссия банка, % от цены</span><input id="tfFee" inputmode="decimal" value="${esc(c.fee)}"></label><label class="field"><span>НДС, % от комиссии</span><input id="tfVat" inputmode="decimal" value="${esc(c.vat)}"></label><label class="field"><span>НсП, %</span><input id="tfNsp" inputmode="decimal" value="${esc(c.nsp)}"></label></div>
+  <label class="check"><input type="checkbox" id="tfNspVat"${c.nspVat?' checked':''}> НсП считается от комиссии вместе с НДС (если снять — только от комиссии)</label>
+  <label class="field"><span>Счёт, куда приходят деньги и откуда платите банку</span><select id="tfAcc">${accList().map(a=>`<option value="${esc(a.id)}"${a.id===ta?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>
+  <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="tum-cfg-save">Сохранить</button></div>`)}
+async function tumCfgSave(){const t={fee:r2(num($('#tfFee').value)),vat:r2(num($('#tfVat').value)),nsp:r2(num($('#tfNsp').value)),nspVat:$('#tfNspVat').checked,acc:$('#tfAcc').value};
+  if(await guard(()=>S.db.doc('settings/main').set({tumar:t},{merge:true}),'Сохранено','money')){S.set.tumar=t;closeModal(true);render()}}
 const UNITS=['шт','кг','г','л','м','уп','кор'];
 const ROLE={owner:'Владелец',admin:'Администратор',seller:'Продавец',view:'Просмотр'};
 const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Розничные покупатели: добавление и изменение'],['custopt','Оптовые покупатели: добавление и изменение'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['calc','Расчёт ПК по прайсам поставщиков'],['buy','Скупка у физлиц: акты закупа'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль'],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена и снятие деталей'],['pcsite','Собранные ПК: фото и описание для сайта']];
@@ -568,8 +586,8 @@ function cartHtml(){
    <div class="stack" style="gap:10px">
    <div class="row"><select id="custSel" data-ch="custsel" style="flex:1 1 160px${S.custSel?'':';border-color:var(--warn,#B4600B)'}" aria-label="Покупатель" required><option value="">— Выберите покупателя —</option>${cs.map(x=>custOpt(x,x.id===S.custSel)).join('')}</select><button class="btn ghost" data-act="cust-new" data-from="cart"${roC()}>+ Покупатель</button></div>
    <div class="infobox" id="custInfo"></div>
-   <div class="seg" role="group" aria-label="Способ оплаты">${Object.entries(PAY).map(([k,v])=>`<button data-act="pay" data-v="${k}" aria-pressed="${S.pay===k}">${v}</button>`).join('')}</div>
-   <div id="payAccBox">${accBox(S.pay,'cartAcc',S.payAcc,'Куда поступит оплата')}</div>
+   <div class="seg" role="group" aria-label="Способ оплаты">${Object.entries({...PAY,tumar:PAYL.tumar}).map(([k,v])=>`<button data-act="pay" data-v="${k}" aria-pressed="${S.pay===k}">${v}</button>`).join('')}</div>
+   <div id="payAccBox">${accBox(S.pay,'cartAcc',S.pay==='tumar'?tumAcc():S.payAcc,'Куда поступит оплата')}</div><div id="tumBox"></div>
    ${can('debt')?`<label class="check"><input type="checkbox" id="debtOn" data-ch="debton"${S.debtOn?' checked':''}> Продать в долг, полностью или частично</label>`:''}
    ${S.debtOn?`<label class="field"><span>Оплачено сейчас, сом</span><input id="paidNow" data-in="paidnow" inputmode="decimal" value="${esc(S.paidNow)}" placeholder="0"></label>`:''}
    <input id="note" data-in="note" placeholder="Комментарий к чеку (необязательно)" value="${esc(S.note)}">
@@ -588,11 +606,12 @@ function updCart(){
     const w=$('#lw'+i);if(!w)return;const a=qty(S.curWh,l.p);let msg='';
     if(S.P[l.p]?.serial){if(!(l.sn||[]).length)msg='Выберите серийные номера'}
     else if(need[l.p]>a)msg=`На складе только ${q3(a)} ${unit(l.p)}`;
-    if(!msg&&floorOn()&&c.L[i].q>0){const pcs=(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null;const f=floorOf(l.p,pcs);const u=c.sub>0?c.L[i].s*(c.total/c.sub)/c.L[i].q:0;if(f>0&&u<f-0.5)msg=`Ниже минимальной цены: не дешевле ${money(Math.ceil(f))} за шт`}
+    if(!msg&&floorOn()&&c.L[i].q>0){const pcs=(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null;const f=floorOf(l.p,pcs);const u=(c.sub>0?c.L[i].s*(c.total/c.sub)/c.L[i].q:0)*(S.pay==='tumar'?1-tumFee(1e6).t/1e6:1);if(f>0&&u<f-0.5)msg=`Ниже минимальной цены: не дешевле ${money(Math.ceil(f))} за шт`}
     if(!msg&&myMaxDisc()!=null){const le=c.L[i].q&&c.L[i].lp?(1-c.L[i].s/(c.L[i].q*c.L[i].lp))*100:0;if(le>myMaxDisc()+0.01)msg=`Скидка ${NF.format(r2(le))}% больше разрешённой`}
     w.textContent=msg});
   const set=(id,t)=>{const e=$(id);if(e)e.textContent=t};
   set('#cSub',money(c.sub));set('#cCd',c.cd?'−'+money(c.cd):'');set('#cartTotal',money(c.total));
+  {const tb=$('#tumBox');if(tb)tb.innerHTML=S.pay==='tumar'&&c.total>0?tumHtml(c.total):''}
   set('#cEff',c.eff>0.005?`скидка ${money(c.list-c.total)} (${NF.format(r2(c.eff))}%)`:'');
   let info='';if(S.custSel){const d=debtOf(S.custSel),lim=num(S.C[S.custSel]?.limit);info=d<-0.004?'':`Долг сейчас: ${money(d)}${lim?` · лимит ${money(lim)}`:''}`;
     if(S.debtOn){const nd=r2(c.total-Math.min(c.total,num(S.paidNow)));info+=` · по этому чеку в долг ${money(nd)}, станет ${money(d+nd)}`}}
@@ -607,7 +626,8 @@ async function postSale(){
   const need={};S.cart.forEach((l,i)=>need[l.p]=(need[l.p]||0)+c.L[i].q);
   for(const p in need)if(r3(need[p])>qty(S.curWh,p)){err.textContent=`Недостаточно «${pname(p)}»: на складе ${q3(qty(S.curWh,p))}`;return}
   for(const l of S.cart)for(const sn of (l.sn||[]))if(S.snLoc[sn]?.wh!==S.curWh){err.textContent=`Номер ${sn} уже не числится на этом складе`;return}
-  if(floorOn()){const k=c.sub>0?c.total/c.sub:1;const b=floorBad(S.cart.map((l,i)=>({p:l.p,sn:(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null,q:c.L[i].q,unit:c.L[i].q?c.L[i].s*k/c.L[i].q:0})));
+  if(S.pay==='tumar'&&S.debtOn){err.textContent='При рассрочке «Тумар» всю сумму платит банк — снимите галочку «Продать в долг»';return}
+  if(floorOn()){const k=(c.sub>0?c.total/c.sub:1)*(S.pay==='tumar'?1-tumFee(1e6).t/1e6:1);const b=floorBad(S.cart.map((l,i)=>({p:l.p,sn:(l.sn||[]).length===1&&S.pca[l.sn[0]]?l.sn[0]:null,q:c.L[i].q,unit:c.L[i].q?c.L[i].s*k/c.L[i].q:0})));
     if(b){err.textContent=`«${pname(b.p)}» нельзя продать дешевле ${money(Math.ceil(b.f))} за шт — это ниже себестоимости. Уменьшите скидку или обратитесь к владельцу.`;return}}
   if(myMaxDisc()!=null){const mx=myMaxDisc()+0.01;if(c.eff>mx||S.cart.some((l,i)=>c.L[i].lp&&(1-c.L[i].s/(c.L[i].q*c.L[i].lp))*100>mx)){err.textContent=`Скидка больше разрешённой (${NF.format(myMaxDisc())}%). Обратитесь к владельцу.`;return}}
   let paid=c.total;if(!S.debtOn&&S.custSel){const A=Math.max(0,-debtOf(S.custSel));if(A>0.004)paid=r2(Math.max(0,c.total-A))}
@@ -620,6 +640,7 @@ async function postSale(){
   const diff=r2(c.total-items.reduce((s,i)=>s+i.sum,0));if(items.length&&diff)items[items.length-1].sum=r2(items[items.length-1].sum+diff);
   const acc=S.pay==='cash'?accOf('cash'):($('#cartAcc')?.value||accOf(S.pay));S.payAcc=S.pay==='cash'?S.payAcc:acc;
   const o={type:'sale',at:now(),wh:S.curWh,items,sub:c.sub,disc:c.cd,total:c.total,paid,pay:S.pay,acc,cust:S.custSel||null,party:S.note.trim(),by:S.uid||null};
+  if(S.pay==='tumar'&&paid>0){const F=tumFee(paid),C=tumCfg();o.bfee=F.t;o.bfeeD={a:F.a,v:F.v,n:F.n,fee:C.fee,vat:C.vat,nsp:C.nsp}}
   const debtAfter=S.custSel?r2(debtOf(S.custSel)+c.total-paid):null;
   const ref=S.db.collection('sales').doc();
   const ok=await guard(()=>ref.set(o));
@@ -1023,7 +1044,7 @@ async function expCatSave(){const v=($('#ecName')?.value||'').trim().replace(/\s
 async function expCatDel(v){const L=expCustom().filter(x=>x!==v);if(await guard(()=>S.db.doc('settings/main').update({expCats:L}),'Статья убрана из кнопок','money')){S.set.expCats=L;expCatForm()}}
 function accList(){const a=S.set.accounts;return a&&a.length?a:[{id:'cash',name:'Касса (наличные)'},{id:'bank',name:'Банковский счёт'}]}
 const accName=id=>accList().find(a=>a.id===id)?.name||'Счёт';
-function accOf(pay){const m={cash:'cash',qr:'bank',transfer:'bank',card:'bank',...(S.set.payAcc||{})};const id=m[pay]||'cash';return accList().some(a=>a.id===id)?id:accList()[0].id}
+function accOf(pay){if(pay==='tumar')return tumAcc();const m={cash:'cash',qr:'bank',transfer:'bank',card:'bank',...(S.set.payAcc||{})};const id=m[pay]||'cash';return accList().some(a=>a.id===id)?id:accList()[0].id}
 const accFor=o=>o.acc&&accList().some(a=>a.id===o.acc)?o.acc:accOf(o.pay);
 function accBox(pay,id,cur,label){if(pay==='cash')return '';const all=accList();const banks=all.filter(a=>a.id!=='cash');const list=banks.length?banks:all;const sel=cur&&list.some(a=>a.id===cur)?cur:accOf(pay);
   return `<label class="field"><span>${label||'Банк / счёт'}</span><select id="${id}" data-ch="${id.toLowerCase()}">${list.map(a=>`<option value="${esc(a.id)}"${a.id===sel?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>${banks.length<2&&S.isOwner?'<span class="muted small">Чтобы выбирать между банками, добавьте их во вкладке «Деньги» → «Настроить счета».</span>':''}`}
@@ -1036,7 +1057,8 @@ function moneyEvents(){const E=[];const push=(o,acc,amt,label,desc,x)=>E.push({a
   for(const o of S.moneyL){const d=[o.cat,o.note].filter(Boolean).join(' · ');
     if(o.kind==='in')push(o,o.acc,num(o.amount),'Приход денег',d,{own:1});else if(o.kind==='out')push(o,o.acc,-num(o.amount),'Расход',d,{own:1,cat:o.cat||'Прочее'});
     else if(o.kind==='move'){push(o,o.acc,-num(o.amount),'Перевод',`в «${accName(o.to)}»`+(o.note?' · '+o.note:''),{own:1,mv:1});push(o,o.to,num(o.amount),'Перевод',`из «${accName(o.acc)}»`+(o.note?' · '+o.note:''),{own:1,mv:1})}
-    else if(o.kind==='set')push(o,o.acc,0,'Пересчёт остатка',o.note||'',{own:1,set:num(o.amount)})}
+    else if(o.kind==='set')push(o,o.acc,0,'Пересчёт остатка',o.note||'',{own:1,set:num(o.amount)})
+    else if(o.kind==='bank')push(o,o.acc,-num(o.amount),'Оплата банку за «Тумар»',o.note||'',{own:1})}
   E.sort((a,b)=>(a.at||'').localeCompare(b.at||''));const bal={};for(const e of E){const b=bal[e.acc]||0;if(e.set!=null){e.amt=r2(e.set-b);bal[e.acc]=e.set}else bal[e.acc]=r2(b+e.amt);e.bal=bal[e.acc]}return{E,bal}}
 function periodBar(){const {from,to}=range();const per=[['today','Сегодня'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['all','Всё время'],['custom','Выбрать даты']];
   return `<div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>${S.period==='custom'?`<div class="row" style="gap:8px"><label class="row" style="gap:6px">с <input type="date" id="rFrom" data-ch="rfrom" value="${isoD(from)}" style="width:auto"></label><label class="row" style="gap:6px">по <input type="date" id="rTo" data-ch="rto" value="${isoD(to)}" style="width:auto"></label></div>`:`<span class="muted small">${ds(from)} — ${ds(to)}</span>`}`}
@@ -1047,8 +1069,8 @@ function vMoney(){const {E,bal}=moneyEvents();const accs=accList();const rg=rang
   const exp={};for(const e of ev)if(e.label==='Расход')exp[e.cat]=(exp[e.cat]||0)-e.amt;const expT=Object.values(exp).reduce((a,b)=>a+b,0);
   const known=new Set(accs.map(a=>a.id));const other=Object.keys(bal).filter(k=>!known.has(k)&&Math.abs(bal[k])>0.004);
   return `<div class="stack">
-  <div class="kpis">${accs.map(a=>`<div class="kpi${a.id==='cash'?' main':''}" data-act="macc-pick" data-v="${esc(a.id)}" role="button" tabindex="0" title="Показать движение только по этому счёту" style="cursor:pointer;${S.mAcc===a.id?'outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft);':''}"><span>${esc(a.name)}${S.mAcc===a.id?' · выбран':''}</span><b${(bal[a.id]||0)<0?' style="color:var(--bad)"':''}>${money(bal[a.id]||0)}</b><span>сегодня +${NF.format(r2(td[a.id]?.i||0))} / −${NF.format(r2(td[a.id]?.o||0))}</span></div>`).join('')}${other.map(k=>`<div class="kpi"><span>Удалённый счёт</span><b>${money(bal[k])}</b></div>`).join('')}<div class="kpi" data-act="macc-pick" data-v="all" role="button" tabindex="0" title="Показать все счета" style="cursor:pointer;${!S.mAcc||S.mAcc==='all'?'outline:2px solid var(--accent);outline-offset:-2px;':''}"><span>Всего денег</span><b>${money(Object.values(bal).reduce((a,b)=>a+b,0))}</b></div></div>
-  <div class="row"><button class="btn" data-act="m-new" data-v="in">+ Приход денег</button><button class="btn" data-act="m-new" data-v="out">− Расход</button><button class="btn ghost" data-act="m-new" data-v="move">Перевод между счетами</button><button class="btn ghost" data-act="m-new" data-v="set">Пересчёт кассы / начальный остаток</button>${S.isOwner?'<button class="btn link" data-act="m-acc">Настроить счета</button>':''}</div>
+  <div class="kpis">${accs.map(a=>`<div class="kpi${a.id==='cash'?' main':''}" data-act="macc-pick" data-v="${esc(a.id)}" role="button" tabindex="0" title="Показать движение только по этому счёту" style="cursor:pointer;${S.mAcc===a.id?'outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-soft);':''}"><span>${esc(a.name)}${S.mAcc===a.id?' · выбран':''}</span><b${(bal[a.id]||0)<0?' style="color:var(--bad)"':''}>${money(bal[a.id]||0)}</b><span>сегодня +${NF.format(r2(td[a.id]?.i||0))} / −${NF.format(r2(td[a.id]?.o||0))}</span>${a.id===tumAcc()&&tumDue()>0.004?`<span style="color:var(--warn,#B4600B)">из них банку за «Тумар» ${money(tumDue())}</span>`:''}</div>`).join('')}${other.map(k=>`<div class="kpi"><span>Удалённый счёт</span><b>${money(bal[k])}</b></div>`).join('')}<div class="kpi" data-act="macc-pick" data-v="all" role="button" tabindex="0" title="Показать все счета" style="cursor:pointer;${!S.mAcc||S.mAcc==='all'?'outline:2px solid var(--accent);outline-offset:-2px;':''}"><span>Всего денег</span><b>${money(Object.values(bal).reduce((a,b)=>a+b,0))}</b></div></div>
+  <div class="row"><button class="btn" data-act="m-new" data-v="in">+ Приход денег</button><button class="btn" data-act="m-new" data-v="out">− Расход</button><button class="btn ghost" data-act="m-new" data-v="move">Перевод между счетами</button><button class="btn ghost" data-act="m-new" data-v="set">Пересчёт кассы / начальный остаток</button>${tumDue()>0.004||S.sales.some(o=>bfee(o))?`<button class="btn ghost" data-act="m-new" data-v="bank">Оплатить банку «Тумар»${tumDue()>0.004?' · '+money(tumDue()):''}</button>`:''}${S.isOwner?'<button class="btn link" data-act="m-acc">Настроить счета</button>':''}</div>
   <section class="pane"><div class="pane-h"><h2>Движение денег</h2><select id="mAcc" data-ch="macc" style="width:auto" aria-label="Счёт"><option value="all">Все счета</option>${accs.map(a=>`<option value="${esc(a.id)}"${a.id===S.mAcc?' selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
    <div class="row between" style="margin-bottom:10px"><div class="row">${periodBar()}</div><span class="small">Поступило <b style="color:var(--good)">${money(inn)}</b> · выплачено <b style="color:var(--bad)">${money(out)}</b></span></div>
    <div class="tbl">${ev.length?`<table><thead><tr><th>Дата</th><th>Операция</th>${one?'':'<th>Счёт</th>'}<th>Описание</th><th class="num">Приход</th><th class="num">Расход</th>${one?'<th class="num">Остаток</th>':''}<th></th></tr></thead><tbody>${ev.slice(0,300).map(e=>`<tr><td class="num" style="text-align:left">${dt(e.at)}</td><td>${esc(e.label)}${e.cat?` <span class="chip low">${esc(e.cat)}</span>`:''}</td>${one?'':`<td class="muted">${esc(accName(e.acc))}</td>`}<td>${esc(e.desc||'')}</td><td class="num" style="color:var(--good)">${e.amt>0?NF.format(r2(e.amt)):''}</td><td class="num" style="color:var(--bad)">${e.amt<0?NF.format(r2(-e.amt)):''}</td>${one?`<td class="num"><b>${NF.format(r2(e.bal))}</b></td>`:''}
@@ -1056,16 +1078,18 @@ function vMoney(){const {E,bal}=moneyEvents();const accs=accList();const rg=rang
   ${expT?`<section class="pane"><div class="pane-h"><h2>Расходы по статьям</h2><span class="muted">${money(expT)}</span></div><table><tbody>${Object.entries(exp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="barcell" style="--w:${(v/expT*100).toFixed(1)}%"><span>${esc(k)}</span></td><td class="num">${money(v)}</td><td class="num muted">${NF.format(r2(v/expT*100))}%</td></tr>`).join('')}</tbody></table></section>`:''}
   <p class="muted small">Расходы удобнее вести во вкладке «Расходы»: там же видна чистая прибыль. Продажи, оплаты долгов, возвраты, оплаты поставщикам и оплата приходов попадают сюда сами. Наличные идут в кассу, QR и перевод на банковский счёт; это меняется в «Настроить счета». Приходы, оформленные до появления этого раздела, не учтены: введите текущие остатки кнопкой «Пересчёт кассы / начальный остаток».</p></div>`}
 function moneyForm(kind,pr){pr=pr||{};S.mfPre=pr;const accs=accList();const {bal}=moneyEvents();const opts=sel=>accs.map(a=>`<option value="${esc(a.id)}"${a.id===sel?' selected':''}>${esc(a.name)} · ${money(bal[a.id]||0)}</option>`).join('');
-  const T={in:'Приход денег',out:'Расход',move:'Перевод между счетами',set:'Пересчёт кассы / начальный остаток'};
+  const T={in:'Приход денег',out:'Расход',move:'Перевод между счетами',set:'Пересчёт кассы / начальный остаток',bank:'Оплата банку за рассрочку «Тумар»'};
+  if(kind==='bank'&&!pr.edit){pr={acc:tumAcc(),amount:Math.max(0,tumDue())||'',...pr};S.mfPre=pr}
   const ED=!!pr.edit;
   openModal(`<h2>${ED?'Изменить: ':''}${T[kind]}</h2>
-  <div class="row"><label class="field"><span>${kind==='move'?'Откуда':'Счёт'}</span><select id="mfAcc" data-ch="mfacc">${opts(pr.acc||'cash')}</select></label>${kind==='out'||kind==='in'?`<label class="field" style="flex:0 1 170px"><span>Дата</span><input type="date" id="mfDate" value="${isoD(pr.at?new Date(pr.at):new Date())}"></label>`:''}${kind==='move'?`<label class="field"><span>Куда</span><select id="mfTo">${opts(pr.to||accs[1]?.id||accs[0].id)}</select></label>`:''}</div>
+  <div class="row"><label class="field"><span>${kind==='move'?'Откуда':'Счёт'}</span><select id="mfAcc" data-ch="mfacc">${opts(pr.acc||'cash')}</select></label>${kind==='out'||kind==='in'||kind==='bank'?`<label class="field" style="flex:0 1 170px"><span>Дата</span><input type="date" id="mfDate" value="${isoD(pr.at?new Date(pr.at):new Date())}"></label>`:''}${kind==='move'?`<label class="field"><span>Куда</span><select id="mfTo">${opts(pr.to||accs[1]?.id||accs[0].id)}</select></label>`:''}</div>
   ${kind==='set'?`<p class="muted small" id="mfCur">По учёту сейчас: ${money(bal['cash']||0)}. Введите сумму, которая есть на самом деле. Разница запишется как корректировка.</p>`:''}
   <div class="row"><label class="field"><span>${kind==='set'?'Фактический остаток, сом':'Сумма, сом'}</span><input id="mfAmt" inputmode="decimal" value="${esc(pr.amount||'')}"></label>${kind==='out'?`<label class="field"><span>Статья расхода</span><input id="mfCat" list="mfCats" value="${esc(pr.cat||'Прочее')}"><datalist id="mfCats">${[...new Set([...expCats(),...S.moneyL.map(m=>m.cat).filter(Boolean)])].map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>`:''}</div>
   ${kind==='out'&&!ED?`<label class="field" style="flex:none"><span>Кому (если деньги выданы клиенту или поставщику — у него появится долг)</span><select id="mfWho" data-ch="mfwho"><option value="">— Обычный расход (зарплата, аренда, налоги…)</option>${can('payments')&&S.cust.length?`<optgroup label="Покупатели">${[...S.cust].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(c=>{const d=debtOf(c.id);return `<option value="c:${esc(c.id)}">${esc(c.name)}${d>0.004?' · долг '+NF.format(d):d<-0.004?' · предоплата '+NF.format(-d):''}</option>`}).join('')}</optgroup>`:''}${can('suppliers')&&S.supp.length?`<optgroup label="Поставщики">${[...S.supp].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(x=>{const d=supDebtOf(x.id);return `<option value="s:${esc(x.id)}">${esc(x.name)}${d>0.004?' · наш долг '+NF.format(d):d<-0.004?' · должен нам '+NF.format(-d):''}</option>`}).join('')}</optgroup>`:''}</select></label>`:''}
   ${kind==='in'&&!ED&&can('payments')?`<label class="field" style="flex:none"><span>От кого (покупатель — предоплата или оплата долга; поставщик — возврат денег)</span><select id="mfCust"><option value="">— Не от покупателя (обычный приход денег)</option>${[...S.cust].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(c=>{const d=debtOf(c.id);return `<option value="${esc(c.id)}">${esc(c.name)}${d>0.004?' · долг '+NF.format(d):d<-0.004?' · предоплата '+NF.format(-d):''}</option>`}).join('')}${can('suppliers')&&S.supp.length?`<optgroup label="Поставщики">${[...S.supp].sort((a,b)=>(a.name||'').localeCompare(b.name||'','ru')).map(x=>{const d=supDebtOf(x.id);return `<option value="s:${esc(x.id)}">${esc(x.name)}${d<-0.004?' · должен нам '+NF.format(-d):d>0.004?' · наш долг '+NF.format(d):''}</option>`}).join('')}</optgroup>`:''}</select></label>`:''}
   ${kind==='out'&&S.staffL.some(x=>num(x.pct)>0)?`<label class="field" style="flex:none"><span>Сотрудник — если это выплата процента от маржи</span><select id="mfStaff"><option value="">— Не выплата процента</option>${S.staffL.filter(x=>num(x.pct)>0||x.id===pr.staff).map(x=>`<option value="${esc(x.id)}"${x.id===pr.staff?' selected':''}>${esc(x.label||x.name||'Сотрудник')}</option>`).join('')}</select></label>`:''}
-  <input id="mfNote" value="${esc(pr.note||'')}" placeholder="${kind==='in'?'Откуда деньги: внесение владельцем, займ…':kind==='move'?'Например: сдача выручки в банк':kind==='set'?'Например: начальный остаток, пересчёт в конце дня':'Комментарий'}">
+  ${kind==='bank'?`<p class="muted small">По учёту банку причитается за рассрочку «Тумар»: <b>${money(tumDue())}</b>${pr.edit?' (с учётом этой оплаты — '+money(tumDue()+num(pr.amount))+')':''}. Эта оплата не считается расходом и не уменьшает прибыль — доля банка уже вычтена из прибыли в момент продажи.</p>`:''}
+  <input id="mfNote" value="${esc(pr.note||'')}" placeholder=""${kind==='in'?'Откуда деньги: внесение владельцем, займ…':kind==='move'?'Например: сдача выручки в банк':kind==='set'?'Например: начальный остаток, пересчёт в конце дня':'Комментарий'}">
   <div class="err" id="mfErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="m-save" data-v="${kind}">Сохранить</button></div>`);setTimeout(()=>$('#mfAmt')?.focus(),30)}
 /* оплаты/возвраты покупателей и поставщиков: изменить счёт, дату, сумму, комментарий или удалить */
@@ -1115,9 +1139,9 @@ function accForm(){const accs=accList().map(a=>({...a}));S.accEdit=accs;const pa
 const accRowsHtml=()=>S.accEdit.map((a,i)=>`<label class="field"><span>${a.id==='cash'?'Наличная касса':'Счёт'}</span><input id="acn${i}" data-in="accname" data-i="${i}" value="${esc(a.name)}"></label>`).join('');
 
 /* ---------- расходы и прибыль ---------- */
-function calcPL(rg){let rev=0,cogs=0;for(const o of S.all){if(!inR(o,rg))continue;const dc=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
-    if(o.type==='sale'){rev+=num(o.total);cogs+=dc}else if(o.type==='ret'){rev-=num(o.total);if(o.restock)cogs-=dc}else if(o.type==='wx')cogs+=dc}
-  const exp=S.moneyL.filter(m=>m.kind==='out'&&inR(m,rg)).reduce((a,m)=>a+num(m.amount),0);return{rev,cogs,gross:rev-cogs,exp,net:rev-cogs-exp}}
+function calcPL(rg){let rev=0,cogs=0,fee=0;for(const o of S.all){if(!inR(o,rg))continue;const dc=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
+    if(o.type==='sale'){rev+=num(o.total);cogs+=dc;fee+=bfee(o)}else if(o.type==='ret'){rev-=num(o.total);if(o.restock)cogs-=dc}else if(o.type==='wx')cogs+=dc}
+  const exp=S.moneyL.filter(m=>m.kind==='out'&&inR(m,rg)).reduce((a,m)=>a+num(m.amount),0);return{rev,cogs,fee,gross:rev-cogs-fee,exp,net:rev-cogs-fee-exp}}
 const ymKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const monthName=d=>d.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
 function regList(){return S.set.regular||[]}
@@ -1163,7 +1187,7 @@ function vExpenses(){const rg=range();const pl=calcPL(rg);const sc=can('cost');
   <div class="row between"><div class="row">${periodBar()}</div><button class="btn" data-act="exp-new">+ Добавить расход</button></div>
   <div class="kpis">
    <div class="kpi"><span>Выручка</span><b>${money(pl.rev)}</b></div>
-   ${sc?`<div class="kpi"><span>Себестоимость проданного</span><b>${money(pl.cogs)}</b></div><div class="kpi"><span>Валовая прибыль</span><b>${money(pl.gross)}</b></div>`:''}
+   ${sc?`<div class="kpi"><span>Себестоимость проданного</span><b>${money(pl.cogs)}</b></div>${pl.fee>0.004?`<div class="kpi"><span>Доля банка за рассрочку</span><b>${money(pl.fee)}</b><small>не прибыль и не расход</small></div>`:''}<div class="kpi"><span>Валовая прибыль</span><b>${money(pl.gross)}</b></div>`:''}
    <div class="kpi"><span>Расходы</span><b style="color:var(--bad)">${money(pl.exp)}</b></div>
    ${sc?`<div class="kpi main"><span>Чистая прибыль</span><b style="color:${npc}">${money(pl.net)}</b><span>${pl.rev?'рентабельность '+NF.format(r2(pl.net/pl.rev*100))+'%':''}</span></div>`:''}
   </div>
@@ -1710,7 +1734,7 @@ function jDetail(o){
   else if(o.type==='pay')h=`<p>Принято ${money(o.amount)} от ${esc(cname(o.cust))}${o.party?` · ${esc(o.party)}`:''}</p>`;
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
-    ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${(S.saleAdv?.[o.id]||0)>0.004?` · с баланса клиента ${money(S.saleAdv[o.id])}`:''}${num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0)>0.004?` · в долг ${money(num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
+    ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${o.pay&&PAYL[o.pay]?' ('+esc(PAYL[o.pay])+')':''}${bfee(o)&&can('cost')?` · доля банка ${money(bfee(o))}${o.bfeeD?` (комиссия ${money(o.bfeeD.a)}, НДС ${money(o.bfeeD.v)}, НсП ${money(o.bfeeD.n)})`:''}`:''}${(S.saleAdv?.[o.id]||0)>0.004?` · с баланса клиента ${money(S.saleAdv[o.id])}`:''}${num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0)>0.004?` · в долг ${money(num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
   h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}
    ${can('delete')?(S.jDel===o.id?`<div class="confirm"><span>Удалить ${docNo(o)}? Остатки и долги пересчитаются автоматически.</span><button class="btn danger" data-act="jdel-yes" data-id="${esc(o.id)}">Удалить</button><button class="btn ghost" data-act="jdel-no">Отмена</button></div>`:`<button class="btn link bad" data-act="jdel" data-id="${esc(o.id)}">Удалить документ</button>`):''}</div>`;
   return h}
@@ -1738,7 +1762,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
   const gross=sales.reduce((s,o)=>s+num(o.total),0);const retSum=rets.reduce((s,o)=>s+num(o.total),0);const rev=gross-retSum;const wxCost=wxs.reduce((s,o)=>s+docCost(o),0);
   const cogs=sales.reduce((s,o)=>s+docCost(o),0)-rets.filter(o=>o.restock).reduce((s,o)=>s+docCost(o),0)+wxCost;
-  const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const prof=rev-cogs-offProp;const inAll=ops.filter(o=>o.type==='in'&&!isOW(o));const initIn=inAll.filter(o=>o.init).reduce((s,o)=>s+docTotal(o),0);const consIn=inAll.filter(o=>o.cons&&!o.init).reduce((s,o)=>s+docTotal(o),0);const cretS=ops.filter(o=>o.type==='off'&&o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const purch=inAll.filter(o=>!o.init).reduce((s,o)=>s+docTotal(o),0)-cretS;const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
+  const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const feeT=sales.reduce((s,o)=>s+bfee(o),0);const prof=rev-cogs-offProp-feeT;const inAll=ops.filter(o=>o.type==='in'&&!isOW(o));const initIn=inAll.filter(o=>o.init).reduce((s,o)=>s+docTotal(o),0);const consIn=inAll.filter(o=>o.cons&&!o.init).reduce((s,o)=>s+docTotal(o),0);const cretS=ops.filter(o=>o.type==='off'&&o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const purch=inAll.filter(o=>!o.init).reduce((s,o)=>s+docTotal(o),0)-cretS;const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
   const discG=sales.reduce((s,o)=>s+(o.items||[]).reduce((a,i)=>a+num(i.q)*num(i.price)-isum(i),0),0);
   let debtG=sales.filter(o=>!o.cust).reduce((s,o)=>s+num(o.total)-num(o.paid??o.total),0),debtR=0,advUsed=0,debtLeft=debtG;
   {const CB={},FQ={};const ch=S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
@@ -1755,7 +1779,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
   for(const o of pays)payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)+num(o.amount);
   for(const o of sales){const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];
     payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)+num(o.paid??o.total);
-    (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-num(i.q)*icost(o,k);if(b){b.rev+=r;b.prof+=pf}
+    (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-num(i.q)*icost(o,k)-ifee(o,k);if(b){b.rev+=r;b.prof+=pf}
       const t=(top[i.p]??={q:0,rev:0,prof:0});t.q+=num(i.q);t.rev+=r;t.prof+=pf})}
   for(const o of rets){payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)-num(o.total);const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];
     (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-(o.restock?num(i.q)*icost(o,k):0);if(b){b.rev-=r;b.prof-=pf}const t=(top[i.p]??={q:0,rev:0,prof:0});t.q-=num(i.q);t.rev-=r;t.prof-=pf})}
@@ -1772,7 +1796,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
    <div class="row"><select id="repWh" data-ch="repwh" style="width:auto" aria-label="Склад"><option value="all">Все склады</option>${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===S.repWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select><button class="btn ghost" data-act="exp-sales">Продажи в CSV</button></div></div>
   <div class="kpis">
    <div class="kpi main"><span>Выручка</span><b>${money(rev)}</b></div>
-   ${sc?`<div class="kpi"><span>Валовая прибыль</span><b style="color:${prof<0?'var(--bad)':'var(--good)'}">${money(prof)}</b><small>маржа ${rev?NF.format(r2(prof/rev*100)):0}%${offProp?' · списано имущества '+money(offProp):''}</small></div>`:''}
+   ${sc?`<div class="kpi"><span>Валовая прибыль</span><b style="color:${prof<0?'var(--bad)':'var(--good)'}">${money(prof)}</b><small>маржа ${rev?NF.format(r2(prof/rev*100)):0}%${offProp?' · списано имущества '+money(offProp):''}${feeT>0.004?' · без доли банка за рассрочку '+money(feeT):''}</small></div>`:''}
    ${sc?(()=>{const ex=S.moneyL.filter(m=>m.kind==='out'&&inR(m,rg)).reduce((a,m)=>a+num(m.amount),0);const np=prof-ex;return `<div class="kpi"><span>Чистая прибыль</span><b style="color:${np<0?'var(--bad)':'var(--good)'}">${money(np)}</b><small>расходы ${money(ex)}</small></div>`})():''}
    <div class="kpi"><span>Средний чек</span><b>${money(sales.length?gross/sales.length:0)}</b><small>${sales.length} чек.</small></div>
    <div class="kpi"><span>Скидки</span><b>${money(discG)}</b></div>
@@ -1783,7 +1807,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
    ${sc?`<div class="kpi"><span>Наш долг поставщикам</span><b>${money(S.supp.reduce((a,x)=>a+Math.max(0,supDebtOf(x.id)),0))}</b></div>`:''}
    ${sc?`<div class="kpi"><span>Закуплено</span><b>${money(purch)}</b><small>${[consIn>0.004?'в т.ч. под реализацию '+money(consIn):'',cretS>0.004?'возвращено поставщикам '+money(cretS):'','списано '+money(offs),initIn>0.004?'ввод остатков '+money(initIn)+' (не входит)':'',propIn?'имущество куплено '+money(propIn):''].filter(Boolean).join(' · ')}</small></div>`:''}</div>
   ${S.repWh==='all'&&saleWhs().length>1?(()=>{const W={};const g=id=>W[id]??={rev:0,prof:0,n:0,gross:0};
-    for(const o of sales){const x=g(o.wh);x.n++;x.gross+=num(o.total);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev+=r;x.prof+=r-num(i.q)*icost(o,k)})}
+    for(const o of sales){const x=g(o.wh);x.n++;x.gross+=num(o.total);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev+=r;x.prof+=r-num(i.q)*icost(o,k)-ifee(o,k)})}
     for(const o of rets){const x=g(o.wh);(o.items||[]).forEach((i,k)=>{const r=isum(i);x.rev-=r;x.prof-=r-(o.restock?num(i.q)*icost(o,k):0)})}
     for(const o of wxs)g(o.wh).prof-=docCost(o);
     const CW=sc?commByWh(rg):null;const cm=!!CW;const L=saleWhs().map(w=>({w,...(W[w.id]||{rev:0,prof:0,n:0,gross:0}),cm:r2((CW||{})[w.id]||0)}));const mx=Math.max(1,...L.map(x=>x.rev));const T=L.reduce((a,x)=>({rev:a.rev+x.rev,prof:a.prof+x.prof,n:a.n+x.n,gross:a.gross+x.gross,cm:a.cm+x.cm}),{rev:0,prof:0,n:0,gross:0,cm:0});
@@ -1798,7 +1822,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
   <div class="two">
    <section class="pane"><div class="pane-h"><h2>Лидеры продаж</h2></div>${topL.length?`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Продано</th><th class="num">Выручка</th>${sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${topL.map(([p,t])=>`<tr><td class="barcell" style="--w:${(t.rev/topMax*100).toFixed(1)}%"><span>${esc(pname(p))}</span></td><td class="num">${q3(t.q)}</td><td class="num">${NF.format(r2(t.rev))}</td>${sc?`<td class="num">${NF.format(r2(t.prof))}</td>`:''}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">Нет данных</div>'}</section>
    <div class="stack">
-    <section class="pane"><div class="pane-h"><h2>Поступило денег</h2><span class="muted">${money(recv)}</span></div>${recv||debtG||debtLeft?`<table><tbody>${Object.entries(PAYL).filter(([k])=>k!=='card'||payIn.card).map(([k,v])=>`<tr><td>${v}</td><td class="num">${money(payIn[k]||0)}</td><td class="num muted">${recv?NF.format(r2((payIn[k]||0)/recv*100)):0}%</td></tr>`).join('')}<tr><td>Ещё не оплачено (в долг)</td><td class="num${debtLeft>0.004?' debt':''}">${money(debtLeft)}</td><td></td></tr></tbody></table><p class="muted small" style="margin-top:6px">С учётом погашения долгов и за вычетом возвратов.</p>`:'<div class="empty">Нет продаж</div>'}</section>
+    <section class="pane"><div class="pane-h"><h2>Поступило денег</h2><span class="muted">${money(recv)}</span></div>${recv||debtG||debtLeft?`<table><tbody>${Object.entries(PAYL).filter(([k])=>(k!=='card'||payIn.card)&&(k!=='tumar'||payIn.tumar)).map(([k,v])=>`<tr><td>${v}</td><td class="num">${money(payIn[k]||0)}</td><td class="num muted">${recv?NF.format(r2((payIn[k]||0)/recv*100)):0}%</td></tr>`).join('')}<tr><td>Ещё не оплачено (в долг)</td><td class="num${debtLeft>0.004?' debt':''}">${money(debtLeft)}</td><td></td></tr></tbody></table><p class="muted small" style="margin-top:6px">С учётом погашения долгов и за вычетом возвратов.</p>`:'<div class="empty">Нет продаж</div>'}</section>
     <section class="pane"><div class="pane-h"><h2>Нужно заказать</h2><span class="muted">${low.length}</span></div>${low.length?`<table><tbody>${low.slice(0,S.lowAll?500:12).map(r=>{const st=status(r.q,num(r.p.minStock));return `<tr><td>${esc(r.p.name)}</td><td class="num">${q3(r.q)} / ${q3(r.p.minStock||0)}</td><td><span class="chip ${st[0]}">${st[1]}</span></td><td style="text-align:right;white-space:nowrap">${can('catalog')?`<button class="btn link bad" style="padding:0" data-act="noorder" data-id="${esc(r.p.id)}" title="Убрать из списка: больше не заказываю">Не заказывать</button>`:''}</td></tr>`}).join('')}</tbody></table>${low.length>12?`<button class="btn link" data-act="low-all">${S.lowAll?'Свернуть':'Показать все '+low.length}</button>`:''}`:'<div class="empty">Все остатки выше минимума</div>'}
      ${lowHid.length?`<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Не заказываю (${lowHid.length})</summary><table><tbody>${lowHid.map(p=>`<tr><td class="small">${esc(p.name)}</td><td style="text-align:right">${can('catalog')?`<button class="btn link" style="padding:0" data-act="noorder-back" data-id="${esc(p.id)}">Вернуть в список</button>`:''}</td></tr>`).join('')}</tbody></table></details>`:''}</section>
    </div></div></div>`}
@@ -3423,7 +3447,7 @@ function commCalc(rg){return commCalcRaw(rg)}
 function commCalcRaw(rg){const res={};const st=S.staffL.filter(x=>num(x.pct)>0);if(!st.length)return[];const ids=new Set(st.map(x=>x.id));
   const byId={};for(const o of S.sales)byId[o.id]=o;
   for(const o of S.sales){if(!inR(o,rg))continue;
-    if(o.type==='sale'&&ids.has(o.by)){const r=res[o.by]??={n:0,rev:0,cogs:0,ret:0};r.n++;r.rev+=num(o.total);r.cogs+=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0)}
+    if(o.type==='sale'&&ids.has(o.by)){const r=res[o.by]??={n:0,rev:0,cogs:0,ret:0};r.n++;r.rev+=num(o.total);r.cogs+=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0)+bfee(o)}
     else if(o.type==='ret'){const so=byId[o.sale];const who=so?.by;if(!ids.has(who))continue;const r=res[who]??={n:0,rev:0,cogs:0,ret:0};const dc=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);r.rev-=num(o.total);if(o.restock)r.cogs-=dc;r.ret++}}
   const pk=`${rg.from.toISOString().slice(0,10)}_${rg.to.toISOString().slice(0,10)}`;
   return st.map(x=>{const r=res[x.id]||{n:0,rev:0,cogs:0,ret:0};const margin=r.rev-r.cogs;const sum=r2(Math.max(0,margin)*num(x.pct)/100);
@@ -3434,7 +3458,7 @@ function commBal(){const all={from:new Date(0),to:new Date(8.6e15)};const B={};f
 function commByWh(rg){const L=commCalc(rg);if(!L.length)return null;const sum={};for(const r of L)if(r.sum>0)sum[r.x.id]=r.sum;const ids=new Set(Object.keys(sum));if(!ids.size)return{};
   const M={};const byId={};for(const o of S.sales)byId[o.id]=o;const add=(who,wh,v)=>{((M[who]??={})[wh]=(M[who][wh]||0)+v)};
   for(const o of S.sales){if(!inR(o,rg))continue;
-    if(o.type==='sale'&&ids.has(o.by))add(o.by,o.wh,num(o.total)-(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0));
+    if(o.type==='sale'&&ids.has(o.by))add(o.by,o.wh,num(o.total)-bfee(o)-(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0));
     else if(o.type==='ret'){const so=byId[o.sale];if(!so||!ids.has(so.by))continue;add(so.by,so.wh,-(num(o.total)-(o.restock?(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0):0)))}}
   const W={};for(const who of ids){const m=M[who]||{};const pos=Object.values(m).reduce((a,v)=>a+Math.max(0,v),0);if(pos<=0)continue;for(const [wh,v] of Object.entries(m))if(v>0)W[wh]=(W[wh]||0)+sum[who]*v/pos}
   return W}
@@ -3536,7 +3560,8 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
   'cart-rm':t=>{S.cart.splice(+t.dataset.i,1);$('#cart').innerHTML=cartHtml();updCart();const g=$('#saleGrid');if(g)g.innerHTML=saleTiles()},
   'cart-clear':()=>{S.cart=[];S.cDisc='';$('#cart').innerHTML=cartHtml();const g=$('#saleGrid');if(g)g.innerHTML=saleTiles()},
   cdisct:t=>{S.cDiscT=t.dataset.v;document.querySelectorAll('[data-act="cdisct"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.cDiscT));updCart()},
-  pay:t=>{S.pay=t.dataset.v;document.querySelectorAll('[data-act="pay"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.pay));const bx=$('#payAccBox');if(bx)bx.innerHTML=accBox(S.pay,'cartAcc',S.payAcc,'Куда поступит оплата')},
+  pay:t=>{S.pay=t.dataset.v;document.querySelectorAll('[data-act="pay"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.pay));const bx=$('#payAccBox');if(bx)bx.innerHTML=accBox(S.pay,'cartAcc',S.pay==='tumar'?tumAcc():S.payAcc,'Куда поступит оплата');updCart()},
+  'tum-cfg':()=>tumCfgForm(),'tum-cfg-save':()=>tumCfgSave(),
   paym:t=>{S.payM=t.dataset.v;document.querySelectorAll('[data-act="paym"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.payM));const bx=$('#pmAccBox');if(bx)bx.innerHTML=accBox(S.payM,'pmAcc')},
   'sale-post':postSale,
   'sn-pick':t=>snOpen(t.dataset.t,+t.dataset.i,false),
