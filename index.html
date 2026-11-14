@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 14.11.2026 12:56</span>
+      <span class="muted" style="font-size:11px">Версия от 14.11.2026 12:59</span>
     </div>
   </aside>
   <div class="main">
@@ -334,7 +334,7 @@ function ivForm(id){const o=S.ops.find(x=>x.id===id);if(!o)return;const iv=o.ivs
   openModal(`<h2>Товар инвестора в ${esc(docNo(o))}</h2>
   <p class="muted small">Отметьте, сколько штук куплено на деньги другого человека (например, жены). При продаже эти штуки уходят первыми. Прибыль с них не попадёт в вашу прибыль, а во вкладке «Деньги» будет видно, сколько вернуть этому человеку.</p>
   <div class="row"><label class="field"><span>Чьи деньги</span>${L.length?`<select id="ivW">${L.map(x=>`<option value="${esc(x.id)}"${x.id===iv.w?' selected':''}>${esc(x.name)}</option>`).join('')}<option value="+">+ Новый человек…</option></select>`:''}<input id="ivNew" placeholder="Имя, например: Жена" value="${L.length?'':'Жена'}"${L.length?' style="display:none;margin-top:6px"':''}></label></div>
-  <div class="tbl"><table><thead><tr><th>Товар</th><th class="num">В приходе</th><th class="num">Цена</th><th class="num">На эти деньги, шт</th></tr></thead><tbody>${(o.items||[]).map((i,k)=>`<tr><td>${esc(pname(i.p))}</td><td class="num">${q3(i.q)}</td><td class="num">${NF.format(ipr(o,k))}</td><td class="num"><input class="ivq" data-k="${k}" data-max="${num(i.q)}" inputmode="decimal" style="width:90px;text-align:right" value="${esc(iv.q?.[k]??'')}" placeholder="0"></td></tr>`).join('')}</tbody></table></div>
+  <div class="tbl"><table><thead><tr><th>Товар</th><th class="num">В приходе</th><th class="num">Цена</th><th class="num">Из них штук инвестора</th></tr></thead><tbody>${(o.items||[]).map((i,k)=>`<tr><td>${esc(pname(i.p))}</td><td class="num">${q3(i.q)}</td><td class="num">${NF.format(ipr(o,k))}</td><td class="num"><input class="ivq" data-k="${k}" data-max="${num(i.q)}" inputmode="decimal" style="width:90px;text-align:right" value="${esc(iv.q?.[k]??'')}" placeholder="0"></td></tr>`).join('')}</tbody></table></div>
   ${o.supp?`<label class="check"><input type="checkbox" id="ivPaid"${iv.paid!==false?' checked':''}> Эту часть поставщику оплатили не вы, а сам инвестор — долг поставщику уменьшится на эту сумму</label>`:''}
   <div class="err" id="ivErr"></div>
   <div class="row between"><span>${o.ivst?'<button class="btn link bad" data-act="iv-clear">Убрать отметку</button>':''}</span><span class="row"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="iv-save">Сохранить</button></span></div>`);
