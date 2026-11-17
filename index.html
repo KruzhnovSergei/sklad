@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.11.2026 23:25</span>
+      <span class="muted" style="font-size:11px">Версия от 18.11.2026 01:39</span>
     </div>
   </aside>
   <div class="main">
@@ -1897,16 +1897,18 @@ function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!==
      if(!inR(o,rg))continue;if(o.type==='sale'){if(!inW(o))continue;const inc=Math.max(0,b1)-Math.max(0,b0);debtG+=inc;advUsed+=Math.max(0,(b1-b0)-inc)}else if(!o.init)debtR+=Math.max(0,Math.max(0,b0)-Math.max(0,b1))}
    for(const Q of Object.values(FQ))for(const x of Q)if(x.p)debtLeft+=x.a}
   const debtNow=S.cust.reduce((s,c)=>s+Math.max(0,debtOf(c.id)),0);
-  const days=Math.round((sod(to)-from)/864e5)+1;const monthly=days>62;const B=[],idx={};
-  if(monthly){let d=new Date(from.getFullYear(),from.getMonth(),1);while(d<=to){idx[d.getFullYear()+'-'+d.getMonth()]=B.length;B.push({l:d.toLocaleDateString('ru-RU',{month:'short',year:'2-digit'}),rev:0,prof:0});d=new Date(d.getFullYear(),d.getMonth()+1,1)}}
+  const days=Math.round((sod(to)-from)/864e5)+1;const cby=S.chartBy||(days>62?'month':'day');const monthly=cby==='month';const weekly=cby==='week';const B=[],idx={};
+  const wk=d=>{const x=sod(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};const bkey=d=>monthly?d.getFullYear()+'-'+d.getMonth():weekly?dkey(wk(d)):dkey(d);
+  if(weekly){let d=wk(from);while(d<=to){idx[dkey(d)]=B.length;B.push({l:d.toLocaleDateString('ru-RU',{day:'numeric',month:'2-digit'}),rev:0,prof:0});d=new Date(d.getFullYear(),d.getMonth(),d.getDate()+7)}}
+  else if(monthly){let d=new Date(from.getFullYear(),from.getMonth(),1);while(d<=to){idx[d.getFullYear()+'-'+d.getMonth()]=B.length;B.push({l:d.toLocaleDateString('ru-RU',{month:'short',year:'2-digit'}),rev:0,prof:0});d=new Date(d.getFullYear(),d.getMonth()+1,1)}}
   else{for(let i=0;i<days;i++){const d=new Date(from.getFullYear(),from.getMonth(),from.getDate()+i);idx[dkey(d)]=B.length;B.push({l:d.toLocaleDateString('ru-RU',{day:'numeric',month:'2-digit'}),rev:0,prof:0})}}
   const top={},payIn={cash:0,qr:0,transfer:0};
   for(const o of pays)payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)+num(o.amount);
-  for(const o of sales){const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];
+  for(const o of sales){const d=new Date(o.at);const b=B[idx[bkey(d)]];
     payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)+num(o.paid??o.total);
     (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-num(i.q)*icost(o,k)-ded(o,k);if(b){b.rev+=r;b.prof+=pf}
       const t=(top[i.p]??={q:0,rev:0,prof:0});t.q+=num(i.q);t.rev+=r;t.prof+=pf})}
-  for(const o of rets){payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)-num(o.total);const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];
+  for(const o of rets){payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)-num(o.total);const d=new Date(o.at);const b=B[idx[bkey(d)]];
     (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-(o.restock?num(i.q)*icost(o,k):0);if(b){b.rev-=r;b.prof-=pf}const t=(top[i.p]??={q:0,rev:0,prof:0});t.q-=num(i.q);t.rev-=r;t.prof-=pf})}
   for(const o of wxs){const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];if(b)b.prof-=docCost(o)}
   for(const o of ops){if(o.type!=='off'||!isOW(o))continue;const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];if(b)b.prof-=docTotal(o)}
@@ -1914,7 +1916,7 @@ function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!==
   const gL=Object.entries(Object.entries(top).reduce((m,[p,t])=>{const g=pgroup(p);const x=(m[g]??={q:0,rev:0,prof:0});x.q+=t.q;x.rev+=t.rev;x.prof+=t.prof;return m},{})).sort((a,b)=>b[1].rev-a[1].rev);const gMax=Math.max(1,gL[0]?.[1].rev||1);
   const recv=Object.values(payIn).reduce((a,b)=>a+b,0);
   const lowHid=S.prod.filter(p=>!p.archived&&p.noOrder);const low=S.prod.filter(p=>!p.archived&&!p.noOrder&&!ownOnly(p.id)).map(p=>({p,q:S.repWh==='all'?qtyAll(p.id):qty(S.repWh,p.id)})).filter(r=>r.q<=0||(num(r.p.minStock)>0&&r.q<=num(r.p.minStock))).sort((a,b)=>a.q-b.q);
-  const per=[['today','Сегодня'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['all','Всё время'],['custom','Выбрать даты']];
+  const per=[['today','Сегодня'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['year','Этот год'],['all','Всё время'],['custom','Выбрать даты']];
   return `<div class="stack">${repTabs()}
   <div class="row between"><div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
    ${S.period==='custom'?`<div class="row" style="gap:8px"><label class="row" style="gap:6px">с <input type="date" id="rFrom" data-ch="rfrom" value="${isoD(from)}" style="width:auto"></label><label class="row" style="gap:6px">по <input type="date" id="rTo" data-ch="rto" value="${isoD(to)}" style="width:auto"></label></div>`:`<span class="muted small">${ds(from)} — ${ds(to)}</span>`}
@@ -1941,7 +1943,7 @@ function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!==
      ${L.sort((a,b)=>b.rev-a.rev).map(x=>`<tr><td class="barcell" style="--w:${(Math.max(0,x.rev)/mx*100).toFixed(1)}%"><span>${esc(x.w.name)}</span></td><td class="num">${money(x.rev)}</td>${sc?`<td class="num"${cm?'':` style="color:${x.prof<0?'var(--bad)':'var(--good)'}"`}>${money(x.prof)}</td>${cm?`<td class="num muted">${x.cm>0.004?'−'+money(x.cm):'—'}</td><td class="num" style="font-weight:700;color:${net(x)<0?'var(--bad)':'var(--good)'}">${money(net(x))}</td>`:''}<td class="num">${x.rev?NF.format(r2((cm?net(x):x.prof)/x.rev*100))+'%':'—'}</td>`:''}<td class="num">${x.n}</td><td class="num">${x.n?money(x.gross/x.n):'—'}</td><td class="num">${sc?(Math.abs(net(T))>0.004?`<b>${NF.format(r2(net(x)/net(T)*100))}%</b>`:'—'):(T.rev?NF.format(r2(x.rev/T.rev*100))+'%':'—')}</td></tr>`).join('')}
      <tr style="font-weight:700"><td>Итого</td><td class="num">${money(T.rev)}</td>${sc?`<td class="num">${money(T.prof)}</td>${cm?`<td class="num">${T.cm>0.004?'−'+money(T.cm):'—'}</td><td class="num">${money(net(T))}</td>`:''}<td class="num">${T.rev?NF.format(r2((cm?net(T):T.prof)/T.rev*100))+'%':'—'}</td>`:''}<td class="num">${T.n}</td><td class="num">${T.n?money(T.gross/T.n):'—'}</td><td class="num">100%</td></tr></tbody></table></div>
      <p class="muted small" style="margin-top:6px">Прибыль — валовая: выручка минус себестоимость проданного (с учётом возвратов и замен по гарантии).${cm?' «% продавцам» — процент от маржи, начисленный продавцам за этот период по их продажам на каждом складе (выплаченный или нет); маржа в таблице — уже после него.':''} Общие расходы (аренда, свет и т.п.) по складам не делятся.</p></section>`})():''}
-  <section class="pane"><div class="pane-h"><h2>Выручка${sc?' и прибыль':''} ${monthly?'по месяцам':'по дням'}</h2><div class="legend"><span><i style="background:var(--accent-soft)"></i>Выручка</span>${sc?'<span><i style="background:var(--accent)"></i>Прибыль</span>':''}</div></div>
+  <section class="pane"><div class="pane-h"><h2>Выручка${sc?' и прибыль':''} ${monthly?'по месяцам':weekly?'по неделям':'по дням'}</h2><div class="row" style="gap:12px"><div class="seg" role="group" aria-label="Шаг графика">${[['day','Дни'],['week','Недели'],['month','Месяцы']].map(([k,v])=>`<button data-act="chart-by" data-v="${k}" aria-pressed="${cby===k}">${v}</button>`).join('')}</div><div class="legend"><span><i style="background:var(--accent-soft)"></i>Выручка</span>${sc?'<span><i style="background:var(--accent)"></i>Прибыль</span>':''}</div></div></div>
    ${sales.length?chartSvg(B,sc):'<div class="empty">За выбранный период продаж нет</div>'}</section>
   ${gL.length?`<section class="pane"><div class="pane-h"><h2>Продажи по группам</h2></div><div class="tbl"><table><thead><tr><th>Группа</th><th class="num">Продано</th><th class="num">Выручка</th>${sc?'<th class="num">Прибыль</th><th class="num">Маржа</th>':''}</tr></thead><tbody>${gL.map(([g,t])=>`<tr><td class="barcell" style="--w:${(Math.max(0,t.rev)/gMax*100).toFixed(1)}%"><span>${esc(g)}</span></td><td class="num">${q3(t.q)}</td><td class="num">${NF.format(r2(t.rev))}</td>${sc?`<td class="num">${NF.format(r2(t.prof))}</td><td class="num muted">${t.rev?NF.format(r2(t.prof/t.rev*100))+'%':'—'}</td>`:''}</tr>`).join('')}</tbody>${(()=>{const T=gL.reduce((a,[,t])=>({q:a.q+t.q,rev:a.rev+t.rev,prof:a.prof+t.prof}),{q:0,rev:0,prof:0});return `<tfoot><tr><td><b>Итого</b></td><td class="num"><b>${q3(T.q)}</b></td><td class="num"><b>${NF.format(r2(T.rev))}</b></td>${sc?`<td class="num"><b>${NF.format(r2(T.prof))}</b></td><td class="num"><b>${T.rev?NF.format(r2(T.prof/T.rev*100))+'%':'—'}</b></td>`:''}</tr></tfoot>`})()}</table></div></section>`:''}
   <div class="two">
@@ -3753,7 +3755,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
-  'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
+  'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
