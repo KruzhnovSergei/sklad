@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 17.11.2026 10:29</span>
+      <span class="muted" style="font-size:11px">Версия от 17.11.2026 23:25</span>
     </div>
   </aside>
   <div class="main">
@@ -498,7 +498,7 @@ function derive(){
   for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);for(const o of S.ops)if(o.type==='in'&&o.supp&&o.ivst?.paid&&!o.cons)sd[o.supp]=(sd[o.supp]||0)-ivPrin(o);S.supDebt=sd;S.supLast=sl;
   S.avg={};for(const p in inQ)if(inQ[p]>0)S.avg[p]=inS[p]/inQ[p];
   const aw=allowedWh();if(!S.curWh||!aw.some(w=>w.id===S.curWh))S.curWh=aw[0]?.id||null;
-  try{S.iv=ivCompute()}catch(e){console.error(e);S.iv=null}
+  try{S.iv=ivCompute()}catch(e){console.error(e);S.iv=null}S.ocRH=null;
 }
 const qty=(w,p)=>r3(S.stock[w]?.[p]||0);
 const qtyAll=p=>r3(Object.keys(S.stock).filter(w=>S.W[w]&&!S.W[w].office).reduce((s,w)=>s+(S.stock[w][p]||0),0));
@@ -836,7 +836,7 @@ function vCustomers(){
   ${KK?`<p class="muted small" style="margin:0 0 12px">Вам открыты только ${KK==='opt'?'оптовые':'розничные'} покупатели.</p>`:`<div class="seg" role="group" aria-label="Вид покупателей" style="margin-bottom:12px">${[['all','Все',S.cust.length],['retail','Розничные',S.cust.filter(c=>ckind(c)==='retail').length],['opt','Оптовые',S.cust.filter(c=>ckind(c)==='opt').length]].map(([k,v,n])=>`<button data-act="ckind" data-v="${k}" aria-pressed="${KC===k}">${v} <span class="muted">${n}</span></button>`).join('')}</div>`}
   <div class="row" style="margin-bottom:12px"><input id="cQ" data-in="cq" placeholder="Имя или телефон" value="${esc(S.cQ)}" style="flex:1 1 220px"><label class="check"><input type="checkbox" id="cDebtOnly" data-ch="cdebt"${S.cDebtOnly?' checked':''}> Только должники</label></div>
   <div class="tbl">${list.length?`<table><thead><tr><th>Покупатель</th><th class="num">Долг / предоплата</th><th class="num">Лимит</th><th>Последняя покупка</th><th></th></tr></thead><tbody>
-  ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}${ckind(c)==='opt'?' <span class="chip t-move">опт</span>':''}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
+  ${list.map(c=>{const d=debtOf(c.id),open=S.cOpen===c.id;return `<tr class="jrow" tabindex="0" data-act="copen" data-id="${esc(c.id)}" aria-expanded="${open}"><td><span class="pname">${esc(c.name)}${ckind(c)==='opt'?' <span class="chip t-move">опт</span>'+(()=>{const st=(S.ocRH??=ocRhythm())[c.id]?.st;return st==='slow'||st==='lost'?' '+ocChip(st):''})():''}</span><span class="psku">${esc(c.phone||'')}</span></td><td class="num ${d>0.004?'debt':''}">${d<-0.004?`<span style="color:var(--good)">предоплата ${money(-d)}</span>`:money(d)}</td><td class="num muted">${num(c.limit)?NF.format(c.limit):'—'}</td><td class="muted">${S.lastBuy[c.id]?ds(S.lastBuy[c.id]):'—'}</td>
    <td style="white-space:nowrap"><button class="btn link" data-act="pay-new" data-id="${esc(c.id)}"${ro('payments')}>${d>0.004?'Принять оплату':'Принять предоплату'}</button><button class="btn link" data-act="cust-edit" data-id="${esc(c.id)}"${canCust(ckind(c))?'':' disabled'}>Изменить</button>${canCust(ckind(c))&&!hist.has(c.id)?`<button class="btn link bad" data-act="cust-del" data-id="${esc(c.id)}">Удалить</button>`:''}</td></tr>
    ${open?`<tr class="jdet"><td colspan="5">${custHist(c)}</td></tr>`:''}`}).join('')}</tbody></table>`:`<div class="empty">${base.length?'Никого не найдено':VC.length?'В этой группе покупателей пока нет.':'Покупателей пока нет. Добавьте постоянных клиентов, чтобы продавать им в долг.'}</div>`}</div></section></div>`}
 function custInitForm(id){const c=S.C[id];if(!c)return;S.cinit={id,kind:'adv'};
@@ -1812,7 +1812,7 @@ async function resolveNames(){
 const sod=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
 const dkey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function range(){const n=new Date();let f;
-  if(S.period==='today')f=sod(n);else if(S.period==='7')f=sod(new Date(n-6*864e5));else if(S.period==='30')f=sod(new Date(n-29*864e5));else if(S.period==='month')f=new Date(n.getFullYear(),n.getMonth(),1);
+  if(S.period==='today')f=sod(n);else if(S.period==='7')f=sod(new Date(n-6*864e5));else if(S.period==='30')f=sod(new Date(n-29*864e5));else if(S.period==='month')f=new Date(n.getFullYear(),n.getMonth(),1);else if(S.period==='q')f=sod(new Date(n-89*864e5));else if(S.period==='year')f=new Date(n.getFullYear(),0,1);
   else if(S.period==='prev')return{from:new Date(n.getFullYear(),n.getMonth()-1,1),to:new Date(n.getFullYear(),n.getMonth(),0,23,59,59,999)};
   else if(S.period==='custom'){const pd=v=>{const [y,m,d]=(v||'').split('-').map(Number);return y?new Date(y,m-1,d):null};let a=pd(S.pFrom)||new Date(n.getFullYear(),n.getMonth(),1),b=pd(S.pTo)||sod(n);if(a>b)[a,b]=[b,a];return{from:a,to:new Date(b.getFullYear(),b.getMonth(),b.getDate(),23,59,59,999)}}
   else{const t=S.all.length?Math.min(...S.all.map(o=>+new Date(o.at))):+n;f=sod(new Date(t))}
@@ -1820,7 +1820,68 @@ function range(){const n=new Date();let f;
 const inR=(o,r)=>{const t=new Date(o.at);return t>=r.from&&t<=r.to};
 const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 function niceMax(m){const p=Math.pow(10,Math.floor(Math.log10(m)));for(const f of [1,1.5,2,2.5,3,4,5,6,8,10])if(f*p>=m)return f*p;return 10*p}
-function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].office))S.repWh='all';
+/* ---------- Отчёты → Оптовые клиенты: кто сколько берёт и приносит, кто стал брать реже или пропал ---------- */
+const OC_ST={reg:['Регулярный','#1F7A4D','#E3F2EA'],slow:['Реже обычного','#9A6200','#FFF1D6'],lost:['Пропал','#B42318','#FDE7E5'],new:['Новый','#1D5FA8','#E3EEFA'],one:['Одна покупка','#5F6368','#EEF0F2'],none:['Нет покупок','#8A8F98','#F2F3F5']};
+const ocChip=k=>{const x=OC_ST[k];return `<span class="chip" style="color:${x[1]};background:${x[2]};border-color:transparent">${x[0]}</span>`};
+const saleProf=o=>num(o.total)-(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0)-dedDoc(o);
+const retProf=o=>num(o.total)-(o.restock?(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0):0);
+/* ритм покупок по всем продажам клиента: дни покупок, средний интервал, статус */
+function ocRhythm(){const by={};for(const o of S.sales)if(o.type==='sale'&&o.cust){const d=sod(new Date(o.at)).getTime();(by[o.cust]??=new Set()).add(d)}
+  const R={};const today=sod(new Date()).getTime(),D=864e5;
+  for(const [c,set] of Object.entries(by)){const ds=[...set].sort((a,b)=>a-b);const n=ds.length,first=ds[0],last=ds[n-1];const since=Math.round((today-last)/D);const avg=n>1?(last-first)/D/(n-1):null;
+    let st;if(n===1)st=since<=30?'new':since<=60?'one':'lost';else if(since>Math.max(60,3*avg))st='lost';else if(since>Math.max(14,2*avg))st='slow';else if((today-first)/D<=30)st='new';else st='reg';
+    R[c]={n,first,last,since,avg,st}}return R}
+function vOptCli(){const sc=can('cost');const rg=range();const {from,to}=rg;const len=to-from;const shM=(d,m)=>{const x=new Date(d);const day=x.getDate();x.setDate(1);x.setMonth(x.getMonth()+m);x.setDate(Math.min(day,new Date(x.getFullYear(),x.getMonth()+1,0).getDate()));return x};
+  const pr=S.period==='month'?{from:shM(from,-1),to:shM(to,-1)}:S.period==='prev'?{from:new Date(from.getFullYear(),from.getMonth()-1,1),to:new Date(from.getFullYear(),from.getMonth(),0,23,59,59,999)}:S.period==='year'?{from:new Date(from.getFullYear()-1,0,1),to:shM(to,-12)}:{from:new Date(+from-len),to:new Date(+from-1)};
+  const inW=o=>S.repWh==='all'||o.wh===S.repWh;const RH=ocRhythm();const C={};const z=()=>({rev:0,prof:0,n:0,prev:0,prevP:0});
+  for(const o of S.sales){if(!o.cust||(o.type!=='sale'&&o.type!=='ret')||!inW(o))continue;const c=S.C[o.cust];if(!c||ckind(c)!=='opt')continue;const sg=o.type==='sale'?1:-1;
+    const pf=sc?(o.type==='sale'?saleProf(o):-retProf(o)):0;
+    if(inR(o,rg)){const x=(C[o.cust]??=z());x.rev+=sg*num(o.total);x.prof+=pf;if(o.type==='sale')x.n++}
+    else if(inR(o,pr)){const x=(C[o.cust]??=z());x.prev+=sg*num(o.total);x.prevP+=pf}}
+  const all=S.cust.filter(c=>ckind(c)==='opt');const f=S.ocF||'all';
+  let rows=all.map(c=>{const x=C[c.id]||z();const r=RH[c.id];return{c,x,r,st:r?.st||'none',debt:debtOf(c.id)}});
+  if(f==='per')rows=rows.filter(o=>o.x.n||Math.abs(o.x.rev)>0.004);else if(f==='warn')rows=rows.filter(o=>o.st==='slow'||o.st==='lost');
+  const key=S.ocSort||'rev',dir=S.ocDir||-1;const val=o=>key==='name'?o.c.name.toLowerCase():key==='prof'?o.x.prof:key==='marg'?(o.x.rev>0?o.x.prof/o.x.rev:-1e9):key==='n'?o.x.n:key==='avg'?(o.x.n?o.x.rev/o.x.n:0):key==='dyn'?(o.x.prev>0?o.x.rev/o.x.prev:o.x.rev>0?1e9:-1e9):key==='last'?(o.r?-o.r.since:-1e9):key==='debt'?o.debt:o.x.rev;
+  rows.sort((a,b)=>{const A=val(a),B=val(b);return (A<B?-1:A>B?1:0)*dir||(b.r?.last||0)-(a.r?.last||0)});
+  const T=rows.reduce((a,o)=>({rev:a.rev+o.x.rev,prof:a.prof+o.x.prof,n:a.n+o.x.n,prev:a.prev+o.x.prev}),{rev:0,prof:0,n:0,prev:0});
+  const cnt=k=>all.filter(c=>(RH[c.id]?.st||'none')===k).length;const buyers=all.filter(c=>C[c.id]?.n).length;
+  const th=(k,t,cls='')=>`<th class="${cls}" style="cursor:pointer;white-space:nowrap" data-act="oc-sort" data-v="${k}">${t}${key===k?(dir<0?' ↓':' ↑'):''}</th>`;
+  const dyn=x=>{if(x.prev>0.004){const d=(x.rev-x.prev)/x.prev*100;return `<span style="color:${d<-0.5?'var(--bad)':d>0.5?'var(--good)':'inherit'}">${d>0?'+':''}${NF.format(Math.round(d))}%</span><span class="psku">было ${NF.format(r2(x.prev))}</span>`}return x.rev>0.004?'<span class="muted">новое</span>':'—'};
+  const per=[['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['q','3 месяца'],['year','Этот год'],['all','Всё время'],['custom','Выбрать даты']];
+  return `<div class="stack">${repTabs()}
+  <div class="row between"><div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
+   ${S.period==='custom'?`<div class="row" style="gap:8px"><label class="row" style="gap:6px">с <input type="date" id="rFrom" data-ch="rfrom" value="${isoD(from)}" style="width:auto"></label><label class="row" style="gap:6px">по <input type="date" id="rTo" data-ch="rto" value="${isoD(to)}" style="width:auto"></label></div>`:`<span class="muted small">${ds(from)} — ${ds(to)}${S.period!=='all'?` · сравнение с ${ds(pr.from)} — ${ds(pr.to)}`:''}</span>`}
+   <select id="repWh" data-ch="repwh" style="width:auto" aria-label="Склад"><option value="all">Все склады</option>${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===S.repWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></div>
+  <div class="kpis">
+   <div class="kpi main"><span>Выручка с оптовиков</span><b>${money(T.rev)}</b><small>${S.period!=='all'&&T.prev>0.004?`было ${money(T.prev)} · ${T.rev>=T.prev?'+':''}${NF.format(Math.round((T.rev-T.prev)/T.prev*100))}%`:'&nbsp;'}</small></div>
+   ${sc?`<div class="kpi"><span>Прибыль с оптовиков</span><b style="color:${T.prof<0?'var(--bad)':'var(--good)'}">${money(T.prof)}</b><small>маржа ${T.rev>0?NF.format(r2(T.prof/T.rev*100)):0}%</small></div>`:''}
+   <div class="kpi"><span>Покупали в периоде</span><b>${buyers} из ${all.length}</b><small>покупок: ${T.n}</small></div>
+   <div class="kpi"><span>Требуют внимания</span><b style="color:${cnt('lost')+cnt('slow')?'var(--bad)':'inherit'}">${cnt('lost')+cnt('slow')}</b><small>пропали ${cnt('lost')} · реже обычного ${cnt('slow')}</small></div></div>
+  <section class="pane"><div class="pane-h"><h2>Оптовые клиенты</h2><div class="seg" role="group">${[['all','Все'],['per','Покупали в периоде'],['warn','Реже обычного и пропали']].map(([k,v])=>`<button data-act="oc-f" data-v="${k}" aria-pressed="${f===k}">${v}</button>`).join('')}</div></div>
+  ${rows.length?`<div class="tbl"><table><thead><tr>${th('name','Клиент')}<th>Статус</th>${th('rev','Выручка','num')}${sc?th('prof','Прибыль','num')+th('marg','Маржа','num'):''}${th('n','Покупок','num')}${th('avg','Средний чек','num')}${S.period!=='all'?th('dyn','К прошлому периоду','num'):''}${th('last','Последняя покупка')}<th class="num">Обычно</th>${th('debt','Долг','num')}</tr></thead><tbody>
+  ${rows.map(({c,x,r,st,debt})=>`<tr class="jrow" tabindex="0" data-act="oc-card" data-id="${esc(c.id)}"><td><span class="pname">${esc(c.name)}</span><span class="psku">${esc(c.phone||'')}</span></td><td>${ocChip(st)}</td><td class="num"><b>${x.rev?NF.format(r2(x.rev)):'—'}</b></td>${sc?`<td class="num" style="color:${x.prof<0?'var(--bad)':'inherit'}">${x.rev||x.prof?NF.format(r2(x.prof)):'—'}</td><td class="num muted">${x.rev>0?NF.format(r2(x.prof/x.rev*100))+'%':'—'}</td>`:''}<td class="num">${x.n||'—'}</td><td class="num">${x.n?NF.format(r2(x.rev/x.n)):'—'}</td>${S.period!=='all'?`<td class="num">${dyn(x)}</td>`:''}<td>${r?`${ds(new Date(r.last))}<span class="psku">${r.since?r.since+' дн. назад':'сегодня'}</span>`:'—'}</td><td class="num muted">${r?.avg!=null?'раз в '+Math.max(1,Math.round(r.avg))+' дн.':'—'}</td><td class="num ${debt>0.004?'debt':''}">${debt>0.004?NF.format(debt):debt<-0.004?`<span style="color:var(--good)">+${NF.format(-debt)}</span>`:'—'}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td><b>Итого</b></td><td></td><td class="num"><b>${NF.format(r2(T.rev))}</b></td>${sc?`<td class="num"><b>${NF.format(r2(T.prof))}</b></td><td class="num"><b>${T.rev>0?NF.format(r2(T.prof/T.rev*100))+'%':'—'}</b></td>`:''}<td class="num"><b>${T.n}</b></td><td></td>${S.period!=='all'?'<td></td>':''}<td></td><td></td><td></td></tr></tfoot></table></div>`:`<div class="empty">${f==='warn'?'Все оптовые клиенты покупают в своём обычном ритме':all.length?'В этом периоде оптовики не покупали':'Оптовых покупателей пока нет: отметьте их как «Оптовый» в «Контрагенты» → «Покупатели»'}</div>`}
+  <p class="muted small" style="margin-top:8px">Статус считается по обычному ритму каждого клиента за всё время: <b>Реже обычного</b> — пауза больше двух его обычных промежутков между покупками (и не меньше 2 недель); <b>Пропал</b> — больше трёх промежутков и не меньше 2 месяцев. Нажмите на клиента — увидите, что он берёт и что перестал брать.</p></section></div>`}
+function ocCard(id){const c=S.C[id];if(!c)return;const sc=can('cost');const RH=ocRhythm()[id];const D=864e5,now=Date.now();
+  const L=S.sales.filter(o=>o.cust===id&&(o.type==='sale'||o.type==='ret')).sort((a,b)=>(a.at||'').localeCompare(b.at||''));
+  let rev=0,prof=0;const M={},P={},G={};const n0=new Date();const mk=d=>d.getFullYear()*12+d.getMonth();const cur=mk(n0);
+  for(const o of L){const sg=o.type==='sale'?1:-1;const d=new Date(o.at);rev+=sg*num(o.total);if(sc)prof+=o.type==='sale'?saleProf(o):-retProf(o);const m=mk(d);if(cur-m<12)M[m]=(M[m]||0)+sg*num(o.total);
+    (o.items||[]).forEach(i=>{const pp=(P[i.p]??={q:0,s:0,n:0,last:0});pp.q+=sg*num(i.q);pp.s+=sg*isum(i);if(o.type==='sale'){pp.n++;pp.last=Math.max(pp.last,+d)}
+      const g=S.P[i.p]?.group||'';const gg=(G[g]??={q:0,s:0,last:0});gg.q+=sg*num(i.q);gg.s+=sg*isum(i);if(o.type==='sale')gg.last=Math.max(gg.last,+d)})}
+  const months=[...Array(12)].map((_,k)=>{const m=cur-11+k;return{m,v:M[m]||0}});const mx=Math.max(1,...months.map(x=>x.v));
+  const MN=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const stop=Object.entries(P).filter(([p,x])=>x.last&&now-x.last>60*D&&x.s>0).sort((a,b)=>b[1].s-a[1].s).slice(0,15);
+  const grp=Object.entries(G).filter(([,x])=>x.s>0).sort((a,b)=>b[1].s-a[1].s).slice(0,10);
+  const recent=L.filter(o=>o.type==='sale').slice(-8).reverse();const debt=debtOf(id);const wa=(c.phone||'').replace(/\D/g,'');
+  openModal(`<h2 style="margin-bottom:2px">${esc(c.name)} ${RH?ocChip(RH.st):ocChip('none')}</h2><p class="muted small" style="margin-top:0">${esc(c.phone||'')}${wa.length>=9?` · <a href="https://wa.me/${wa}" target="_blank" rel="noopener">Написать в WhatsApp</a>`:''}</p>
+  ${RH?`<div class="kpis" style="margin:8px 0"><div class="kpi"><span>За всё время</span><b>${money(rev)}</b><small>покупок: ${L.filter(o=>o.type==='sale').length}</small></div>${sc?`<div class="kpi"><span>Прибыль за всё время</span><b>${money(prof)}</b><small>маржа ${rev>0?NF.format(r2(prof/rev*100)):0}%</small></div>`:''}<div class="kpi"><span>Покупает</span><b>${RH.avg!=null?'раз в '+Math.max(1,Math.round(RH.avg))+' дн.':'один раз'}</b><small>с ${ds(new Date(RH.first))}</small></div><div class="kpi"><span>Последняя покупка</span><b>${RH.since?RH.since+' дн. назад':'сегодня'}</b><small>${ds(new Date(RH.last))}${debt>0.004?' · долг '+money(debt):''}</small></div></div>
+  <h3 style="margin:10px 0 6px">Покупки по месяцам</h3><div style="display:flex;flex:none;gap:4px;align-items:flex-end;height:110px;padding-bottom:18px;position:relative">${months.map(x=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%" title="${MN[x.m%12]}: ${money(x.v)}"><div style="width:100%;max-width:34px;height:${Math.max(x.v>0?3:1,Math.round(x.v/mx*88))}px;background:${x.v>0?'var(--accent,#1F6B4E)':'var(--line,#ddd)'};border-radius:3px 3px 0 0"></div><span class="psku" style="margin-top:3px">${MN[x.m%12]}</span></div>`).join('')}</div>
+  ${stop.length?`<h3 style="margin:10px 0 4px">Раньше брал, а последние 2 месяца — нет</h3><div class="tbl" style="max-height:220px;overflow:auto;flex:none"><table><thead><tr><th>Товар</th><th class="num">Брал раз</th><th class="num">Всего шт</th><th class="num">На сумму</th><th>Последний раз</th><th class="num">Розн. цена сейчас</th></tr></thead><tbody>${stop.map(([p,x])=>`<tr><td>${esc(pname(p))}</td><td class="num">${x.n}</td><td class="num">${q3(x.q)}</td><td class="num">${NF.format(r2(x.s))}</td><td>${ds(new Date(x.last))}</td><td class="num">${S.P[p]?.sellPrice?NF.format(num(S.P[p].sellPrice)):'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
+  ${grp.length?`<h3 style="margin:10px 0 4px">Что берёт (за всё время)</h3><div class="tbl" style="flex:none"><table><thead><tr><th>Группа</th><th class="num">Шт</th><th class="num">Сумма</th><th>Последний раз</th></tr></thead><tbody>${grp.map(([g,x])=>`<tr><td>${esc(S.G[g]?.name||'Без группы')}</td><td class="num">${q3(x.q)}</td><td class="num">${NF.format(r2(x.s))}</td><td class="${now-x.last>60*D?'debt':''}">${x.last?ds(new Date(x.last)):'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
+  <h3 style="margin:10px 0 4px">Последние покупки</h3><table style="flex:none"><tbody>${recent.map(o=>`<tr><td class="mono">${docNo(o)}</td><td>${ds(o.at)}</td><td class="muted small">${(o.items||[]).slice(0,3).map(i=>esc(pname(i.p))).join(', ')}${(o.items||[]).length>3?` и ещё ${o.items.length-3}`:''}</td><td class="num">${money(o.total)}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">Этот клиент ещё ничего не покупал</div>'}
+  <div class="row end" style="margin-top:10px"><button class="btn" data-act="modal-close">Закрыть</button></div>`)}
+function repTabs(){return can('custopt')||can('cost')||S.isOwner?`<div class="seg" role="group" aria-label="Отчёт"><button data-act="rep-view" data-v="" aria-pressed="${!S.repView}">Сводка</button><button data-act="rep-view" data-v="opt" aria-pressed="${S.repView==='opt'}">Оптовые клиенты</button></div>`:''}
+function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].office))S.repWh='all';
   const sc=can('cost');const rg=range();const {from,to}=rg;const inW=o=>S.repWh==='all'||o.wh===S.repWh;
   const ops=S.all.filter(o=>inR(o,rg)&&(o.type==='pay'||inW(o)));const sales=ops.filter(o=>o.type==='sale');const pays=ops.filter(o=>o.type==='pay'&&!o.init);const rets=ops.filter(o=>o.type==='ret');const wxs=ops.filter(o=>o.type==='wx');
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
@@ -1854,7 +1915,7 @@ function vReports(){if(S.repWh&&S.repWh!=='all'&&(!S.W[S.repWh]||S.W[S.repWh].of
   const recv=Object.values(payIn).reduce((a,b)=>a+b,0);
   const lowHid=S.prod.filter(p=>!p.archived&&p.noOrder);const low=S.prod.filter(p=>!p.archived&&!p.noOrder&&!ownOnly(p.id)).map(p=>({p,q:S.repWh==='all'?qtyAll(p.id):qty(S.repWh,p.id)})).filter(r=>r.q<=0||(num(r.p.minStock)>0&&r.q<=num(r.p.minStock))).sort((a,b)=>a.q-b.q);
   const per=[['today','Сегодня'],['7','7 дней'],['30','30 дней'],['month','Этот месяц'],['prev','Прошлый месяц'],['all','Всё время'],['custom','Выбрать даты']];
-  return `<div class="stack">
+  return `<div class="stack">${repTabs()}
   <div class="row between"><div class="seg" role="group" aria-label="Период">${per.map(([k,v])=>`<button data-act="period" data-v="${k}" aria-pressed="${S.period===k}">${v}</button>`).join('')}</div>
    ${S.period==='custom'?`<div class="row" style="gap:8px"><label class="row" style="gap:6px">с <input type="date" id="rFrom" data-ch="rfrom" value="${isoD(from)}" style="width:auto"></label><label class="row" style="gap:6px">по <input type="date" id="rTo" data-ch="rto" value="${isoD(to)}" style="width:auto"></label></div>`:`<span class="muted small">${ds(from)} — ${ds(to)}</span>`}
    <div class="row"><select id="repWh" data-ch="repwh" style="width:auto" aria-label="Склад"><option value="all">Все склады</option>${saleWhs().map(w=>`<option value="${esc(w.id)}"${w.id===S.repWh?' selected':''}>${esc(w.name)}</option>`).join('')}</select><button class="btn ghost" data-act="exp-sales">Продажи в CSV</button></div></div>
@@ -3692,6 +3753,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
+  'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
