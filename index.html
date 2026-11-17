@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 14.11.2026 13:03</span>
+      <span class="muted" style="font-size:11px">Версия от 17.11.2026 10:29</span>
     </div>
   </aside>
   <div class="main">
@@ -299,7 +299,7 @@ const TYPES={in:{label:'Приход',doc:'Приходная накладная
 const PAY={qr:'Оплата по QR',cash:'Наличные',transfer:'Перевод (юр. лица)'};const PAYL={...PAY,card:'Карта',tumar:'Рассрочка «Тумар»'};
 /* рассрочка «Тумар»: банк перечисляет всю сумму, а раз в месяц забирает свою долю (комиссия + НДС + НсП).
    Эта доля не входит в прибыль, а её оплата банку — не расход. */
-function tumCfg(){const t=S.set?.tumar||{};return{fee:t.fee??12,vat:t.vat??12,nsp:t.nsp??1,nspVat:t.nspVat??true,acc:t.acc||''}}
+function tumCfg(){const t=S.set?.tumar||{};return{fee:t.fee??12,vat:t.vat??12,nsp:t.nsp??2,nspVat:t.nspVat??true,acc:t.acc||''}}
 function tumFee(amt){const c=tumCfg();const a=r2(num(amt)*c.fee/100),v=r2(a*c.vat/100),n=r2((c.nspVat?a+v:a)*c.nsp/100);return{a,v,n,t:r2(a+v+n)}}
 const bfee=o=>o&&o.type==='sale'?num(o.bfee):0;
 const ifee=(o,k)=>{const f=bfee(o);if(!f)return 0;const T=(o.items||[]).reduce((s,i)=>s+isum(i),0);return T?f*isum(o.items[k])/T:0};
@@ -364,8 +364,16 @@ function tumCfgForm(){const c=tumCfg();const ta=tumAcc();openModal(`<h2>Расс
   <label class="check"><input type="checkbox" id="tfNspVat"${c.nspVat?' checked':''}> НсП считается от комиссии вместе с НДС (если снять — только от комиссии)</label>
   <label class="field"><span>Счёт, куда приходят деньги и откуда платите банку</span><select id="tfAcc">${accList().map(a=>`<option value="${esc(a.id)}"${a.id===ta?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="tum-cfg-save">Сохранить</button></div>`)}
+/* пересчитать долю банка в уже проведённых продажах «Тумар» по текущим процентам */
+async function tumRecalc(){const C=tumCfg();const W=[];for(const o of S.sales){if(o.type!=='sale'||o.pay!=='tumar'||!(num(o.paid)>0))continue;const F=tumFee(o.paid);const d=o.bfeeD||{};
+    if(Math.abs(num(o.bfee)-F.t)>0.004||d.fee!==C.fee||d.vat!==C.vat||d.nsp!==C.nsp){const u={bfee:F.t,bfeeD:{a:F.a,v:F.v,n:F.n,fee:C.fee,vat:C.vat,nsp:C.nsp}};W.push([o,u])}}
+  if(!W.length)return 0;for(let i=0;i<W.length;i+=400){const b=S.db.batch();for(const [o,u] of W.slice(i,i+400))b.update(S.db.doc('sales/'+o.id),u);await b.commit()}
+  for(const [o,u] of W)Object.assign(o,u);derive();scheduleRender();return W.length}
+/* разово: НсП по «Тумар» — 2% (было 1%), и пересчёт уже проведённых продаж */
+async function tumMig(){if(!S.isOwner||S.tumMigDone||!S.loaded.has('set')||!S.loaded.has('sales')||S.set.tumNsp2)return;S.tumMigDone=true;
+  try{const t={...tumCfg(),nsp:2};await S.db.doc('settings/main').set({tumar:t,tumNsp2:true},{merge:true});S.set.tumar=t;S.set.tumNsp2=true;const n=await tumRecalc();if(n)toast(`«Тумар»: НсП 2% — пересчитано продаж: ${n}`)}catch(e){console.error(e);S.tumMigDone=false}}
 async function tumCfgSave(){const t={fee:r2(num($('#tfFee').value)),vat:r2(num($('#tfVat').value)),nsp:r2(num($('#tfNsp').value)),nspVat:$('#tfNspVat').checked,acc:$('#tfAcc').value};
-  if(await guard(()=>S.db.doc('settings/main').set({tumar:t},{merge:true}),'Сохранено','money')){S.set.tumar=t;closeModal(true);render()}}
+  if(await guard(()=>S.db.doc('settings/main').set({tumar:t},{merge:true}),null,'money')){S.set.tumar=t;let n=0;try{n=await tumRecalc()}catch(e){console.error(e)}toast(n?`Сохранено, пересчитано продаж «Тумар»: ${n}`:'Сохранено');closeModal(true);render()}}
 const UNITS=['шт','кг','г','л','м','уп','кор'];
 const ROLE={owner:'Владелец',admin:'Администратор',seller:'Продавец',view:'Просмотр'};
 const PERMS=[['sell','Продажа в кассе'],['debt','Продажа в долг'],['payments','Приём оплат по долгам'],['customers','Розничные покупатели: добавление и изменение'],['custopt','Оптовые покупатели: добавление и изменение'],['warranty','Гарантия: приём и обработка обращений'],['returns','Возврат денег покупателям'],['reports','Отчёты: выручка, скидки, долги'],['price','Прайс-лист: просмотр и скачивание'],['calc','Расчёт ПК по прайсам поставщиков'],['buy','Скупка у физлиц: акты закупа'],['stock','Приход, перемещения, списание',1],['catalog','Товары, группы и склады',1],['cost','Себестоимость, закупочные цены, прибыль'],['suppliers','Поставщики и оплаты им',1],['assembly','Сборка компьютеров',1],['money','Деньги: кассы, счета и расходы',1],['delete','Удаление документов из журнала',1],['docedit','Изменение проведённых продаж',1],['pcedit','Собранные ПК на своих складах: цена, замена и снятие деталей'],['pcsite','Собранные ПК: фото и описание для сайта']];
@@ -3936,7 +3944,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.tar
       const me=await user.me();S.meName=me?.name||'';S.meEmail=me?.email||''}catch(e){}}
   if(S.isOwner)setTimeout(()=>{try{siteLoad()}catch(e){}},4000);
   const fail=e=>{if(e?.code==='revoked'||e?.code==='not_granted'){S.offline=true;render()}};
-  const mark=k=>{S.loaded.add(k);derive();scheduleRender();if(S.isOwner&&['ops','costsL','opcL','products','sales'].includes(k))floorSync();if((k==='ops'||k==='sales'||k==='products')&&S.optCfg?.key)optPubSoon(45000)};
+  const mark=k=>{S.loaded.add(k);derive();scheduleRender();if(S.isOwner&&(k==='set'||k==='sales'))setTimeout(()=>{tumMig()},1500);if(S.isOwner&&['ops','costsL','opcL','products','sales'].includes(k))floorSync();if((k==='ops'||k==='sales'||k==='products')&&S.optCfg?.key)optPubSoon(45000)};
   const failK=k=>e=>{if(e?.code==='permission-denied'){mark(k);return}fail(e)};
   const sub=(col,key,sort)=>db.collection(col).onSnapshot(s=>{S[key]=s.docs.map(d=>({id:d.id,...d.data()})).sort(sort);mark(key)},failK(key));
   const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','ru');
