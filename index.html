@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 18.11.2026 01:39</span>
+      <span class="muted" style="font-size:11px">Версия от 19.11.2026 15:48</span>
     </div>
   </aside>
   <div class="main">
@@ -455,7 +455,9 @@ function consDerive(){const lots=[],byP={},bySn={};const hold={},soldH={};
     else if(o.type==='ret'&&o.restock)(o.items||[]).forEach(it=>{const pcs=pcOf(it).filter(z=>soldH[z]);for(const pc of pcs){const H=soldH[pc];for(const h of H){h.l.sold-=h.a;h.l.pc+=h.a}hold[pc]=(hold[pc]||[]).concat(H);delete soldH[pc]}
       const rest=(it.sn||[]).filter(z=>!pcs.includes(z));if(pcs.length&&!rest.length)return;back(it.p,num(it.q),rest.length?rest:it.sn)})}
   for(const l of lots){l.rem=r3(l.q-l.sold-l.ret);l.free=r3(l.rem-l.pc)}S.consLots=lots;S.consHold=hold}
-function derive(){
+/* при изменении продажи она временно исключается из расчётов: остатки, номера и долги — как будто её не было */
+function derive(){const a=S.sales;if(S.saleEdit)S.sales=a.filter(o=>o.id!==S.saleEdit.id);try{derive0()}finally{S.sales=a}}
+function derive0(){
   S.P={};S.prod.forEach(p=>S.P[p.id]=p);S.W={};S.wh.forEach(w=>S.W[w.id]=w);S.C={};S.cust.forEach(c=>S.C[c.id]=c);S.G={};S.groups.forEach(g=>S.G[g.id]=g);S.SP={};S.supp.forEach(x=>S.SP[x.id]=x);S.ST={};S.staffL.forEach(x=>S.ST[x.id]=x);S.SEEN={};S.seenL.forEach(x=>S.SEEN[x.id]=x);
   S.costs={};S.costsL.forEach(c=>S.costs[c.id]=c);S.opc={};S.opcL.forEach(c=>S.opc[c.id]=c);
   {const asc=(a,b)=>(a.at||'').localeCompare(b.at||'')||a.id.localeCompare(b.id);const m={},cnt={};const num_=(arr,key)=>{for(const x of [...arr].sort(asc)){const k=key(x);cnt[k]=(cnt[k]||0)+1;m[x.id]=String(cnt[k]).padStart(5,'0')}};
@@ -627,7 +629,7 @@ function saleTiles(){
   return gChips(S.saleG,'saleg',all)+hitHtml+`<div class="tiles">${list.map(p=>{const a=qty(S.curWh,p.id);if(isPcProd(p)&&snAt(S.curWh,p.id).some(x=>S.pca[x]))return pcRows(p).map(x=>{const o=S.pca[x];return `<button class="tile" data-act="cart-add" data-id="${esc(p.id)}" data-sn="${esc(x)}"><span class="tn">${esc(p.name)}${o.party?`<span class="psku">${esc(o.party)}</span>`:''}</span><span class="tp">${money(pcPrice(x))}</span><span class="ta"><span class="mono">${esc(x)}</span><span>1 шт</span></span></button>`}).join('');return `<button class="tile${a<=0?' zero':''}" data-act="cart-add" data-id="${esc(p.id)}"><span class="tn">${esc(p.name)}</span><span class="tp">${priceLabel(p)}</span>${pW(p)?`<span class="muted small">Гарантия ${pWTxt(p)}</span>`:''}<span class="ta"><span class="mono">${p.serial?'S/N ':''}${esc(p.sku||'')}</span><span>${q3(a)} ${esc(p.unit||'шт')}</span></span></button>`}).join('')}</div>`+awayHtml}
 function cartHtml(){
   const c=S.cart;
-  let h=`<div class="pane-h"><h2>Чек</h2>${c.length?`<button class="btn link" data-act="cart-clear">Очистить</button>`:''}</div>`;
+  let h=`<div class="pane-h"><h2>${S.saleEdit?'Изменение продажи':'Чек'}</h2>${c.length?`<button class="btn link" data-act="cart-clear">Очистить</button>`:''}</div>${S.saleEdit?`<div class="infobox small" style="background:#FFF6DB;border-color:#F1D68A;margin-bottom:8px">Изменение продажи <b>${esc(S.saleEdit.no)}</b> от ${dt(S.saleEdit.at)}. Номер и дата останутся прежними. <button class="btn link" data-act="sale-edit-cancel" style="padding:0 4px">Отменить изменение</button></div>`:''}`;
   if(!c.length)return h+`<div class="empty">Нажмите на товар или введите серийный номер в поиске.</div>`;
   const maxD=myMaxDisc();
   h+=c.map((l,i)=>{const p=S.P[l.p]||{};const ser=!!p.serial||((l.sn||[]).length===1&&!!S.pca[l.sn[0]]);return `<div class="line"><div style="min-width:0"><div class="pname">${esc(pname(l.p))}</div>
@@ -653,7 +655,7 @@ function cartHtml(){
    <input id="note" data-in="note" placeholder="Комментарий к чеку (необязательно)" value="${esc(S.note)}">
    <div class="err" id="saleErr"></div>
    <button class="btn ghost" data-act="talon-preview">Просмотреть гарантийный талон</button>
-   <button class="btn big" data-act="sale-post"${roS()}>Провести продажу</button></div>`;
+   <button class="btn big" data-act="sale-post"${roS()}>${S.saleEdit?'Сохранить изменения':'Провести продажу'}</button></div>`;
   return h}
 function calcCart(){
   let list=0,sub=0;const L=S.cart.map(l=>{const q=(S.P[l.p]?.serial||(l.sn||[]).some(x=>S.pca[x]))?(l.sn||[]).length:num(l.q),pr=num(l.price),d=Math.min(100,Math.max(0,num(l.disc)));
@@ -678,6 +680,17 @@ function updCart(){
   else if(S.debtOn)info='Для продажи в долг выберите покупателя';
   {const d=S.custSel?debtOf(S.custSel):0;if(d<-0.004&&c.total>0){const use=Math.min(-d,c.total);if(!S.debtOn)info+=`${info?' · ':''}<b>на балансе клиента ${money(-d)}: спишется ${money(use)}, к оплате ${money(r2(c.total-use))}</b>`;else{info+=` · на балансе ${money(-d)}`;if(num(S.paidNow)>Math.max(0,c.total+d)+0.004)info+=' <button class="btn link" data-act="useadv">Списать с баланса</button>'}}}
   const ci=$('#custInfo');if(ci)ci.innerHTML=info;else set('#custInfo',info)}
+function saleEditStart(id){const o=S.sales.find(x=>x.id===id&&x.type==='sale');if(!o)return;
+  if(S.sales.some(r=>r.type==='ret'&&r.sale===id)){toast('По этой продаже уже был возврат — изменить нельзя. Удалите возврат или оформите новый.');return}
+  if((S.claims||[]).some(c=>c.src===id)){toast('По этой продаже есть гарантийная заявка — изменить нельзя');return}
+  if(S.cart.length&&!S.saleEdit&&!confirm('В чеке кассы есть товары — они будут убраны. Продолжить?'))return;
+  const adv=num(S.saleAdv?.[id]);const total=num(o.total),paid=num(o.paid??o.total);
+  S.saleEdit={id,no:docNo(o),at:o.at,by:o.by||null};S.curWh=o.wh;
+  S.cart=(o.items||[]).map(i=>({p:i.p,q:(i.sn||[]).length?i.sn.length:num(i.q),price:num(i.price),disc:num(i.disc)?num(i.disc):'',...((i.sn||[]).length?{sn:[...i.sn]}:{}),...(i.kit?{kit:i.kit,kq:(i.sn||[]).length||num(i.q)}:{})}));
+  S.cDisc=num(o.disc)?String(r2(num(o.disc))):'';S.cDiscT='сом';S.pay=o.pay||'qr';S.payAcc=o.acc||S.payAcc;S.custSel=o.cust||'';S.note=o.party||'';
+  S.debtOn=total-paid-adv>0.004;S.paidNow=S.debtOn?String(r2(paid)):'';S.saleQ='';
+  derive();S.tab='sale';render();window.scrollTo(0,0);toast(`Продажа ${S.saleEdit.no} открыта в кассе для изменения`)}
+function saleEditCancel(){S.saleEdit=null;S.cart=[];S.cDisc='';S.pay='qr';S.debtOn=false;S.paidNow='';S.note='';S.custSel='';derive();render()}
 async function postSale(){
   const err=$('#saleErr');err.textContent='';const c=calcCart();
   if(!allowedWh().some(w=>w.id===S.curWh)){err.textContent='Вам нельзя продавать с этого склада';return}
@@ -702,6 +715,10 @@ async function postSale(){
   const o={type:'sale',at:now(),wh:S.curWh,items,sub:c.sub,disc:c.cd,total:c.total,paid,pay:S.pay,acc,cust:S.custSel||null,party:S.note.trim(),by:S.uid||null};
   if(S.pay==='tumar'&&paid>0){const F=tumFee(paid),C=tumCfg();o.bfee=F.t;o.bfeeD={a:F.a,v:F.v,n:F.n,fee:C.fee,vat:C.vat,nsp:C.nsp}}
   const debtAfter=S.custSel?r2(debtOf(S.custSel)+c.total-paid):null;
+  if(S.saleEdit){const E=S.saleEdit;const FV=firebase.firestore.FieldValue;const u={...o,at:E.at,by:E.by,edAt:now(),edBy:S.uid||null};if(!u.bfee){u.bfee=FV.delete();u.bfeeD=FV.delete()}
+    const ok=await guard(()=>S.db.collection('sales').doc(E.id).update(u),`Продажа ${E.no} изменена`);
+    if(ok){const x=S.sales.find(z=>z.id===E.id);if(x){Object.assign(x,o,{at:E.at,by:E.by});if(!o.bfee){delete x.bfee;delete x.bfeeD}}S.saleEdit=null;S.cart=[];S.cDisc='';S.pay='qr';S.debtOn=false;S.paidNow='';S.note='';S.custSel='';derive();S.tab='journal';S.jOpen=E.id;render()}
+    return}
   const ref=S.db.collection('sales').doc();
   const ok=await guard(()=>ref.set(o));
   if(ok){S.cart=[];S.cDisc='';S.pay='qr';S.debtOn=false;S.paidNow='';S.note='';S.custSel='';render();showReceipt({id:ref.id,...o},debtAfter)}
@@ -1799,7 +1816,7 @@ function jDetail(o){
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)-ded(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
     ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${o.pay&&PAYL[o.pay]?' ('+esc(PAYL[o.pay])+')':''}${bfee(o)&&can('cost')?` · доля банка ${money(bfee(o))}${o.bfeeD?` (комиссия ${money(o.bfeeD.a)}, НДС ${money(o.bfeeD.v)}, НсП ${money(o.bfeeD.n)})`:''}`:''}${(S.saleAdv?.[o.id]||0)>0.004?` · с баланса клиента ${money(S.saleAdv[o.id])}`:''}${num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0)>0.004?` · в долг ${money(num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
-  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${o.type==='in'&&S.ops.includes(o)&&S.isOwner&&!o.init&&!o.cons?`<button class="btn ghost" data-act="iv-form" data-id="${esc(o.id)}">${o.ivst?'Товар инвестора: '+esc(ivName(o.ivst.w)):'Товар инвестора'}</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}
+  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${o.type==='in'&&S.ops.includes(o)&&S.isOwner&&!o.init&&!o.cons?`<button class="btn ghost" data-act="iv-form" data-id="${esc(o.id)}">${o.ivst?'Товар инвестора: '+esc(ivName(o.ivst.w)):'Товар инвестора'}</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}${o.type==='sale'&&!o.inv&&!o.init&&(S.isOwner||isAdmin())?`<button class="btn ghost" data-act="sale-edit" data-id="${esc(o.id)}">Изменить продажу</button>`:''}
    ${can('delete')?(S.jDel===o.id?`<div class="confirm"><span>Удалить ${docNo(o)}? Остатки и долги пересчитаются автоматически.</span><button class="btn danger" data-act="jdel-yes" data-id="${esc(o.id)}">Удалить</button><button class="btn ghost" data-act="jdel-no">Отмена</button></div>`:`<button class="btn link bad" data-act="jdel" data-id="${esc(o.id)}">Удалить документ</button>`):''}</div>`;
   return h}
 async function resolveNames(){
@@ -3690,7 +3707,7 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
   pay:t=>{S.pay=t.dataset.v;document.querySelectorAll('[data-act="pay"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.pay));const bx=$('#payAccBox');if(bx)bx.innerHTML=accBox(S.pay,'cartAcc',S.pay==='tumar'?tumAcc():S.payAcc,'Куда поступит оплата');updCart()},
   'tum-cfg':()=>tumCfgForm(),'tum-cfg-save':()=>tumCfgSave(),
   paym:t=>{S.payM=t.dataset.v;document.querySelectorAll('[data-act="paym"]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.payM));const bx=$('#pmAccBox');if(bx)bx.innerHTML=accBox(S.payM,'pmAcc')},
-  'sale-post':postSale,
+  'sale-post':postSale,'sale-edit':t=>saleEditStart(t.dataset.id),'sale-edit-cancel':saleEditCancel,
   'sn-pick':t=>snOpen(t.dataset.t,+t.dataset.i,false),
   'sn-ok':snOk,
   'sn-list':t=>snListModal(t.dataset.id),
