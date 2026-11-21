@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 21.11.2026 18:11</span>
+      <span class="muted" style="font-size:11px">Версия от 21.11.2026 18:16</span>
     </div>
   </aside>
   <div class="main">
@@ -463,7 +463,7 @@ function derive0(){
   {const asc=(a,b)=>(a.at||'').localeCompare(b.at||'')||a.id.localeCompare(b.id);const m={},cnt={};const num_=(arr,key)=>{for(const x of [...arr].sort(asc)){const k=key(x);cnt[k]=(cnt[k]||0)+1;m[x.id]=String(cnt[k]).padStart(5,'0')}};
    num_([...S.ops,...S.sales,...S.spays].filter(x=>x.type),seqKey);num_(S.posL||[],()=>'po');num_(S.claims||[],()=>'cl');S.seqMap=m}
   S.all=[...S.ops,...S.sales,...S.spays].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-  const CL={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
+  const CL={},CO={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
   const add=(w,p,q)=>{if(!w)return;(st[w]??={});st[w][p]=(st[w][p]||0)+q};
   const bp=p=>num(S.costs[p]?.buyPrice??S.P[p]?.buyPrice);
   const avgNow=p=>inQ[p]>0?inS[p]/inQ[p]:bp(p);
@@ -475,7 +475,7 @@ function derive0(){
       else{for(const x of (o.rem||[])){back(x);
           if((x.sn||[]).length){for(const z of x.sn){const i=parts.findIndex(y=>(y.sn||[]).includes(z));if(i>=0)parts.splice(i,1)}}
           else{let left=num(x.q);for(let i=parts.length-1;i>=0&&left>0;i--){const y=parts[i];if(y.p!==x.p||(y.sn||[]).length)continue;const t=Math.min(left,num(y.q));y.q=r3(num(y.q)-t);left-=t;if((x.rsn||[]).length)y.rsn=(y.rsn||[]).filter(r=>!x.rsn.includes(r));if(y.q<=0)parts.splice(i,1)}}}
-        for(const x of (o.add||[])){const q=num(x.q);add(o.wh,x.p,-q);dc+=q*avgNow(x.p);for(const z of (x.sn||[])){delete snLoc[z];cin[z]=pc;(snH[z]??=[]).push({o,p:x.p})}for(const r of (x.rsn||[]))cin[r]=pc;
+        for(const x of (o.add||[])){const q=num(x.q);add(o.wh,x.p,-q);dc+=q*avgNow(x.p);olg(x.p,o,q,avgNow(x.p),'Поставлено в сборку '+pc);for(const z of (x.sn||[])){delete snLoc[z];cin[z]=pc;(snH[z]??=[]).push({o,p:x.p})}for(const r of (x.rsn||[]))cin[r]=pc;
           const c=avgNow(x.p);if((x.sn||[]).length)for(const z of x.sn)parts.push({p:x.p,q:1,sn:[z],c});else parts.push({p:x.p,q,rsn:[...(x.rsn||[])],c})}
         pcu[pc]=num(pcu[pc])+dc;inS[op]=(inS[op]||0)+dc;if(Math.abs(dc)>0.004)lg(op,o,0,dc,'Изменение сборки '+pc)}
       (snH[pc]??=[]).push({o,p:op});continue}
@@ -485,6 +485,7 @@ function derive0(){
     (o.items||[]).forEach((it,j)=>{const q=num(it.q);
       if(o.type==='in'){add(o.wh,it.p,q);const pr=num(oc?.items?.[j]?.price??it.price??bp(it.p));ic[o.id+':'+j]=pr;lg(it.p,o,q,pr,o.buy||o.buyRef?'Скупка':'Приход');inQ[it.p]=(inQ[it.p]||0)+q;inS[it.p]=(inS[it.p]||0)+q*pr}
       else{const us=(it.sn||[]).filter(x=>pcu[x]!=null);ic[o.id+':'+j]=us.length&&us.length===num(it.q)?us.reduce((a,x)=>a+pcu[x],0)/us.length:avgNow(it.p);
+        {const c=ic[o.id+':'+j];if(o.type==='sale')olg(it.p,o,q,c,(o.inv?'Расходная накладная':'Продажа')+(o.cust?' · '+(S.C[o.cust]?.name||''):''),q?isum(it)/q:0);else if(o.type==='off')olg(it.p,o,q,c,o.cret?'Возврат поставщику':'Списание'+(o.party?' · '+o.party:''));else if(o.type==='wx')olg(it.p,o,q,c,'Обмен по гарантии');else if(o.type==='asm')olg(it.p,o,q,c,'В сборку '+((o.out?.sn||[])[0]||''));else if(o.type==='ret'&&o.restock)olg(it.p,o,-q,c,'Возврат от покупателя')}
         if(o.type==='sale'||o.type==='off'||o.type==='wx')add(o.wh,it.p,-q);
         else if(o.type==='move'){add(o.wh,it.p,-q);add(o.toWh,it.p,q)}
         else if(o.type==='ret'&&o.restock)add(o.wh,it.p,q)
@@ -495,7 +496,7 @@ function derive0(){
     if(o.type==='asm'&&o.out){const op=o.out.p;const n=(o.out.sn||[]).length||1;const cs=(o.items||[]).reduce((a,it,j)=>a+num(it.q)*num(ic[o.id+':'+j]),0)+num(S.opc[o.id]?.labor);const unitC=cs/n;ic[o.id+':out']=cs;
       add(o.wh,op,n);lg(op,o,n,unitC,'Сборка');inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items,(o.items||[]).map((it,j)=>ic[o.id+':'+j]))}}}
   {const CB={},SA={};for(const o of S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''))){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;if(o.type==='sale'){const cov=r2((b1-b0)-(Math.max(0,b1)-Math.max(0,b0)));if(cov>0.004)SA[o.id]=cov}}S.saleAdv=SA}
-  S.costLog=CL;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
+  S.costLog=CL;S.costOut=CO;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
   consDerive();const sd={},sl={};for(const l of S.consLots)if(l.supp)sd[l.supp]=(sd[l.supp]||0)+l.sold*l.price;for(const o of S.ops){if(o.type!=='in'||!o.supp)continue;const oc=S.opc[o.id];if(oc&&!o.cons)sd[o.supp]=(sd[o.supp]||0)+num(oc.total)-num(oc.paid??oc.total);if(!sl[o.supp]||o.at>sl[o.supp])sl[o.supp]=o.at}
   for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);for(const o of S.ops)if(o.type==='in'&&o.supp&&o.ivst?.paid&&!o.cons)sd[o.supp]=(sd[o.supp]||0)-ivPrin(o);S.supDebt=sd;S.supLast=sl;
   S.avg={};for(const p in inQ)if(inQ[p]>0)S.avg[p]=inS[p]/inQ[p];
@@ -544,6 +545,10 @@ function costHist(pid){const L=(S.costLog?.[pid]||[]).slice();const pr=S.P[pid];
   ${L.length?`<div class="tbl" style="max-height:52vh;overflow:auto;flex:none"><table><thead><tr><th>Дата</th><th>Документ</th><th>Откуда</th><th class="num">Шт</th><th class="num">Цена за шт</th><th class="num">Сумма</th><th class="num">Средняя после</th></tr></thead><tbody>${rows.map(x=>{const odd=med>0&&x.q>0&&(x.t==='Приход'||x.t==='Скупка')&&(x.c>med*1.6||x.c<med/1.6);return `<tr${odd?' style="background:#FFF1D6"':''}><td>${ds(x.o.at)}</td><td class="mono"><button class="btn link" style="padding:0;font:inherit" data-act="cost-hist-open" data-id="${esc(x.o.id)}">${esc(docNo(x.o))}</button></td><td>${esc(x.t)}${x.o.supp?'<span class="psku">'+esc(sname(x.o.supp))+'</span>':''}</td><td class="num">${x.q?q3(x.q):'—'}</td><td class="num">${x.q?NF.format(r2(x.c)):'—'}${odd?' <span title="Сильно отличается от обычной цены">⚠️</span>':''}</td><td class="num">${NF.format(r2(x.q?x.q*x.c:x.c))}</td><td class="num muted">${x.Q>0?NF.format(r2(x.V/x.Q)):'—'}</td></tr>`}).join('')}</tbody>
   <tfoot><tr><td colspan="3"><b>Итого</b></td><td class="num"><b>${q3(Q)}</b></td><td></td><td class="num"><b>${NF.format(r2(V))}</b></td><td class="num"><b>${NF.format(r2(avg))}</b></td></tr></tfoot></table></div>
   <p class="muted small" style="margin-top:6px">Жёлтым ⚠️ отмечены поступления, где цена сильно отличается от обычной — частая причина: в приходе указана сумма вместо цены за штуку, не то количество или неверно распределена доставка. Исправить: нажмите на номер документа → «Редактировать приход».</p>`:`<div class="empty">Поступлений нет — себестоимость берётся из закупочной цены в карточке товара: ${NF.format(r2(num(S.costs[pid]?.buyPrice??pr?.buyPrice)))}</div>`}
+  ${(()=>{const O=(S.costOut?.[pid]||[]).slice().reverse();if(!O.length)return '';const T=O.reduce((a,x)=>({q:a.q+x.q,c:a.c+x.q*x.c,r:a.r+(x.pr?x.q*x.pr:0),rq:a.rq+(x.pr?x.q:0)}),{q:0,c:0,r:0,rq:0});
+   return `<h3 style="margin:14px 0 4px">Расход — по какой себестоимости ушло</h3><div class="tbl" style="max-height:42vh;overflow:auto;flex:none"><table><thead><tr><th>Дата</th><th>Документ</th><th>Куда</th><th class="num">Шт</th><th class="num">Себест. за шт</th><th class="num">Сумма себест.</th><th class="num">Продано по</th><th class="num">Прибыль</th></tr></thead><tbody>${O.map(x=>`<tr><td>${ds(x.o.at)}</td><td class="mono"><button class="btn link" style="padding:0;font:inherit" data-act="cost-hist-open" data-id="${esc(x.o.id)}">${esc(docNo(x.o))}</button></td><td>${esc(x.t)}</td><td class="num">${q3(x.q)}</td><td class="num">${NF.format(r2(x.c))}</td><td class="num">${NF.format(r2(x.q*x.c))}</td><td class="num">${x.pr?NF.format(r2(x.pr)):'—'}</td><td class="num" style="color:${x.pr&&x.pr<x.c?'var(--bad)':'inherit'}">${x.pr?NF.format(r2(x.q*(x.pr-x.c))):'—'}</td></tr>`).join('')}</tbody>
+   <tfoot><tr><td colspan="3"><b>Итого ушло</b></td><td class="num"><b>${q3(T.q)}</b></td><td></td><td class="num"><b>${NF.format(r2(T.c))}</b></td><td></td><td class="num"><b>${T.rq?NF.format(r2(T.r-O.filter(x=>x.pr).reduce((a,x)=>a+x.q*x.c,0))):'—'}</b></td></tr></tfoot></table></div>
+   <p class="muted small" style="margin-top:6px">Себестоимость списывается по средней на момент продажи. Если позже исправить цену в приходе, пересчитаются и эти строки, и прибыль в отчётах. «Продано по» — цена за штуку с учётом скидок.</p>`})()}
   <div class="row end" style="margin-top:8px"><button class="btn" data-act="modal-close">Закрыть</button></div>`);$('#mcard').classList.add('wide')}
 function floorSync(){if(!S.isOwner||!S.db||!S.loaded.has('costsL')||!S.loaded.has('opcL')||!S.loaded.has('ops'))return;clearTimeout(S.floorT);
   S.floorT=setTimeout(()=>{const P={},PC={};for(const pr of S.prod){if(pr.archived)continue;const c=r2(cost(pr.id));if(c>0)P[pr.id]=c}for(const sn in S.pca)if(pcIn(sn)&&num(S.pcu[sn])>0)PC[sn]=r2(S.pcu[sn]);
