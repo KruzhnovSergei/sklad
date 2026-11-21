@@ -125,6 +125,12 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // «Мой заработок»: программа владельца выкладывает продавцу его продажи с маржой; читает только он сам
+    match /commpub/{uid} {
+      allow read: if isOwner() || (member() && request.auth.uid == uid);
+      allow write: if isOwner();
+    }
+
     // Кто входил в программу: каждый пишет только о себе, весь список видит владелец
     match /seen/{uid} {
       allow read, write: if isOwner() || (signedIn() && request.auth.uid == uid);
