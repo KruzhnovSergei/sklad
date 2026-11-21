@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 21.11.2026 10:40</span>
+      <span class="muted" style="font-size:11px">Версия от 21.11.2026 10:49</span>
     </div>
   </aside>
   <div class="main">
@@ -3760,8 +3760,8 @@ cret:t=>cretForm(t.dataset.s,t.dataset.p),
 plmode:t=>{plCfg().mode=t.dataset.v;render()},
 'plov-rm':t=>{delete plCfg().ov[t.dataset.id];render()},
 'plov-clear':()=>{plCfg().ov={};render()},
-'prev-as':t=>{const uid=t.dataset.id;const lv=SRV()?(S.ST[uid]?.lvl||lvlOf(S.ST[uid]?.perms)):S.SEEN[uid]?.lvl;S.prev={isOwner:S.isOwner,uid:S.uid,role:S.role,tab:S.tab,curWh:S.curWh,stockWh:S.stockWh};S.isOwner=false;S.uid=uid;S.role=lv==='view'?'view':lv==='interact'?'interact':'admin';S.inv=null;S.cart=[];S.stockWh='all';derive();S.tab=tabsFor()[0]?.[0]||'stock';render();window.scrollTo(0,0)},
-'prev-exit':()=>{const p=S.prev;if(!p)return;S.prev=null;S.isOwner=p.isOwner;S.uid=p.uid;S.role=p.role;S.inv=null;S.cart=[];S.stockWh=p.stockWh;derive();S.curWh=p.curWh;S.tab='settings';render()},
+'prev-as':t=>{const uid=t.dataset.id;const lv=SRV()?(S.ST[uid]?.lvl||lvlOf(S.ST[uid]?.perms)):S.SEEN[uid]?.lvl;S.prev={isOwner:S.isOwner,uid:S.uid,role:S.role,tab:S.tab,curWh:S.curWh,stockWh:S.stockWh};S.isOwner=false;S.uid=uid;S.role=lv==='view'?'view':lv==='interact'?'interact':'admin';S.inv=null;S.cart=[];S.stockWh='all';derive();S.tab=tabsFor()[0]?.[0]||'stock';render();window.scrollTo(0,0);S.myComm=null;S.db?.doc('commpub/'+uid).get().then(d=>{if(S.prev&&S.uid===uid){S.myComm=d.exists?d.data():null;render()}}).catch(()=>{})},
+'prev-exit':()=>{const p=S.prev;if(!p)return;S.prev=null;S.myComm=null;S.isOwner=p.isOwner;S.uid=p.uid;S.role=p.role;S.inv=null;S.cart=[];S.stockWh=p.stockWh;derive();S.curWh=p.curWh;S.tab='settings';render()},
 useadv:()=>{const c=calcCart();const d=debtOf(S.custSel);S.debtOn=true;S.paidNow=String(r2(Math.max(0,c.total+d)));$('#cart').innerHTML=cartHtml();updCart()},
 'inv-adv':()=>{const v=S.inv;const t=v.items.reduce((a,l)=>a+invSum(l),0);const d=debtOf(v.cust)-(v.id&&v.doc.cust===v.cust?num(v.doc.total)-num(v.doc.paid??v.doc.total):0);v.full=false;v.paid=String(r2(Math.max(0,t+d)));render()},
 'inv-new':()=>{invNew()},
