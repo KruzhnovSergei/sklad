@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 21.11.2026 18:16</span>
+      <span class="muted" style="font-size:11px">Версия от 23.11.2026 14:42</span>
     </div>
   </aside>
   <div class="main">
@@ -1342,9 +1342,10 @@ async function saveReg(del){let regs=[...regList()];const id=S.regId;
 const PC_GROUP='Готовые ПК';
 const pcGroupId=()=>S.groups.find(g=>(g.name||'').toLowerCase()===PC_GROUP.toLowerCase())?.id||null;
 const isPcProd=p=>{const g=pcGroupId();return !!(p&&g&&p.group===g)};
-function pcStatus(sn){const o=S.pca[sn];const loc=S.snLoc[sn];if(loc&&o&&loc.p===o.out.p)return['ok',`На складе «${wname(loc.wh)}»`];const h=S.snH[sn]||[];const last=h[h.length-1];
+function pcStatus(sn){const o=S.pca[sn];const loc=S.snLoc[sn];if(loc&&o&&loc.p===o.out.p)return['ok',`На складе «${wname(loc.wh)}»`];const h=S.snH[sn]||[];let last=null;for(let i=h.length-1;i>=0;i--){const t=h[i].o.type;if(t==='mod'||t==='move'||(t==='ret'&&!h[i].o.restock&&i>0))continue;last=h[i];break}
   if(last?.o.type==='dis')return['t-dis',`Разобран ${ds(last.o.at)}`];
-  if(last?.o.type==='sale')return['t-sale',`Продан ${ds(last.o.at)} · ${docNo(last.o)}`];if(last?.o.type==='wx')return['t-wx','Выдан по гарантии'];if(last?.o.type==='off')return['out','Списан'];return['t-move','—']}
+  if(last?.o.type==='sale')return['t-sale',`Продан ${ds(last.o.at)} · ${docNo(last.o)}`];if(last?.o.type==='wx')return['t-wx','Выдан по гарантии'];if(last?.o.type==='off')return['out',`${last.o.cret?'Возвращён поставщику':'Списан'} ${ds(last.o.at)} · ${docNo(last.o)}`];
+  const lx=h[h.length-1];return['t-move',lx?`Нет на складе · последнее: ${(TYPES[lx.o.type]?.label||'').toLowerCase()} ${docNo(lx.o)}`:'Нет на складе']}
 function nextPcSn(){const d=new Date();const pre=`PC-${String(d.getFullYear()).slice(2)}${String(d.getMonth()+1).padStart(2,'0')}-`;let n=1;while(S.snH[pre+String(n).padStart(4,'0')])n++;return pre+String(n).padStart(4,'0')}
 function mkParts(items,cs){const r=[];(items||[]).forEach((i,j)=>{const c=cs?num(cs[j]):undefined;if((i.sn||[]).length)for(const z of i.sn)r.push({p:i.p,q:1,sn:[z],c});else r.push({p:i.p,q:num(i.q),rsn:[...(i.rsn||[])],c})});return r}
 const pcPrice=sn=>{const o=S.pca[sn];return o?(num(o.price)||num(S.P[o.out.p]?.sellPrice)):0};
