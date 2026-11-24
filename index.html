@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 24.11.2026 10:14</span>
+      <span class="muted" style="font-size:11px">Версия от 24.11.2026 11:07</span>
     </div>
   </aside>
   <div class="main">
@@ -1785,8 +1785,8 @@ function vOps(){
    <div class="row"><span class="err" id="opErr"></span><button class="btn" data-act="op-post"${ro('stock')}${o.items.length?'':' disabled'}>${o.edit&&m==='in'?'Сохранить изменения':m==='in'&&o.init?'Провести ввод остатков':'Провести '+TYPES[m].label.toLowerCase()}</button></div></div>
   </section>`}
 function opResults(){const q=S.opQ.trim();if(!q&&!S.opG)return '';
-  const list=filterProds(q).filter(p=>inGroup(p,S.opG)).slice(0,q?8:60);const st=q?'':' style="position:static;margin-top:6px;max-height:280px"';
-  return `<div class="results"${st}>${list.length?list.map(p=>`<button data-act="op-add" data-id="${esc(p.id)}"><span>${esc(p.name)} <span class="psku" style="display:inline">${p.serial?'S/N ':''}${esc(p.sku||'')}</span></span><span class="muted">${q3(qty(S.op.wh,p.id))} ${esc(p.unit||'шт')}</span></button>`).join(''):`<div class="empty" style="padding:14px">${q?'Не найдено.':'В этой группе пока нет товаров.'} ${S.opMode==='in'&&can('catalog')?`<button class="btn link" data-act="op-newp">Создать товар${q?' «'+esc(q)+'»':''}</button>`:''}</div>`}</div>`}
+  const out=S.opMode!=='in';let all=filterProds(q).filter(p=>inGroup(p,S.opG));const hid=out?all.filter(p=>!(qty(S.op.wh,p.id)>0)).length:0;if(out)all=all.filter(p=>qty(S.op.wh,p.id)>0);const list=all.slice(0,q?8:60);const st=q?'':' style="position:static;margin-top:6px;max-height:280px"';
+  return `<div class="results"${st}>${list.length?list.map(p=>`<button data-act="op-add" data-id="${esc(p.id)}"><span>${esc(p.name)} <span class="psku" style="display:inline">${p.serial?'S/N ':''}${esc(p.sku||'')}</span></span><span class="muted">${q3(qty(S.op.wh,p.id))} ${esc(p.unit||'шт')}</span></button>`).join(''):`<div class="empty" style="padding:14px">${hid?`Нет в наличии на складе «${esc(wname(S.op.wh))}»${q?'':' в этой группе'}.`:q?'Не найдено.':'В этой группе пока нет товаров.'} ${S.opMode==='in'&&can('catalog')?`<button class="btn link" data-act="op-newp">Создать товар${q?' «'+esc(q)+'»':''}</button>`:''}</div>`}</div>`}
 /* себестоимость строки: у собранного ПК — его собственная (по серийному номеру), а не средняя по всем сборкам */
 function opLineCost(it){const us=(it.sn||[]).filter(x=>S.pcu?.[x]!=null);return us.length&&us.length===(it.sn||[]).length?us.reduce((a,x)=>a+num(S.pcu[x]),0)/us.length:cost(it.p)}
 function opQty(it){return S.P[it.p]?.serial?(it.sn||[]).length:num(it.q)}
