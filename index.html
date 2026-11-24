@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 23.11.2026 14:42</span>
+      <span class="muted" style="font-size:11px">Версия от 24.11.2026 10:14</span>
     </div>
   </aside>
   <div class="main">
@@ -463,7 +463,7 @@ function derive0(){
   {const asc=(a,b)=>(a.at||'').localeCompare(b.at||'')||a.id.localeCompare(b.id);const m={},cnt={};const num_=(arr,key)=>{for(const x of [...arr].sort(asc)){const k=key(x);cnt[k]=(cnt[k]||0)+1;m[x.id]=String(cnt[k]).padStart(5,'0')}};
    num_([...S.ops,...S.sales,...S.spays].filter(x=>x.type),seqKey);num_(S.posL||[],()=>'po');num_(S.claims||[],()=>'cl');S.seqMap=m}
   S.all=[...S.ops,...S.sales,...S.spays].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-  const CL={},CO={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
+  const CL={},CO={},LS={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
   const add=(w,p,q)=>{if(!w)return;(st[w]??={});st[w][p]=(st[w][p]||0)+q};
   const bp=p=>num(S.costs[p]?.buyPrice??S.P[p]?.buyPrice);
   const avgNow=p=>inQ[p]>0?inS[p]/inQ[p]:bp(p);
@@ -477,7 +477,7 @@ function derive0(){
           else{let left=num(x.q);for(let i=parts.length-1;i>=0&&left>0;i--){const y=parts[i];if(y.p!==x.p||(y.sn||[]).length)continue;const t=Math.min(left,num(y.q));y.q=r3(num(y.q)-t);left-=t;if((x.rsn||[]).length)y.rsn=(y.rsn||[]).filter(r=>!x.rsn.includes(r));if(y.q<=0)parts.splice(i,1)}}}
         for(const x of (o.add||[])){const q=num(x.q);add(o.wh,x.p,-q);dc+=q*avgNow(x.p);olg(x.p,o,q,avgNow(x.p),'Поставлено в сборку '+pc);for(const z of (x.sn||[])){delete snLoc[z];cin[z]=pc;(snH[z]??=[]).push({o,p:x.p})}for(const r of (x.rsn||[]))cin[r]=pc;
           const c=avgNow(x.p);if((x.sn||[]).length)for(const z of x.sn)parts.push({p:x.p,q:1,sn:[z],c});else parts.push({p:x.p,q,rsn:[...(x.rsn||[])],c})}
-        pcu[pc]=num(pcu[pc])+dc;inS[op]=(inS[op]||0)+dc;if(Math.abs(dc)>0.004)lg(op,o,0,dc,'Изменение сборки '+pc)}
+        pcu[pc]=num(pcu[pc])+dc;inS[op]=(inS[op]||0)+dc;if(!snLoc[pc]&&LS[pc]&&Math.abs(dc)>0.004){const L=LS[pc];ic[L.k]=num(ic[L.k])+dc/L.q}if(Math.abs(dc)>0.004)lg(op,o,0,dc,'Изменение сборки '+pc)}
       (snH[pc]??=[]).push({o,p:op});continue}
     if(o.type==='sale'&&o.cust){debt[o.cust]=(debt[o.cust]||0)+num(o.total)-num(o.paid??o.total);last[o.cust]=o.at}
     const oc=o.type==='in'?S.opc[o.id]:null;
@@ -485,6 +485,8 @@ function derive0(){
     (o.items||[]).forEach((it,j)=>{const q=num(it.q);
       if(o.type==='in'){add(o.wh,it.p,q);const pr=num(oc?.items?.[j]?.price??it.price??bp(it.p));ic[o.id+':'+j]=pr;lg(it.p,o,q,pr,o.buy||o.buyRef?'Скупка':'Приход');inQ[it.p]=(inQ[it.p]||0)+q;inS[it.p]=(inS[it.p]||0)+q*pr}
       else{const us=(it.sn||[]).filter(x=>pcu[x]!=null);ic[o.id+':'+j]=us.length&&us.length===num(it.q)?us.reduce((a,x)=>a+pcu[x],0)/us.length:avgNow(it.p);
+        /* ПК, проданный целиком: изменения сборки после продажи (добавили/сняли деталь) относятся к этой продаже */
+        if(o.type==='sale'&&us.length&&us.length===num(it.q))for(const z of us)LS[z]={k:o.id+':'+j,q:num(it.q)};else if(o.type==='ret'&&o.restock)for(const z of (it.sn||[]))delete LS[z];
         {const c=ic[o.id+':'+j];if(o.type==='sale')olg(it.p,o,q,c,(o.inv?'Расходная накладная':'Продажа')+(o.cust?' · '+(S.C[o.cust]?.name||''):''),q?isum(it)/q:0);else if(o.type==='off')olg(it.p,o,q,c,o.cret?'Возврат поставщику':'Списание'+(o.party?' · '+o.party:''));else if(o.type==='wx')olg(it.p,o,q,c,'Обмен по гарантии');else if(o.type==='asm')olg(it.p,o,q,c,'В сборку '+((o.out?.sn||[])[0]||''));else if(o.type==='ret'&&o.restock)olg(it.p,o,-q,c,'Возврат от покупателя')}
         if(o.type==='sale'||o.type==='off'||o.type==='wx')add(o.wh,it.p,-q);
         else if(o.type==='move'){add(o.wh,it.p,-q);add(o.toWh,it.p,q)}
