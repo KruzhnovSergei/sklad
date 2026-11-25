@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 25.11.2026 09:32</span>
+      <span class="muted" style="font-size:11px">Версия от 25.11.2026 20:53</span>
     </div>
   </aside>
   <div class="main">
@@ -2583,7 +2583,12 @@ function talonXlsx(o,draft){const d=talonData(o,draft);
     ['xl/workbook.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Гарантийный талон" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">\'Гарантийный талон\'!$A$1:$E$'+r+'</definedName></definedNames></workbook>'],
     ['xl/_rels/workbook.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>'],
     ['xl/worksheets/sheet1.xml',sheet],['xl/styles.xml',styles]])}
-const talonBtns=id=>`<span class="row" style="gap:6px;align-items:center"><span class="muted small">Гарантийный талон:</span><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="pdf" data-id="${esc(id)}">PDF</button><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="xlsx" data-id="${esc(id)}">Excel</button><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="html" data-id="${esc(id)}">Для печати</button></span>`;
+const talonBtns=id=>`<span class="row" style="gap:6px;align-items:center"><span class="muted small">Гарантийный талон:</span><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="pdf" data-id="${esc(id)}">PDF</button><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="xlsx" data-id="${esc(id)}">Excel</button><button class="btn ghost" style="padding:6px 12px" data-act="talon" data-f="html" data-id="${esc(id)}">Для печати</button>${id!=='draft'&&(S.isOwner||isAdmin())&&S.sales.some(x=>x.id===id&&x.type==='sale')?`<button class="btn link" style="padding:6px 8px" data-act="w-refresh" data-id="${esc(id)}" title="Взять сроки гарантии из карточек товаров (если вы их поменяли после продажи)">Обновить сроки гарантии</button>`:''}</span>`;
+/* пересчитать сроки гарантии в проданном чеке по текущим карточкам товаров (и состав ПК по его паспорту) */
+async function wRefresh(id){const o=S.sales.find(x=>x.id===id&&x.type==='sale');if(!o)return;
+  const items=(o.items||[]).map(i=>{const it={...i};delete it.wm;delete it.wd;delete it.until;wSet(it,it.p);if(it.sn&&it.sn.length===1&&S.pca[it.sn[0]])it.parts=snapParts(it.sn[0]);return it});
+  if(!confirm(`Обновить сроки гарантии в ${docNo(o)} по текущим настройкам товаров? Дата начала гарантии останется датой продажи.`))return;
+  if(await guard(()=>S.db.doc('sales/'+id).update({items,edAt:now(),edBy:S.uid||null}),'Сроки гарантии обновлены')){o.items=items;derive();render()}}
 async function talonDl(id,f){const draft=id==='draft';const o=draft?S.draftTalon:(S.all.find(x=>x.id===id)||S.lastDoc);if(!o)return;
   const nm=draft?'Гарантийный талон (до продажи)':`Гарантийный талон ${docNo(o)}`;
   try{if(f==='pdf')await saveFile(nm+'.pdf',talonPdf(o,draft));else if(f==='xlsx')await saveFile(nm+'.xlsx',talonXlsx(o,draft));else await saveFile(nm+'.html',draft?printDoc('Гарантийный талон',talonBody(o,true)):talonDoc(o))}
@@ -3825,7 +3830,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
-  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
+  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
