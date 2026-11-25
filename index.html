@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 25.11.2026 20:53</span>
+      <span class="muted" style="font-size:11px">Версия от 25.11.2026 23:37</span>
     </div>
   </aside>
   <div class="main">
@@ -3425,12 +3425,14 @@ const optPhCol=()=>plCanSave();
 function optIdxLoad(){if(S.optIdxSub||!S.db)return;S.optIdxSub=true;S.db.doc('optidx/main').onSnapshot(d=>{S.optIdx=d.exists?d.data():{};if(S.tab==='price'&&$('#modal').hidden&&!typing())render()},()=>{S.optIdx=S.optIdx||{}})}
 function optPhBtn(id){optIdxLoad();const x=(S.optIdx||{})[id];const n=num(x?.n),d=!!x?.d;return `<button class="btn link" data-act="oi-open" data-id="${esc(id)}" style="white-space:nowrap" title="Фото и описание для оптового каталога">${n||d?`📷 ${n}${d?' · описание':''}`:'+ фото'}</button>`}
 async function oiOpen(id){S.oi={id,imgs:[],desc:'',loading:true};oiRender();try{const d=await S.db.doc('optinfo/'+id).get();if(d.exists){const x=d.data();S.oi.imgs=x.imgs||[];S.oi.desc=x.desc||''}}catch(e){}S.oi.loading=false;oiRender()}
+function oiMvNote(){if(!S.oi)return;oiKeep();const c=plCfg();const nt=(c.notes||{})[S.oi.id]||'';if(!nt)return;S.oi.desc=(S.oi.desc.trim()?S.oi.desc.trim()+'\n\n':'')+nt;delete c.notes[S.oi.id];plAuto();oiRender();toast('Примечание перенесено в описание — нажмите «Сохранить»')}
 function oiKeep(){const e=$('#oiDesc');if(e&&S.oi)S.oi.desc=e.value}
 function oiRender(){const w=S.oi;if(!w)return;const p=String(w.id).startsWith('kit_')?{name:'Комплект: '+(kitList().find(k=>'kit_'+k.id===w.id)?.name||'')}:(S.P[w.id]||{});const kb=Math.round(w.imgs.reduce((a,x)=>a+x.length,0)/1024);
   openModal(`<h2>${esc(p.name||'Товар')}</h2><p class="muted small">Фото и подробное описание для оптового каталога дилеров. До 4 фото, первое — обложка карточки. Фото уменьшаются автоматически.</p>
    ${w.loading?'<p class="muted">Загружаю…</p>':`<div class="row" style="gap:10px;flex-wrap:wrap;margin:8px 0">${w.imgs.map((src,i)=>`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><img src="${src}" alt="Фото ${i+1}" style="width:140px;height:105px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)">${i===0?'<span class="small muted">Обложка</span>':`<button class="btn link" data-act="oi-first" data-i="${i}">Сделать обложкой</button>`}<button class="btn link bad" data-act="oi-rm" data-i="${i}">Убрать</button></div>`).join('')}
     ${w.imgs.length<4?`<label class="btn ghost" style="cursor:pointer;align-self:center">Добавить фото…<input type="file" accept="image/*" multiple data-ch="oi-file" hidden></label>`:''}</div>
-   <label class="field"><span>Подробное описание</span><textarea id="oiDesc" rows="6" placeholder="Характеристики, комплектация, совместимость, особенности">${esc(w.desc)}</textarea></label>
+   <label class="field"><span>Подробное описание <span class="muted" style="font-weight:400">— видно только в карточке товара на сайте, в прайс PDF/Excel не попадает</span></span><textarea id="oiDesc" rows="6" placeholder="Характеристики, комплектация, совместимость, особенности">${esc(w.desc)}</textarea></label>
+   ${(()=>{const nt=(plCfg()?.notes||{})[w.id]||'';return nt.length>40?`<div class="infobox small" style="background:#FFF6DB;border-color:#F1D68A">У этого товара в прайсе длинное <b>примечание</b> (${nt.length} символов): оно показывается в списке сайта и печатается в PDF/Excel. <button class="btn link" data-act="oi-mvnote" style="padding:0 4px">Перенести его сюда в описание</button></div>`:''})()}
    <p class="small muted">Размер фото: ${kb} КБ из 850 КБ. Каталог дилеров обновится сам через несколько секунд после сохранения.</p>`}
    <p class="err" id="oiErr"></p>
    <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="oi-save"${w.loading?' disabled':''}>Сохранить</button></div>`)}
@@ -3830,7 +3832,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
-  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
+  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'oi-mvnote':()=>oiMvNote(),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
