@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 26.11.2026 12:53</span>
+      <span class="muted" style="font-size:11px">Версия от 26.11.2026 12:59</span>
     </div>
   </aside>
   <div class="main">
@@ -463,7 +463,7 @@ function derive0(){
   {const asc=(a,b)=>(a.at||'').localeCompare(b.at||'')||a.id.localeCompare(b.id);const m={},cnt={};const num_=(arr,key)=>{for(const x of [...arr].sort(asc)){const k=key(x);cnt[k]=(cnt[k]||0)+1;m[x.id]=String(cnt[k]).padStart(5,'0')}};
    num_([...S.ops,...S.sales,...S.spays].filter(x=>x.type),seqKey);num_(S.posL||[],()=>'po');num_(S.claims||[],()=>'cl');S.seqMap=m}
   S.all=[...S.ops,...S.sales,...S.spays].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-  const CL={},CO={},LS={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
+  const CL={},CO={},LS={},WB={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
   const add=(w,p,q)=>{if(!w)return;(st[w]??={});st[w][p]=(st[w][p]||0)+q};
   const bp=p=>num(S.costs[p]?.buyPrice??S.P[p]?.buyPrice);
   const avgNow=p=>inQ[p]>0?inS[p]/inQ[p]:bp(p);
@@ -496,9 +496,12 @@ function derive0(){
         if(o.type==='in'||(o.type==='ret'&&o.restock))snLoc[sn]={p:it.p,wh:o.wh};else if(o.type==='move'){if(snLoc[sn])snLoc[sn].wh=o.toWh}else if(o.type!=='ret')delete snLoc[sn];if(o.type==='asm'&&o.out?.sn?.[0])cin[sn]=o.out.sn[0]}
       if(o.type==='asm'&&o.out?.sn?.[0])for(const r of (it.rsn||[]))cin[r]=o.out.sn[0]})
     if(o.type==='asm'&&o.out){const op=o.out.p;const n=(o.out.sn||[]).length||1;const cs=(o.items||[]).reduce((a,it,j)=>a+num(it.q)*num(ic[o.id+':'+j]),0)+num(S.opc[o.id]?.labor);const unitC=cs/n;ic[o.id+':out']=cs;
-      add(o.wh,op,n);lg(op,o,n,unitC,'Сборка');inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items,(o.items||[]).map((it,j)=>ic[o.id+':'+j]))}}}
+      add(o.wh,op,n);lg(op,o,n,unitC,'Сборка');inQ[op]=(inQ[op]||0)+n;inS[op]=(inS[op]||0)+cs;for(const sn of (o.out.sn||[])){(snH[sn]??=[]).push({o,p:op});snLoc[sn]={p:op,wh:o.wh};pca[sn]=o;pcu[sn]=unitC;comp[sn]=mkParts(o.items,(o.items||[]).map((it,j)=>ic[o.id+':'+j]))}}
+    /* обмен по гарантии: принятый неисправный экземпляр встаёт на тот же склад (потом его можно переместить на склад брака) */
+    if(o.type==='wx'&&o.back&&o.items?.[0]){const p=o.items[0].p,c=num(ic[o.id+':0']);add(o.wh,p,1);inQ[p]=(inQ[p]||0)+1;inS[p]=(inS[p]||0)+c;WB[o.id]=c;lg(p,o,1,c,'Принят неисправный по гарантии');
+      if(o.oldSn&&!snLoc[o.oldSn]){snLoc[o.oldSn]={p,wh:o.wh};(snH[o.oldSn]??=[]).push({o,p})}}}
   {const CB={},SA={};for(const o of S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''))){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;if(o.type==='sale'){const cov=r2((b1-b0)-(Math.max(0,b1)-Math.max(0,b0)));if(cov>0.004)SA[o.id]=cov}}S.saleAdv=SA}
-  S.costLog=CL;S.costOut=CO;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
+  S.wxBk=WB;S.costLog=CL;S.costOut=CO;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
   consDerive();const sd={},sl={};for(const l of S.consLots)if(l.supp)sd[l.supp]=(sd[l.supp]||0)+l.sold*l.price;for(const o of S.ops){if(o.type!=='in'||!o.supp)continue;const oc=S.opc[o.id];if(oc&&!o.cons)sd[o.supp]=(sd[o.supp]||0)+num(oc.total)-num(oc.paid??oc.total);if(!sl[o.supp]||o.at>sl[o.supp])sl[o.supp]=o.at}
   for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);for(const o of S.ops)if(o.type==='in'&&o.supp&&o.ivst?.paid&&!o.cons)sd[o.supp]=(sd[o.supp]||0)-ivPrin(o);S.supDebt=sd;S.supLast=sl;
   S.avg={};for(const p in inQ)if(inQ[p]>0)S.avg[p]=inS[p]/inQ[p];
@@ -782,7 +785,7 @@ function receiptText(o,debtAfter){
   if(o.type==='pay'){L.push(`Покупатель: ${cname(o.cust)}`);L.push(line);L.push(`${o.out?'Выдано клиенту':o.adv?'Принята предоплата':'Принято'}: ${money(Math.abs(num(o.amount)))} (${PAYL[o.pay]||''})`);if(o.party)L.push(`Комментарий: ${o.party}`);if(debtAfter!=null)L.push(debtAfter<-0.004?`Предоплата на балансе: ${money(-debtAfter)}`:`${o.out?'Долг клиента теперь':'Остаток долга'}: ${money(debtAfter)}`);return L.join('\n')}
   L.push(o.type==='move'?`${wname(o.wh)} → ${wname(o.toWh)}`:wname(o.wh));
   if(o.type==='ret'&&o.sale){const so=S.all.find(x=>x.id===o.sale);if(so)L.push('По чеку: '+docNo(so))}
-  if(o.type==='wx'&&o.oldSn)L.push('Принят неисправный: S/N '+o.oldSn);
+  if(o.type==='wx'&&(o.oldSn||o.back))L.push('Принят неисправный'+(o.oldSn?': S/N '+o.oldSn:'')+(o.back?' — поставлен на склад '+wname(o.wh):''));
   if(o.cust)L.push(`Покупатель: ${cname(o.cust)}`);
   if(o.cons)L.push('Товар под реализацию: оплата поставщику после продажи');
   if(o.buy)L.push('Акт закупа № '+o.buy.no);
@@ -1092,14 +1095,14 @@ function swapForm(cid,wh){const c=S.claims.find(x=>x.id===cid);if(!c)return;cons
   const av=ser?snAt(wh,c.p):[];const q=qty(wh,c.p);const can=ser?av.length>0:q>=1;
   openModal(`<h2>Замена по гарантии</h2><p>${esc(pname(c.p))}${c.sn?` · неисправный <span class="sn">${esc(c.sn)}</span>`:''}</p>
   <label class="field"><span>С какого склада выдать</span><select id="swWh" onchange="swapForm('${esc(c.id)}',this.value)">${whs.map(w=>`<option value="${esc(w.id)}"${w.id===wh?' selected':''}>${esc(w.name)} — ${q3(qty(w.id,c.p))} шт</option>`).join('')}</select></label>
-  <p class="muted small">Новый экземпляр спишется со склада «${esc(wname(wh))}». Гарантия на него продолжится до ${c.until?ds(c.until):'—'}.</p>
+  <p class="muted small">Новый экземпляр спишется со склада «${esc(wname(wh))}», а принятый неисправный${c.sn?' (S/N '+esc(c.sn)+')':''} встанет на этот же склад — потом переместите его на склад брака. Гарантия на новый продолжится до ${c.until?ds(c.until):'—'}.</p>
   ${ser?(av.length?`<div class="snlist">${av.map((s,i)=>`<label><input type="radio" name="swapSn" value="${esc(s)}"${i===0?' checked':''}>${esc(s)}</label>`).join('')}</div>`:'<div class="err">На этом складе нет исправных экземпляров. Выберите другой склад выше или верните деньги.</div>')
    :(q>=1?`<p>На складе ${q3(q)} ${esc(unit(c.p))}.</p>`:'<div class="err">На этом складе нет этого товара.</div>')}
   <div class="err" id="swErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="swap-save" data-id="${esc(c.id)}"${can?'':' disabled'}>Выдать замену</button></div>`)}
 async function saveSwap(cid){const c=S.claims.find(x=>x.id===cid);if(!c)return;const ser=!!S.P[c.p]?.serial;const sn=ser?document.querySelector('input[name="swapSn"]:checked')?.value:'';if(ser&&!sn){$('#swErr').textContent='Выберите номер';return}
   const it={p:c.p,q:1,until:c.until||null};if(sn)it.sn=[sn];
-  const doc={type:'wx',at:now(),wh:S.swapWh||S.curWh,items:[it],total:0,claim:c.id,src:c.src,oldSn:c.sn||'',cust:c.cust||null,party:'',by:S.uid||null};
+  const doc={type:'wx',at:now(),wh:S.swapWh||S.curWh,items:[it],total:0,claim:c.id,src:c.src,oldSn:c.sn||'',back:true,cust:c.cust||null,party:'',by:S.uid||null};
   const ref=S.db.collection('sales').doc();
   const ok=await guard(async()=>{await ref.set(doc);await S.db.collection('claims').doc(cid).update({status:'ready',res:'replace',newSn:sn||'',hist:[...(c.hist||[]),{at:now(),st:'ready',res:'replace',note:'Выдан новый экземпляр'+(sn?' S/N '+sn:''),by:S.uid||null}]})},'Замена оформлена','warranty');
   if(ok){closeModal(true);derive();render();showReceipt({id:ref.id,...doc})}}
@@ -1275,7 +1278,7 @@ const accRowsHtml=()=>S.accEdit.map((a,i)=>`<label class="field"><span>${a.id===
 
 /* ---------- расходы и прибыль ---------- */
 function calcPL(rg){let rev=0,cogs=0,fee=0,ivp=0;for(const o of S.all){if(!inR(o,rg))continue;const dc=(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
-    if(o.type==='sale'){rev+=num(o.total);cogs+=dc;fee+=bfee(o);ivp+=num(S.iv?.doc?.[o.id])}else if(o.type==='ret'){rev-=num(o.total);if(o.restock)cogs-=dc}else if(o.type==='wx')cogs+=dc}
+    if(o.type==='sale'){rev+=num(o.total);cogs+=dc;fee+=bfee(o);ivp+=num(S.iv?.doc?.[o.id])}else if(o.type==='ret'){rev-=num(o.total);if(o.restock)cogs-=dc}else if(o.type==='wx')cogs+=dc-num(S.wxBk?.[o.id])}
   const exp=S.moneyL.filter(m=>m.kind==='out'&&inR(m,rg)).reduce((a,m)=>a+num(m.amount),0);return{rev,cogs,fee,ivp,gross:rev-cogs-fee-ivp,exp,net:rev-cogs-fee-ivp-exp}}
 const ymKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 const monthName=d=>d.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
@@ -1871,7 +1874,7 @@ function jDetail(o){
   else h=`<div class="tbl"><table><thead><tr><th>Товар</th><th class="num">Кол-во</th>${showP?'<th class="num">Цена</th>':''}${o.type==='sale'?'<th class="num">Скидка</th>':''}${showP?'<th class="num">Сумма</th>':''}${o.type==='sale'&&sc?'<th class="num">Прибыль</th>':''}</tr></thead><tbody>${(o.items||[]).map((i,k)=>{const pr=o.type==='sale'?num(i.price):o.type==='ret'?r2(num(i.sum)/num(i.q||1)):r2(icost(o,k));const s=o.type==='sale'||o.type==='ret'?isum(i):r2(num(i.q)*pr);
     return `<tr><td>${esc(pname(i.p))}${snChips(i.sn)}${(o.type==='sale'||o.type==='wx')&&wInfo(o,i)?`<span class="psku">гарантия до ${ds(wInfo(o,i).until)}</span>`:''}${S.retQ[o.id+':'+k]?`<span class="psku" style="color:var(--bad)">возвращено ${q3(S.retQ[o.id+':'+k])}</span>`:''}</td><td class="num">${q3(i.q)} ${esc(unit(i.p))}</td>${showP?`<td class="num">${NF.format(pr)}</td>`:''}${o.type==='sale'?`<td class="num">${num(i.disc)?NF.format(i.disc)+'%':'—'}</td>`:''}${showP?`<td class="num">${NF.format(s)}</td>`:''}${o.type==='sale'&&sc?`<td class="num">${NF.format(r2(s-num(i.q)*icost(o,k)-ded(o,k)))}</td>`:''}</tr>`}).join('')}</tbody></table></div>
     ${o.type==='sale'?`<p class="small muted" style="margin-top:6px">${num(o.disc)?`Скидка на чек ${money(o.disc)} · `:''}Оплачено ${money(o.paid??o.total)}${o.pay&&PAYL[o.pay]?' ('+esc(PAYL[o.pay])+')':''}${bfee(o)&&can('cost')?` · доля банка ${money(bfee(o))}${o.bfeeD?` (комиссия ${money(o.bfeeD.a)}, НДС ${money(o.bfeeD.v)}, НсП ${money(o.bfeeD.n)})`:''}`:''}${(S.saleAdv?.[o.id]||0)>0.004?` · с баланса клиента ${money(S.saleAdv[o.id])}`:''}${num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0)>0.004?` · в долг ${money(num(o.total)-num(o.paid??o.total)-(S.saleAdv?.[o.id]||0))}`:''}${o.party?` · ${esc(o.party)}`:''}</p>`:''}`;
-  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${o.type==='in'&&S.ops.includes(o)&&S.isOwner&&!o.init&&!o.cons?`<button class="btn ghost" data-act="iv-form" data-id="${esc(o.id)}">${o.ivst?'Товар инвестора: '+esc(ivName(o.ivst.w)):'Товар инвестора'}</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}${o.type==='sale'&&!o.inv&&!o.init&&(S.isOwner||isAdmin())?`<button class="btn ghost" data-act="sale-edit" data-id="${esc(o.id)}">Изменить продажу</button>`:''}
+  h+=`<div class="row" style="margin-top:8px"><button class="btn ghost" data-act="jprint" data-id="${esc(o.id)}">Показать как документ</button>${o.buy?buyBtns(o.id):''}${o.type==='in'&&S.ops.includes(o)&&can('stock')?`<button class="btn ghost" data-act="in-edit" data-id="${esc(o.id)}">Редактировать приход</button>`:''}${o.type==='in'&&S.ops.includes(o)&&S.isOwner&&!o.init&&!o.cons?`<button class="btn ghost" data-act="iv-form" data-id="${esc(o.id)}">${o.ivst?'Товар инвестора: '+esc(ivName(o.ivst.w)):'Товар инвестора'}</button>`:''}${(o.type==='sale'||o.type==='wx')?talonBtns(o.id):''}${o.type==='wx'&&!o.back&&S.ops&&(S.isOwner||isAdmin())?`<button class="btn ghost" data-act="wx-back" data-id="${esc(o.id)}">Поставить неисправный на склад «${esc(wname(o.wh))}»</button>`:''}${o.type==='sale'&&can('returns')?`<button class="btn ghost" data-act="ret-new" data-id="${esc(o.id)}">Оформить возврат</button>`:''}${o.type==='sale'&&!o.inv&&!o.init&&(S.isOwner||isAdmin())?`<button class="btn ghost" data-act="sale-edit" data-id="${esc(o.id)}">Изменить продажу</button>`:''}
    ${can('delete')?(S.jDel===o.id?`<div class="confirm"><span>Удалить ${docNo(o)}? Остатки и долги пересчитаются автоматически.</span><button class="btn danger" data-act="jdel-yes" data-id="${esc(o.id)}">Удалить</button><button class="btn ghost" data-act="jdel-no">Отмена</button></div>`:`<button class="btn link bad" data-act="jdel" data-id="${esc(o.id)}">Удалить документ</button>`):''}</div>`;
   return h}
 async function resolveNames(){
@@ -1957,7 +1960,7 @@ function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!==
   const sc=can('cost');const rg=range();const {from,to}=rg;const inW=o=>S.repWh==='all'||o.wh===S.repWh;
   const ops=S.all.filter(o=>inR(o,rg)&&(o.type==='pay'||inW(o)));const sales=ops.filter(o=>o.type==='sale');const pays=ops.filter(o=>o.type==='pay'&&!o.init);const rets=ops.filter(o=>o.type==='ret');const wxs=ops.filter(o=>o.type==='wx');
   const docCost=o=>(o.items||[]).reduce((a,i,k)=>a+num(i.q)*icost(o,k),0);
-  const gross=sales.reduce((s,o)=>s+num(o.total),0);const retSum=rets.reduce((s,o)=>s+num(o.total),0);const rev=gross-retSum;const wxCost=wxs.reduce((s,o)=>s+docCost(o),0);
+  const gross=sales.reduce((s,o)=>s+num(o.total),0);const retSum=rets.reduce((s,o)=>s+num(o.total),0);const rev=gross-retSum;const wxCost=wxs.reduce((s,o)=>s+docCost(o)-num(S.wxBk?.[o.id]),0);
   const cogs=sales.reduce((s,o)=>s+docCost(o),0)-rets.filter(o=>o.restock).reduce((s,o)=>s+docCost(o),0)+wxCost;
   const isOW=o=>!!S.W[o.wh]?.office;const offProp=ops.filter(o=>o.type==='off'&&isOW(o)).reduce((s,o)=>s+docTotal(o),0);const feeT=sales.reduce((s,o)=>s+bfee(o),0);const ivT=sales.reduce((s,o)=>s+num(S.iv?.doc?.[o.id]),0);const prof=rev-cogs-offProp-feeT-ivT;const inAll=ops.filter(o=>o.type==='in'&&!isOW(o));const initIn=inAll.filter(o=>o.init).reduce((s,o)=>s+docTotal(o),0);const consIn=inAll.filter(o=>o.cons&&!o.init).reduce((s,o)=>s+docTotal(o),0);const cretS=ops.filter(o=>o.type==='off'&&o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);const purch=inAll.filter(o=>!o.init).reduce((s,o)=>s+docTotal(o),0)-cretS;const propIn=ops.filter(o=>o.type==='in'&&isOW(o)&&!o.init).reduce((s,o)=>s+docTotal(o),0);const offs=ops.filter(o=>o.type==='off'&&!o.cret&&!isOW(o)).reduce((s,o)=>s+docTotal(o),0);
   const discG=sales.reduce((s,o)=>s+(o.items||[]).reduce((a,i)=>a+num(i.q)*num(i.price)-isum(i),0),0);
@@ -1982,7 +1985,7 @@ function vReports(){if(S.repView==='opt')return vOptCli();if(S.repWh&&S.repWh!==
       const t=(top[i.p]??={q:0,rev:0,prof:0});t.q+=num(i.q);t.rev+=r;t.prof+=pf})}
   for(const o of rets){payIn[o.pay||'cash']=(payIn[o.pay||'cash']||0)-num(o.total);const d=new Date(o.at);const b=B[idx[bkey(d)]];
     (o.items||[]).forEach((i,k)=>{const r=isum(i),pf=r-(o.restock?num(i.q)*icost(o,k):0);if(b){b.rev-=r;b.prof-=pf}const t=(top[i.p]??={q:0,rev:0,prof:0});t.q-=num(i.q);t.rev-=r;t.prof-=pf})}
-  for(const o of wxs){const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];if(b)b.prof-=docCost(o)}
+  for(const o of wxs){const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];if(b)b.prof-=docCost(o)-num(S.wxBk?.[o.id])}
   for(const o of ops){if(o.type!=='off'||!isOW(o))continue;const d=new Date(o.at);const b=B[idx[monthly?d.getFullYear()+'-'+d.getMonth():dkey(d)]];if(b)b.prof-=docTotal(o)}
   const topL=Object.entries(top).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10);const topMax=topL[0]?.[1].rev||1;
   const gL=Object.entries(Object.entries(top).reduce((m,[p,t])=>{const g=pgroup(p);const x=(m[g]??={q:0,rev:0,prof:0});x.q+=t.q;x.rev+=t.rev;x.prof+=t.prof;return m},{})).sort((a,b)=>b[1].rev-a[1].rev);const gMax=Math.max(1,gL[0]?.[1].rev||1);
@@ -3837,7 +3840,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
-  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'oi-mvnote':()=>oiMvNote(),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
+  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'oi-mvnote':()=>oiMvNote(),'wx-back':async t=>{const o=S.sales.find(x=>x.id===t.dataset.id);if(!o)return;if(!confirm(`Поставить принятый неисправный ${pname(o.items?.[0]?.p)}${o.oldSn?' (S/N '+o.oldSn+')':''} на склад «${wname(o.wh)}»?`))return;if(await guard(()=>S.db.doc('sales/'+o.id).update({back:true}),'Неисправный поставлен на склад','warranty')){o.back=true;derive();render()}},'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
