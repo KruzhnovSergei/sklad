@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 25.11.2026 23:37</span>
+      <span class="muted" style="font-size:11px">Версия от 26.11.2026 12:41</span>
     </div>
   </aside>
   <div class="main">
@@ -1028,11 +1028,12 @@ async function savePay(cid){
 
 /* ---------- гарантия ---------- */
 function soldRows(q){
-  q=q.trim().toLowerCase();if(!q)return[];const cm=Object.keys(S.cin).find(k=>k.toLowerCase()===q);if(cm)q=S.cin[cm].toLowerCase();const qd=q.replace(/\D/g,'');const out=[];
+  q=q.trim().toLowerCase();if(!q)return[];const q0=q;const cm=Object.keys(S.cin).find(k=>k.toLowerCase()===q);if(cm)q=S.cin[cm].toLowerCase();const qd=q.replace(/\D/g,'');const out=[];
+  const partHit=(o,it)=>{if(q0.length<3)return null;const ps=o.type==='sale'?itemParts(o,it):null;if(!ps)return null;return ps.find(x=>[...(x.sn||[]),...(x.rsn||[])].some(z=>String(z).toLowerCase().includes(q0)))||null};
   for(const o of S.all){if(o.type!=='sale'&&o.type!=='wx')continue;
     const cu=o.cust?S.C[o.cust]:null;
     const hitDoc=docNo(o).toLowerCase().includes(q)||(cu&&(cu.name||'').toLowerCase().includes(q))||(qd.length>=4&&cu&&(cu.phone||'').replace(/\D/g,'').includes(qd));
-    (o.items||[]).forEach((it,k)=>{if(hitDoc||(it.sn||[]).some(s=>s.toLowerCase().includes(q))||pname(it.p).toLowerCase().includes(q))out.push({o,it,k})});
+    (o.items||[]).forEach((it,k)=>{const ph=partHit(o,it);if(hitDoc||ph||(it.sn||[]).some(s=>s.toLowerCase().includes(q))||pname(it.p).toLowerCase().includes(q))out.push({o,it,k,ph})});
     if(out.length>=40)break}
   return out}
 function vWarranty(){
@@ -1050,15 +1051,15 @@ function wResults(){
   if(!S.wQ.trim())return '<div class="muted small">Введите серийный номер или номер чека, чтобы проверить срок гарантии и принять товар.</div>';
   const cm=Object.keys(S.cin).find(k=>k.toLowerCase()===S.wQ.trim().toLowerCase());const box=cm?`<div class="infobox" style="margin-bottom:8px">Деталь <span class="sn">${esc(cm)}</span> установлена в компьютер <b>${esc(S.cin[cm])}</b>${S.snLoc[S.cin[cm]]?', он ещё на складе и не продан':''}.${cmInfo(cm)}</div>`:'';
   const rows=soldRows(S.wQ);if(!rows.length)return box+'<div class="empty">Продаж не найдено</div>';
-  return box+`<div class="tbl"><table><thead><tr><th>Продажа</th><th>Товар</th><th>Покупатель</th><th>Гарантия до</th><th>Статус</th><th></th></tr></thead><tbody>${rows.map(({o,it,k})=>{const w=wInfo(o,it);const st=wStatus(w);const rq=num(S.retQ[o.id+':'+k]);const act=S.claims.filter(c=>c.src===o.id&&c.k===k&&c.status!=='closed');
-   return `<tr><td>${ds(o.at)}<span class="psku">${docNo(o)}</span></td><td><span class="pname">${esc(pname(it.p))}</span>${snChips(it.sn)}${rq?`<span class="psku" style="color:var(--bad)">возвращено ${q3(rq)}</span>`:''}</td><td>${o.cust?esc(cname(o.cust)):'—'}</td><td>${w?ds(w.until):'—'}</td><td><span class="chip ${st[0]}">${st[1]}</span>${act.length?` <span class="chip low">в работе ${act.map(claimNo).join(', ')}</span>`:''}</td>
+  return box+`<div class="tbl"><table><thead><tr><th>Продажа</th><th>Товар</th><th>Покупатель</th><th>Гарантия до</th><th>Статус</th><th></th></tr></thead><tbody>${rows.map(({o,it,k,ph})=>{const w=wInfo(o,it);const st=wStatus(w);const rq=num(S.retQ[o.id+':'+k]);const act=S.claims.filter(c=>c.src===o.id&&c.k===k&&c.status!=='closed');
+   return `<tr><td>${ds(o.at)}<span class="psku">${docNo(o)}</span></td><td><span class="pname">${esc(pname(it.p))}</span>${snChips(it.sn)}${ph?`<div class="small" style="margin-top:3px">🔧 деталь: <b>${esc(pname(ph.p))}</b> ${snChips([...(ph.sn||[]),...(ph.rsn||[])])}${(()=>{const pw=partW(o,ph);const st=wStatus(pw);return ` <span class="chip ${st[0]}">${st[1]}</span>${pw?' до '+ds(pw.until):''}`})()}</div>`:''}${rq?`<span class="psku" style="color:var(--bad)">возвращено ${q3(rq)}</span>`:''}</td><td>${o.cust?esc(cname(o.cust)):'—'}</td><td>${w?ds(w.until):'—'}</td><td><span class="chip ${st[0]}">${st[1]}</span>${act.length?` <span class="chip low">в работе ${act.map(claimNo).join(', ')}</span>`:''}</td>
    <td style="white-space:nowrap"><button class="btn link" data-act="cl-new" data-id="${esc(o.id)}" data-k="${k}"${ro('warranty')}>Принять по гарантии</button>${o.type==='sale'&&can('returns')?`<button class="btn link" data-act="ret-new" data-id="${esc(o.id)}" data-k="${k}">Возврат</button>`:''}</td></tr>`}).join('')}</tbody></table></div>`}
 function claimForm(oid,k){const o=S.all.find(x=>x.id===oid);if(!o)return;const it=o.items[k];const w=wInfo(o,it);const st=wStatus(w);
   const sns=(it.sn||[]).filter(s=>!(S.retSn[o.id+':'+k]||[]).includes(s));const exp=!w||w.until<new Date();
   openModal(`<h2>Приём по гарантии</h2>
   <div class="wcard"><div><span>Товар</span>${esc(pname(it.p))}</div><div><span>Продажа</span>${docNo(o)} от ${ds(o.at)}</div><div><span>Покупатель</span>${o.cust?esc(cname(o.cust)):'—'}</div><div><span>Гарантия</span><span class="chip ${st[0]}">${st[1]}</span>${w?' до '+ds(w.until):''}</div></div>
   ${exp?`<div class="banner" style="margin:0">Гарантийный срок истёк или не установлен. Товар можно принять как платный ремонт, отметив это в описании.</div>`:''}
-  ${(()=>{const ps=itemParts(o,it);if(!ps)return '';const q=S.wQ.trim().toLowerCase();const pre=ps.findIndex(x=>[...(x.sn||[]),...(x.rsn||[])].some(z=>z.toLowerCase()===q));
+  ${(()=>{const ps=itemParts(o,it);if(!ps)return '';const q=S.wQ.trim().toLowerCase();let pre=ps.findIndex(x=>[...(x.sn||[]),...(x.rsn||[])].some(z=>z.toLowerCase()===q));if(pre<0&&q.length>=3)pre=ps.findIndex(x=>[...(x.sn||[]),...(x.rsn||[])].some(z=>String(z).toLowerCase().includes(q)));
     return `<label class="field"><span>Что неисправно</span><select id="clPart"><option value="">Компьютер целиком${w?', гарантия до '+ds(w.until):''}</option>${ps.map((x,i)=>{const pw=partW(o,x);const z=[...(x.sn||[]),...(x.rsn||[])];return `<option value="${i}"${i===pre?' selected':''}>${esc(pname(x.p))}${z.length?' · S/N '+esc(z.join(', ')):''} · ${pw?'гарантия до '+ds(pw.until)+(pw.until<new Date()?' (истекла)':''):'без гарантии'}</option>`}).join('')}</select></label>`})()}
   ${sns.length>1?`<label class="field"><span>Серийный номер</span><select id="clSn">${sns.map(s=>`<option>${esc(s)}</option>`).join('')}</select></label>`:sns.length?`<input type="hidden" id="clSn" value="${esc(sns[0])}">`:''}
   ${o.cust?'':`<label class="field"><span>Контакт клиента</span><input id="clContact" placeholder="Имя и телефон"></label>`}
