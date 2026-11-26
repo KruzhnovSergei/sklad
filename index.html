@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 26.11.2026 12:41</span>
+      <span class="muted" style="font-size:11px">Версия от 26.11.2026 12:53</span>
     </div>
   </aside>
   <div class="main">
@@ -1087,15 +1087,19 @@ function claimDetail(c){const src=S.all.find(x=>x.id===c.src);const done=c.statu
     <button class="btn link bad" data-act="cl-res" data-id="${esc(c.id)}" data-v="refuse"${ro('warranty')}>Отказать</button>`}</div></div>`}
   <div class="row" style="margin-top:8px"><button class="btn ghost" data-act="cl-doc" data-id="${esc(c.id)}">Квитанция о приёме</button></div>`}
 async function clUpd(id,patch,h,msg){const c=S.claims.find(x=>x.id===id);if(!c)return;await guard(()=>S.db.collection('claims').doc(id).update({...patch,hist:[...(c.hist||[]),{at:now(),by:S.uid||null,...h}]}),msg,'warranty')}
-function swapForm(cid){const c=S.claims.find(x=>x.id===cid);if(!c)return;const ser=!!S.P[c.p]?.serial;const av=ser?snAt(S.curWh,c.p):[];const q=qty(S.curWh,c.p);const can=ser?av.length>0:q>=1;
-  openModal(`<h2>Замена по гарантии</h2><p>${esc(pname(c.p))}${c.sn?` · неисправный <span class="sn">${esc(c.sn)}</span>`:''}</p><p class="muted small">Новый экземпляр спишется со склада «${esc(wname(S.curWh))}». Гарантия на него продолжится до ${c.until?ds(c.until):'—'}.</p>
-  ${ser?(av.length?`<div class="snlist">${av.map((s,i)=>`<label><input type="radio" name="swapSn" value="${esc(s)}"${i===0?' checked':''}>${esc(s)}</label>`).join('')}</div>`:'<div class="err">На этом складе нет исправных экземпляров. Выберите другой склад в шапке или верните деньги.</div>')
+function swapForm(cid,wh){const c=S.claims.find(x=>x.id===cid);if(!c)return;const ser=!!S.P[c.p]?.serial;
+  const whs=allowedWh().filter(w=>!w.office);if(wh===undefined||!whs.some(w=>w.id===wh)){wh=S.swapWh&&whs.some(w=>w.id===S.swapWh)&&qty(S.swapWh,c.p)>0?S.swapWh:(qty(S.curWh,c.p)>0?S.curWh:(whs.find(w=>qty(w.id,c.p)>0)?.id||S.curWh))}S.swapWh=wh;
+  const av=ser?snAt(wh,c.p):[];const q=qty(wh,c.p);const can=ser?av.length>0:q>=1;
+  openModal(`<h2>Замена по гарантии</h2><p>${esc(pname(c.p))}${c.sn?` · неисправный <span class="sn">${esc(c.sn)}</span>`:''}</p>
+  <label class="field"><span>С какого склада выдать</span><select id="swWh" onchange="swapForm('${esc(c.id)}',this.value)">${whs.map(w=>`<option value="${esc(w.id)}"${w.id===wh?' selected':''}>${esc(w.name)} — ${q3(qty(w.id,c.p))} шт</option>`).join('')}</select></label>
+  <p class="muted small">Новый экземпляр спишется со склада «${esc(wname(wh))}». Гарантия на него продолжится до ${c.until?ds(c.until):'—'}.</p>
+  ${ser?(av.length?`<div class="snlist">${av.map((s,i)=>`<label><input type="radio" name="swapSn" value="${esc(s)}"${i===0?' checked':''}>${esc(s)}</label>`).join('')}</div>`:'<div class="err">На этом складе нет исправных экземпляров. Выберите другой склад выше или верните деньги.</div>')
    :(q>=1?`<p>На складе ${q3(q)} ${esc(unit(c.p))}.</p>`:'<div class="err">На этом складе нет этого товара.</div>')}
   <div class="err" id="swErr"></div>
   <div class="row end"><button class="btn ghost" data-act="modal-close">Отмена</button><button class="btn" data-act="swap-save" data-id="${esc(c.id)}"${can?'':' disabled'}>Выдать замену</button></div>`)}
 async function saveSwap(cid){const c=S.claims.find(x=>x.id===cid);if(!c)return;const ser=!!S.P[c.p]?.serial;const sn=ser?document.querySelector('input[name="swapSn"]:checked')?.value:'';if(ser&&!sn){$('#swErr').textContent='Выберите номер';return}
   const it={p:c.p,q:1,until:c.until||null};if(sn)it.sn=[sn];
-  const doc={type:'wx',at:now(),wh:S.curWh,items:[it],total:0,claim:c.id,src:c.src,oldSn:c.sn||'',cust:c.cust||null,party:'',by:S.uid||null};
+  const doc={type:'wx',at:now(),wh:S.swapWh||S.curWh,items:[it],total:0,claim:c.id,src:c.src,oldSn:c.sn||'',cust:c.cust||null,party:'',by:S.uid||null};
   const ref=S.db.collection('sales').doc();
   const ok=await guard(async()=>{await ref.set(doc);await S.db.collection('claims').doc(cid).update({status:'ready',res:'replace',newSn:sn||'',hist:[...(c.hist||[]),{at:now(),st:'ready',res:'replace',note:'Выдан новый экземпляр'+(sn?' S/N '+sn:''),by:S.uid||null}]})},'Замена оформлена','warranty');
   if(ok){closeModal(true);derive();render();showReceipt({id:ref.id,...doc})}}
