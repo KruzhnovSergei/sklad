@@ -264,7 +264,7 @@ label.sn input{width:auto}
     <div class="side-foot">
       <label class="field" for="curWh"><span>Склад по умолчанию</span><select id="curWh" data-ch="curwh"></select></label>
       <span class="who" id="who"></span>
-      <span class="muted" style="font-size:11px">Версия от 26.11.2026 16:06</span>
+      <span class="muted" style="font-size:11px">Версия от 27.11.2026 13:18</span>
     </div>
   </aside>
   <div class="main">
@@ -381,6 +381,7 @@ const EDK=new Set(PERMS.filter(x=>x[2]).map(x=>x[0]));
 const PRESETS={seller:{label:'Продавец',maxDisc:10,perms:['sell','debt','payments','customers','warranty']},senior:{label:'Старший продавец',maxDisc:20,perms:['sell','debt','payments','customers','custopt','warranty','returns','reports','price']},keeper:{label:'Кладовщик',maxDisc:0,perms:['stock','assembly','warranty']},admin:{label:'Администратор',maxDisc:100,perms:PERMS.map(x=>x[0])}};
 const LVL={admin:'Редактор',seller:'Участник',view:'Просмотр'};
 TYPES.ret={label:'Возврат',doc:'Возврат товара',pre:'ВЗ'};TYPES.asm={label:'Сборка ПК',doc:'Акт сборки компьютера',pre:'СБ'};TYPES.mod={label:'Изменение сборки',doc:'Акт изменения комплектации',pre:'ИЗ'};TYPES.dis={label:'Разборка ПК',doc:'Акт разборки компьютера',pre:'РЗ'};TYPES.spay={label:'Оплата поставщику',doc:'Оплата поставщику',pre:'ОП'};TYPES.wx={label:'Обмен по гарантии',doc:'Акт обмена по гарантии',pre:'ОБ'};
+TYPES.rep={label:'Ремонт товара',doc:'Акт ремонта / доработки товара',pre:'РМ'};
 TYPES.rma={label:'Брак поставщику',doc:'Акт отправки брака поставщику',pre:'БП'};
 TYPES.rmar={label:'Брак: решение',doc:'Акт по браку от поставщика',pre:'БР'};
 const CST={new:['Принят','low'],diag:['Диагностика','low'],sent:['У поставщика / в СЦ','t-move'],ready:['Готов к выдаче','ok'],closed:['Выдан клиенту','t-move']};
@@ -465,7 +466,7 @@ function derive0(){
   {const asc=(a,b)=>(a.at||'').localeCompare(b.at||'')||a.id.localeCompare(b.id);const m={},cnt={};const num_=(arr,key)=>{for(const x of [...arr].sort(asc)){const k=key(x);cnt[k]=(cnt[k]||0)+1;m[x.id]=String(cnt[k]).padStart(5,'0')}};
    num_([...S.ops,...S.sales,...S.spays].filter(x=>x.type),seqKey);num_(S.posL||[],()=>'po');num_(S.claims||[],()=>'cl');S.seqMap=m}
   S.all=[...S.ops,...S.sales,...S.spays].sort((a,b)=>(b.at||'').localeCompare(a.at||''));
-  const CL={},CO={},LS={},WB={},RV={},RL={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
+  const CL={},CO={},LS={},WB={},RV={},RL={},RC={};const lg=(p,o,q,c,t)=>{(CL[p]??=[]).push({o,q,c,t})};const olg=(p,o,q,c,t,pr)=>{(CO[p]??=[]).push({o,q,c,t,pr})};const st={},inQ={},inS={},snLoc={},snH={},debt={},last={},ic={},retQ={},retSn={},pca={},cin={},pcu={},comp={};
   const add=(w,p,q)=>{if(!w)return;(st[w]??={});st[w][p]=(st[w][p]||0)+q};
   const bp=p=>num(S.costs[p]?.buyPrice??S.P[p]?.buyPrice);
   const avgNow=p=>inQ[p]>0?inS[p]/inQ[p]:bp(p);
@@ -484,6 +485,11 @@ function derive0(){
     if(o.type==='sale'&&o.cust){debt[o.cust]=(debt[o.cust]||0)+num(o.total)-num(o.paid??o.total);last[o.cust]=o.at}
     const oc=o.type==='in'?S.opc[o.id]:null;
     if(o.type==='ret'&&o.sale)(o.items||[]).forEach(it=>{const key=o.sale+':'+it.k;retQ[key]=(retQ[key]||0)+num(it.q);(retSn[key]??=[]).push(...(it.sn||[]))});
+    /* ремонт / доработка товара: детали со склада и работа мастера добавляются к себестоимости этого товара */
+    if(o.type==='rep'){let C=0;(o.items||[]).forEach((it,j)=>{const q=num(it.q);const us=(it.sn||[]).filter(x=>pcu[x]!=null);const c=us.length&&us.length===q?us.reduce((a,x)=>a+pcu[x],0)/us.length:avgNow(it.p);ic[o.id+':'+j]=c;C+=q*c;add(o.wh,it.p,-q);olg(it.p,o,q,c,'В ремонт: '+(S.P[o.p]?.name||'')+(o.sn?' S/N '+o.sn:''));
+        for(const z of (it.sn||[])){delete snLoc[z];(snH[z]??=[]).push({o,p:it.p})}});
+      C+=num(o.labor);RC[o.id]=C;if(o.p&&S.P[o.p]){inS[o.p]=(inS[o.p]||0)+C;lg(o.p,o,0,C,'Ремонт'+(o.sn?' S/N '+o.sn:'')+(num(o.labor)?' (работа '+NF.format(num(o.labor))+')':''));if(o.sn){if(pcu[o.sn]!=null)pcu[o.sn]+=C;(snH[o.sn]??=[]).push({o,p:o.p})}}
+      continue}
     /* брак у поставщика: решение (замена / ремонт / деньги / отказ) */
     if(o.type==='rmar'){const R=S.ops.find(x=>x.id===o.rma);const base=num(RV[o.rma]);const rq=(R?.items||[]).reduce((a,x)=>a+num(x.q),0)||1;
       if(o.res==='replace'||o.res==='repair'){(o.items||[]).forEach((it,j)=>{const q=num(it.q),c=base/rq;ic[o.id+':'+j]=c;add(o.wh,it.p,q);inQ[it.p]=(inQ[it.p]||0)+q;inS[it.p]=(inS[it.p]||0)+q*c;lg(it.p,o,q,c,o.res==='replace'?'Замена брака от поставщика':'Брак отремонтирован поставщиком');
@@ -510,9 +516,9 @@ function derive0(){
     if(o.type==='wx'&&o.back&&o.items?.[0]){const p=o.items[0].p,c=num(ic[o.id+':0']);add(o.wh,p,1);inQ[p]=(inQ[p]||0)+1;inS[p]=(inS[p]||0)+c;WB[o.id]=c;lg(p,o,1,c,'Принят неисправный по гарантии');
       if(o.oldSn&&!snLoc[o.oldSn]){snLoc[o.oldSn]={p,wh:o.wh};(snH[o.oldSn]??=[]).push({o,p})}}}
   {const CB={},SA={};for(const o of S.sales.filter(o=>o.cust&&(o.type==='sale'||o.type==='pay')).sort((a,b)=>(a.at||'').localeCompare(b.at||''))){const b0=CB[o.cust]||0;const b1=o.type==='sale'?b0+num(o.total)-num(o.paid??o.total):b0-num(o.amount);CB[o.cust]=b1;if(o.type==='sale'){const cov=r2((b1-b0)-(Math.max(0,b1)-Math.max(0,b0)));if(cov>0.004)SA[o.id]=cov}}S.saleAdv=SA}
-  S.wxBk=WB;S.rmaV=RV;S.rmaL=RL;S.costLog=CL;S.costOut=CO;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
+  S.wxBk=WB;S.repC=RC;S.inQ=inQ;S.rmaV=RV;S.rmaL=RL;S.costLog=CL;S.costOut=CO;S.pca=pca;S.pcComp=comp;S.cin=cin;S.pcu=pcu;S.stock=st;S.snLoc=snLoc;S.snH=snH;S.debt=debt;S.lastBuy=last;S.ic=ic;S.retQ=retQ;S.retSn=retSn;
   consDerive();const sd={},sl={};for(const l of S.consLots)if(l.supp)sd[l.supp]=(sd[l.supp]||0)+l.sold*l.price;for(const o of S.ops){if(o.type!=='in'||!o.supp)continue;const oc=S.opc[o.id];if(oc&&!o.cons)sd[o.supp]=(sd[o.supp]||0)+num(oc.total)-num(oc.paid??oc.total);if(!sl[o.supp]||o.at>sl[o.supp])sl[o.supp]=o.at}
-  for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);for(const o of S.ops)if(o.type==='in'&&o.supp&&o.ivst?.paid&&!o.cons)sd[o.supp]=(sd[o.supp]||0)-ivPrin(o);for(const o of S.ops)if(o.type==='rmar'&&o.res==='refund'&&o.how==='debt'&&o.supp)sd[o.supp]=(sd[o.supp]||0)-num(o.amount);S.supDebt=sd;S.supLast=sl;
+  for(const x of S.spays)sd[x.supp]=(sd[x.supp]||0)-num(x.amount);for(const o of S.ops)if(o.type==='in'&&o.supp&&o.ivst?.paid&&!o.cons)sd[o.supp]=(sd[o.supp]||0)-ivPrin(o);for(const o of S.ops)if(o.type==='rmar'&&o.res==='refund'&&o.how==='debt'&&o.supp)sd[o.supp]=(sd[o.supp]||0)-num(o.amount);for(const o of S.ops)if(o.type==='rep'&&o.master)sd[o.master]=(sd[o.master]||0)+num(o.labor)-num(o.paid);S.supDebt=sd;S.supLast=sl;
   S.avg={};for(const p in inQ)if(inQ[p]>0)S.avg[p]=inS[p]/inQ[p];
   const aw=allowedWh();if(!S.curWh||!aw.some(w=>w.id===S.curWh))S.curWh=aw[0]?.id||null;
   try{S.iv=ivCompute()}catch(e){console.error(e);S.iv=null}S.ocRH=null;
@@ -794,6 +800,7 @@ function receiptText(o,debtAfter){
   if(o.type==='pay'){L.push(`Покупатель: ${cname(o.cust)}`);L.push(line);L.push(`${o.out?'Выдано клиенту':o.adv?'Принята предоплата':'Принято'}: ${money(Math.abs(num(o.amount)))} (${PAYL[o.pay]||''})`);if(o.party)L.push(`Комментарий: ${o.party}`);if(debtAfter!=null)L.push(debtAfter<-0.004?`Предоплата на балансе: ${money(-debtAfter)}`:`${o.out?'Долг клиента теперь':'Остаток долга'}: ${money(debtAfter)}`);return L.join('\n')}
   L.push(o.type==='move'?`${wname(o.wh)} → ${wname(o.toWh)}`:wname(o.wh));
   if(o.type==='ret'&&o.sale){const so=S.all.find(x=>x.id===o.sale);if(so)L.push('По чеку: '+docNo(so))}
+  if(o.type==='rep'){L.push('Товар: '+pname(o.p)+(o.sn?' S/N '+o.sn:''));if(num(o.labor))L.push('Работа мастера'+(o.master?' ('+sname(o.master)+')':'')+': '+money(num(o.labor))+(num(o.paid)?' · оплачено '+money(num(o.paid)):'')+(num(o.labor)-num(o.paid)>0.004&&o.master?' · в долг '+money(num(o.labor)-num(o.paid)):''));if(can('cost')&&S.repC?.[o.id])L.push('Добавлено к себестоимости: '+money(S.repC[o.id]))}
   if(o.type==='rma')L.push('Поставщик: '+sname(o.supp)+(o.party?' · '+o.party:''));if(o.type==='rmar'){const R=S.ops.find(x=>x.id===o.rma);L.push('По акту '+(R?docNo(R):'—')+' · поставщик '+sname(o.supp));L.push({replace:'Поставщик заменил товар',repair:'Поставщик отремонтировал товар',refund:'Поставщик вернул деньги: '+money(num(o.amount))+(o.how==='debt'?' (в счёт нашего долга)':' на счёт «'+accName(o.acc)+'»'),reject:'Поставщик отказал — товар списан'}[o.res]||'')}
   if(o.type==='wx'&&(o.oldSn||o.back))L.push('Принят неисправный'+(o.oldSn?': S/N '+o.oldSn:'')+(o.back?' — поставлен на склад '+wname(o.wh):''));
   if(o.cust)L.push(`Покупатель: ${cname(o.cust)}`);
@@ -1155,6 +1162,7 @@ function snEvents(sn){const E=[];const add=(at,t,o,x)=>E.push({at,t,o,x:x||''});
     else if(o.type==='dis')t=o.pc===sn?'Компьютер разобран':'Снят при разборке '+o.pc;
     else if(o.type==='off')t=o.cret?'Возвращён поставщику':'Списан'+(o.party?' — '+o.party:'');
     else if(o.type==='wx')t=(o.items||[]).some(i=>(i.sn||[]).includes(sn))?'Выдан клиенту на замену по гарантии'+(o.oldSn?' (вместо '+o.oldSn+')':''):'Принят неисправный по гарантии';
+    else if(o.type==='rep')t=o.sn===sn?'Ремонт / доработка'+((o.items||[]).length?': '+(o.items||[]).map(i=>pname(i.p)).join(', '):'')+(num(o.labor)?' + работа мастера'+(o.master?' «'+sname(o.master)+'»':''):'')+(o.party?' — '+o.party:''):'Установлен при ремонте: '+pname(o.p)+(o.sn?' S/N '+o.sn:'');
     else if(o.type==='rma')t='Отправлен поставщику по браку — «'+sname(o.supp)+'»'+(o.party?': '+o.party:'');
     else if(o.type==='rmar')t=(o.items||[]).some(i=>(i.sn||[]).includes(sn))?(o.res==='repair'?'Вернулся от поставщика после ремонта':'Получен от поставщика на замену брака'):{replace:'Поставщик заменил'+((o.items||[]).flatMap(i=>i.sn||[]).length?' на S/N '+(o.items||[]).flatMap(i=>i.sn||[]).join(', '):''),repair:'Поставщик отремонтировал',refund:'Поставщик вернул деньги '+money(o.amount)+' — деталь осталась у него',reject:'Поставщик отказал — деталь списана'}[o.res]||'';
     else t=TYPES[o.type]?.label||o.type;
@@ -1266,6 +1274,7 @@ function moneyEvents(){const E=[];const push=(o,acc,amt,label,desc,x)=>E.push({a
     else if(o.type==='pay'&&!o.init)push(o,accFor(o),num(o.amount),o.out?'Выдача клиенту':o.adv?'Предоплата':'Оплата долга',cname(o.cust)+(o.out&&o.party?' · '+o.party:''),{dx:'sales'});
     else if(o.type==='ret'&&num(o.total))push(o,accFor(o),-num(o.total),'Возврат покупателю',docNo(o))}
   for(const o of S.spays)push(o,accFor(o),-num(o.amount),o.back?'Возврат от поставщика':o.lend?'Выдача поставщику':'Оплата поставщику',sname(o.supp)+(o.party?' · '+o.party:''),{dx:'suppays'});
+  for(const o of S.ops)if(o.type==='rep'&&num(o.paid)>0&&o.acc)push(o,o.acc,-num(o.paid),'Оплата ремонта',(o.master?sname(o.master)+' · ':'')+(S.P[o.p]?.name||'')+' · '+docNo(o));
   for(const o of S.ops)if(o.type==='rmar'&&o.res==='refund'&&o.how==='money'&&num(o.amount))push(o,o.acc,num(o.amount),'Возврат денег за брак',sname(o.supp)+' · '+docNo(o));
   for(const o of S.ops){if(o.type!=='in')continue;const oc=S.opc[o.id];if(oc&&oc.ppay&&num(oc.paid)>0)push(o,oc.ppay,-num(oc.paid),'Оплата прихода',docNo(o)+(o.party?' · '+o.party:''));if(oc&&num(oc.dlv)>0&&oc.dlvAcc)push(o,oc.dlvAcc,-num(oc.dlv),'Доставка товара',docNo(o)+(o.party?' · '+o.party:''))}
   for(const o of S.moneyL){const d=[o.cat,o.note].filter(Boolean).join(' · ');
@@ -1673,7 +1682,44 @@ async function cretmSave(){const M=S.cretm;const err=$('#cretm-err');const R=cre
 
 /* ---------- заказы поставщикам ---------- */
 const poNo=po=>'ЗК-'+(S.seqMap?.[po.id]||po.id.slice(-6).toUpperCase());
-function opSeg(){const m=S.opMode;return `<div class="seg" role="group" aria-label="Тип документа">${[['in','Приход'],['po','Заказы поставщикам'],['cons','Реализация'],['move','Перемещение'],['off','Списание']].map(([k,v])=>`<button data-act="op-mode" data-v="${k}" aria-pressed="${m===k}">${v}</button>`).join('')}</div>`}
+/* ---------- Ремонт / доработка товара ---------- */
+function vRep(){const R=S.rep??={wh:S.curWh,p:'',sn:'',parts:[],labor:'',master:'',paid:'',acc:accList()[0]?.id,note:'',tq:'',pq:''};if(!S.W[R.wh])R.wh=S.curWh;const sc=can('cost');
+  const whs=allowedWh().filter(w=>!w.office);const P=S.P[R.p];
+  const pick=(q,excl)=>filterProds(q).filter(p=>qty(R.wh,p.id)>0&&p.id!==excl).slice(0,q?10:0);
+  const partsCost=R.parts.reduce((a,x)=>a+num(x.q)*cost(x.p),0);const C=partsCost+num(R.labor);
+  const nQ=R.p?num(S.inQ?.[R.p]):0;const was=R.p?cost(R.p):0;const become=R.p&&nQ>0?(was*nQ+C)/nQ:was+C;const onStock=R.p?qty(R.wh,R.p):0;
+  return `<section class="pane stack">
+  <div class="pane-h" style="margin:0">${opSeg()}<span class="muted">${TYPES.rep.doc}</span></div>
+  <p class="muted small" style="margin:0">Ставите деталь в товар (вентилятор в блок питания и т.п.) или отдаёте мастеру: детали уходят со склада, а их стоимость и стоимость работы добавляются к себестоимости ремонтируемого товара. Оплата мастеру — не расход, она уходит в себестоимость.</p>
+  <div class="row"><label class="field" style="max-width:320px"><span>Склад</span><select data-ch="repf" data-f="wh">${whs.map(w=>`<option value="${esc(w.id)}"${w.id===R.wh?' selected':''}>${esc(w.name)}</option>`).join('')}</select></label></div>
+  <h3 style="margin:6px 0 0">1. Что ремонтируем</h3>
+  ${P?`<div class="infobox"><b>${esc(P.name)}</b> · на складе ${q3(onStock)} шт ${sc?`· себестоимость ${money(was)}`:''} <button class="btn link" data-act="rep-tp" data-id="">другой товар</button>
+     ${P.serial?`<div class="snlist" style="margin-top:6px">${snAt(R.wh,R.p).map(z=>`<label><input type="radio" name="repSn" value="${esc(z)}" data-ch="repf" data-f="sn"${z===R.sn?' checked':''}>${esc(z)}</label>`).join('')}</div>`:''}</div>`
+   :`<input class="search" placeholder="Найдите товар на этом складе: название или артикул" value="${esc(R.tq)}" data-in="rept" autocomplete="off"><div id="repTRes">${pick(R.tq).map(p=>`<button class="pick" style="display:flex;justify-content:space-between;width:100%;padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer" data-act="rep-tp" data-id="${esc(p.id)}"><span>${esc(p.name)}</span><span class="muted">${q3(qty(R.wh,p.id))} шт</span></button>`).join('')}</div>`}
+  <h3 style="margin:6px 0 0">2. Какие детали поставили <span class="muted small" style="font-weight:400">(если только работа мастера — пропустите)</span></h3>
+  <input class="search" placeholder="Деталь со склада: вентилятор, конденсатор, термопаста…" value="${esc(R.pq)}" data-in="repp" autocomplete="off"><div id="repPRes">${pick(R.pq,R.p).map(p=>`<button class="pick" style="display:flex;justify-content:space-between;width:100%;padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;cursor:pointer" data-act="rep-pp" data-id="${esc(p.id)}"><span>${esc(p.name)}</span><span class="muted">${q3(qty(R.wh,p.id))} шт</span></button>`).join('')}</div>
+  ${R.parts.length?`<div class="tbl"><table><thead><tr><th>Деталь</th><th class="num">Кол-во</th>${sc?'<th class="num">Себестоимость</th>':''}<th></th></tr></thead><tbody>${R.parts.map((x,i)=>{const pp=S.P[x.p];return `<tr><td>${esc(pp?.name||'')}${pp?.serial?`<div class="snlist" style="margin-top:4px">${snAt(R.wh,x.p).map(z=>`<label><input type="radio" name="repPSn${i}" value="${esc(z)}" data-ch="reppsn" data-i="${i}"${(x.sn||[])[0]===z?' checked':''}>${esc(z)}</label>`).join('')}</div>`:''}</td><td class="num">${pp?.serial?'1':`<input inputmode="decimal" data-ch="reppq" data-i="${i}" value="${esc(x.q)}" style="width:70px;text-align:right">`}</td>${sc?`<td class="num">${NF.format(r2(num(x.q)*cost(x.p)))}</td>`:''}<td><button class="btn link" data-act="rep-pdel" data-i="${i}" aria-label="Убрать">×</button></td></tr>`}).join('')}</tbody></table></div>`:''}
+  <h3 style="margin:6px 0 0">3. Работа мастера</h3>
+  <div class="row">
+   <label class="field" style="flex:0 1 180px"><span>Стоимость работы, сом</span><input inputmode="decimal" data-ch="repf" data-f="labor" value="${esc(R.labor)}" placeholder="0"></label>
+   <label class="field"><span>Мастер</span><select data-ch="repf" data-f="master"><option value="">Сам / без мастера</option>${S.supp.slice().sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(x=>`<option value="${esc(x.id)}"${x.id===R.master?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+   <button class="btn ghost" style="align-self:flex-end" data-act="supp-new" title="Добавить мастера как поставщика услуг">+ Мастер</button></div>
+  ${num(R.labor)>0?`<div class="row"><label class="field" style="flex:0 1 180px"><span>Оплачено сейчас, сом</span><input inputmode="decimal" data-ch="repf" data-f="paid" value="${esc(R.paid)}" placeholder="${esc(R.labor)}"></label>
+   <label class="field"><span>С какого счёта</span><select data-ch="repf" data-f="acc">${accList().map(a=>`<option value="${esc(a.id)}"${a.id===R.acc?' selected':''}>${esc(a.name)}</option>`).join('')}</select></label></div>
+   <p class="muted small" style="margin:0">${R.master?'Если оплатили не всё, остаток станет долгом мастеру — его видно и оплачивают в «Поставщиках».':'Если мастер ещё не получил деньги — выберите его в списке (добавьте кнопкой «+ Мастер»), тогда неоплаченное станет долгом ему.'}</p>`:''}
+  <input placeholder="Что сделано: заменён вентилятор, перепаяны конденсаторы…" data-ch="repf" data-f="note" value="${esc(R.note)}">
+  ${R.p&&sc?`<div class="infobox">Добавится к себестоимости: <b>${money(C)}</b> (детали ${money(partsCost)} + работа ${money(num(R.labor))}). Себестоимость «${esc(P.name)}»: ${money(was)} → <b>${money(become)}</b>${nQ>1?` <span class="muted">(средняя на ${q3(nQ)} шт, если у товара несколько штук — лучше ремонтируемый вести отдельной карточкой «б/у»)</span>`:''}</div>`:''}
+  <div class="err" id="repErr"></div>
+  <div class="row end"><button class="btn" data-act="rep-save"${R.p?'':' disabled'}>Провести ремонт</button></div></section>`}
+async function repSave(){const R=S.rep;const err=$('#repErr');const P=S.P[R?.p];if(!P){err.textContent='Выберите, что ремонтируем';return}
+  if(P.serial&&!R.sn){err.textContent='Выберите серийный номер ремонтируемого';return}
+  for(const x of R.parts){const pp=S.P[x.p];if(pp?.serial&&!(x.sn||[]).length){err.textContent='Выберите серийный номер детали «'+pp.name+'»';return}if(!(num(x.q)>0)||num(x.q)>qty(R.wh,x.p)+0.0005){err.textContent='Не хватает на складе: '+pp.name;return}}
+  const labor=r2(num(R.labor));if(!R.parts.length&&!(labor>0)){err.textContent='Добавьте детали или стоимость работы';return}
+  const paid=labor>0?r2(R.paid===''?labor:num(R.paid)):0;if(paid>labor+0.004){err.textContent='Оплачено больше стоимости работы';return}if(labor-paid>0.004&&!R.master){err.textContent='Оплачено не всё — выберите мастера, чтобы остаток записался долгом ему';return}
+  const o={type:'rep',at:now(),wh:R.wh,p:R.p,sn:R.sn||'',items:R.parts.map(x=>({p:x.p,q:S.P[x.p]?.serial?1:num(x.q),...((x.sn||[]).length?{sn:[...x.sn]}:{})})),labor,master:R.master||'',paid,acc:paid>0?R.acc:'',party:(R.note||'').trim(),by:S.uid||null};
+  const ref=S.db.collection('ops').doc();
+  if(await guard(()=>ref.set(o),'Ремонт проведён','stock')){S.rep=null;derive();render();showReceipt({id:ref.id,...o})}}
+function opSeg(){const m=S.opMode;return `<div class="seg" role="group" aria-label="Тип документа">${[['in','Приход'],['po','Заказы поставщикам'],['cons','Реализация'],['move','Перемещение'],['off','Списание'],['rep','Ремонт']].map(([k,v])=>`<button data-act="op-mode" data-v="${k}" aria-pressed="${m===k}">${v}</button>`).join('')}</div>`}
 function poRecv(po){const r={};for(const o of S.ops)if(o.type==='in'&&o.po===po.id)for(const i of o.items||[])r[i.p]=(r[i.p]||0)+num(i.q);return r}
 function poRemain(po){const r=poRecv(po);const used={};return (po.items||[]).map(l=>{const got=Math.min(num(l.q),Math.max(0,(r[l.p]||0)-(used[l.p]||0)));used[l.p]=(used[l.p]||0)+got;return{...l,got:r3(got),rem:r3(num(l.q)-got)}})}
 const poPaid=po=>S.spays.filter(x=>x.po===po.id).reduce((a,x)=>a+num(x.amount),0);
@@ -1844,6 +1890,7 @@ function vOps(){
   if(m==='move'&&(!o.toWh||o.toWh===o.wh||!S.W[o.toWh]))o.toWh=S.wh.find(w=>w.id!==o.wh)?.id||null;
   const whOpts=sel=>S.wh.map(w=>`<option value="${esc(w.id)}"${w.id===sel?' selected':''}>${esc(w.name)}</option>`).join('');
   if(m==='po')return vPO();
+  if(m==='rep')return vRep();
   if(m==='cons')return vCons();
   return `<section class="pane stack">
   ${o.edit?(()=>{const E=S.ops.find(x=>x.id===o.edit);return `<div class="banner" style="margin:0"><b>Редактирование ${E?docNo(E):''}</b> от ${E?ds(E.at):''}. Исправьте склад, товары, количество или цены и нажмите «Сохранить изменения». Остатки, себестоимость и долг поставщику пересчитаются. <button class="btn link" data-act="in-edit-cancel">Отменить редактирование</button></div>`})():''}
@@ -3920,7 +3967,7 @@ invpay:t=>{S.inv.pay=t.dataset.v;document.querySelectorAll('[data-act="invpay"]'
       if([...(o.rem||[]),...(o.add||[])].flatMap(i=>i.sn||[]).some(x=>{const hh=S.snH[x]||[];return hh[hh.length-1]?.o!==o})){toast('Детали из этого документа уже участвовали в других документах');return}}
     if(o.type==='asm'&&(o.out?.sn||[]).some(x=>(S.snH[x]||[]).length>1)){toast('Этот компьютер уже перемещался или продавался, удалить сборку нельзя');return}
     if(await guard(async()=>{await S.db.collection(col).doc(o.id).delete();if(col==='ops'&&(o.type==='in'||o.type==='asm')&&S.opc[o.id])await S.db.collection('opcosts').doc(o.id).delete()},'Документ удалён','delete')){S.jDel=null;S.jOpen=null}},
-  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'oi-mvnote':()=>oiMvNote(),'wx-back':async t=>{const o=S.sales.find(x=>x.id===t.dataset.id);if(!o)return;if(!confirm(`Поставить принятый неисправный ${pname(o.items?.[0]?.p)}${o.oldSn?' (S/N '+o.oldSn+')':''} на склад «${wname(o.wh)}»?`))return;if(await guard(()=>S.db.doc('sales/'+o.id).update({back:true}),'Неисправный поставлен на склад','warranty')){o.back=true;derive();render()}},'sn-hist':t=>{snHist(t.dataset.v)},'rma-f':t=>{S.rmaAll=!!t.dataset.v;render()},'rma-new':()=>{S.rmaF=null;rmaForm()},'rma-p':t=>{const F=S.rmaF;F.p=t.dataset.id||'';F.sn='';F.q=1;if(F.p)F.supp=F.supp||rmaSuppOf(F.p,'');rmaForm()},'rma-save':()=>rmaSave(),'rma-res':t=>rmaResForm(t.dataset.id),'rmar-k':t=>{S.rmaR.res=t.dataset.v;rmaResForm(S.rmaR.id)},'rmar-how':t=>{S.rmaR.how=t.dataset.v;rmaResForm(S.rmaR.id)},'rmar-save':()=>rmarSave(),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
+  'cost-hist':t=>costHist(t.dataset.id),'cost-hist-open':t=>{closeModal(true);S.tab='journal';S.jOpen=t.dataset.id;S.jQ='';S.jType='all';render()},'cat-allg':()=>{S.catG='';render()},'cat-arch':()=>{S.showArch=true;render()},'w-refresh':t=>wRefresh(t.dataset.id),'oi-mvnote':()=>oiMvNote(),'wx-back':async t=>{const o=S.sales.find(x=>x.id===t.dataset.id);if(!o)return;if(!confirm(`Поставить принятый неисправный ${pname(o.items?.[0]?.p)}${o.oldSn?' (S/N '+o.oldSn+')':''} на склад «${wname(o.wh)}»?`))return;if(await guard(()=>S.db.doc('sales/'+o.id).update({back:true}),'Неисправный поставлен на склад','warranty')){o.back=true;derive();render()}},'sn-hist':t=>{snHist(t.dataset.v)},'rma-f':t=>{S.rmaAll=!!t.dataset.v;render()},'rma-new':()=>{S.rmaF=null;rmaForm()},'rma-p':t=>{const F=S.rmaF;F.p=t.dataset.id||'';F.sn='';F.q=1;if(F.p)F.supp=F.supp||rmaSuppOf(F.p,'');rmaForm()},'rma-save':()=>rmaSave(),'rma-res':t=>rmaResForm(t.dataset.id),'rmar-k':t=>{S.rmaR.res=t.dataset.v;rmaResForm(S.rmaR.id)},'rmar-how':t=>{S.rmaR.how=t.dataset.v;rmaResForm(S.rmaR.id)},'rmar-save':()=>rmarSave(),'rep-tp':t=>{const R=S.rep;R.p=t.dataset.id||'';R.sn='';R.tq='';render()},'rep-pp':t=>{const R=S.rep;const id=t.dataset.id;if(!R.parts.some(x=>x.p===id&&!S.P[id]?.serial))R.parts.push({p:id,q:1,sn:[]});R.pq='';render()},'rep-pdel':t=>{S.rep.parts.splice(+t.dataset.i,1);render()},'rep-save':()=>repSave(),'chart-by':t=>{S.chartBy=t.dataset.v;render()},'rep-view':t=>{S.repView=t.dataset.v||null;render()},'oc-sort':t=>{const k=t.dataset.v;if(S.ocSort===k||(!S.ocSort&&k==='rev'))S.ocDir=-(S.ocDir||-1);else{S.ocSort=k;S.ocDir=k==='name'?1:-1}render()},'oc-f':t=>{S.ocF=t.dataset.v;render()},'oc-card':t=>{if(window.getSelection()?.toString())return;ocCard(t.dataset.id)},
   period:t=>{S.period=t.dataset.v;if(S.period==='custom'&&!S.pFrom){const n=new Date();S.pFrom=isoD(new Date(n.getFullYear(),n.getMonth(),1));S.pTo=isoD(n)}render()},
   'exp-stock':expStock,'stock-xlsx':stockXlsx,
 stgrp:t=>{const C=S.stockCol||(S.stockCol=new Set());const g=t.dataset.v;if(C.has(g))C.delete(g);else C.add(g);ls.set('stockCol',[...C]);render()},
@@ -4147,6 +4194,10 @@ sfwh:t=>{if(t.checked)S.sf.whs.add(t.value);else S.sf.whs.delete(t.value)},
 };
 CH.plsp=t=>plSetPrice(t);CH['oi-file']=t=>oiFiles(t);
 CH.rmaf=t=>{const F=S.rmaF;if(!F)return;const f=t.dataset.f;F[f]=t.value;if(f==='wh'){F.p='';F.sn=''}if(f==='wh')rmaForm()};
+CH.repf=t=>{const R=S.rep;if(!R)return;const f=t.dataset.f;R[f]=t.value;if(f==='wh'){R.p='';R.sn='';R.parts=[]}if(['wh','labor','master'].includes(f))render()};
+CH.reppq=t=>{const x=S.rep?.parts[+t.dataset.i];if(x){x.q=t.value;render()}};CH.reppsn=t=>{const x=S.rep?.parts[+t.dataset.i];if(x)x.sn=[t.value]};
+IN.rept=t=>{S.rep.tq=t.value;const pos=t.selectionStart;render();const e=document.querySelector('[data-in=rept]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}};
+IN.repp=t=>{S.rep.pq=t.value;const pos=t.selectionStart;render();const e=document.querySelector('[data-in=repp]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}};
 CH.rmar=t=>{const F=S.rmaR;if(F)F[t.dataset.f]=t.value};
 IN.rmaq=t=>{const F=S.rmaF;if(!F)return;F.q0=t.value;const pos=t.selectionStart;rmaForm();const e=document.querySelector('[data-in=rmaq]');if(e){e.focus();try{e.setSelectionRange(pos,pos)}catch(_){}}};
 IN.rmar=t=>{const F=S.rmaR;if(F)F[t.dataset.f]=t.value};
